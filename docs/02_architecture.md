@@ -20,6 +20,10 @@
     - plotting/
       - waterfall.py
     - gui/
+      - app.py
+      - main_window.py
+      - models.py
+      - workers.py
     - utils/
       - slicing.py
       - validation.py
@@ -32,7 +36,7 @@
 - processing: preprocessing operations such as demean, detrend, taper, filtering, and resampling.
 - analysis: scientific analysis such as spectrum, STFT, FK, and PSD.
 - plotting: Matplotlib plotting helpers independent from GUI widgets.
-- gui: optional PyQt5 layer that calls core APIs.
+- gui: optional PyQt5 layer that calls preview, formatting, and plotting services.
 - utils: validation, slicing, logging, and shared small helpers.
 
 ## Dependency direction
@@ -77,4 +81,12 @@ Reader responsibilities:
 
 ## GUI design direction
 
-The GUI should call preview, reader, processing, analysis, and plotting services. It should not know details like /Acquisition/Raw[0]/RawData except through reader-facing abstractions. The first minimal GUI should call create_preview rather than opening DAS files directly.
+The GUI should call preview, reader, processing, analysis, and plotting services. It should not know details like /Acquisition/Raw[0]/RawData except through reader-facing abstractions.
+
+Phase 1C GUI rules:
+
+- PyQt5 imports live only in das_view/gui/ or GUI entry points.
+- MainWindow calls PreviewWorker, which is a thin wrapper around create_preview.
+- Metadata text comes from format_metadata.
+- The image panel uses plot_waterfall with an embedded Matplotlib Qt canvas.
+- Current loading is synchronous and may briefly block for larger files; a later worker/QThread pass should move PreviewWorker into the background without changing reader logic.

@@ -164,3 +164,50 @@ No old_code files were copied or imported. This round used prior audit conclusio
 ### Suggested next round
 
 Phase 1C: build the smallest PyQt5 GUI that opens a supported file, calls create_preview, displays formatted metadata, and shows the preview waterfall without adding analysis features.
+
+## 2026-06-20: Phase 1C minimal PyQt5 preview GUI
+
+### Added files
+
+- das_view/gui/app.py
+- examples/run_gui.py
+- tests/test_gui_smoke.py
+
+### Modified files
+
+- das_view/gui/main_window.py
+- das_view/gui/models.py
+- das_view/gui/workers.py
+- pyproject.toml
+- docs/02_architecture.md
+- docs/05_development_log.md
+- docs/06_testing.md
+- docs/07_roadmap.md
+
+### Design decisions
+
+- The GUI is optional and PyQt5 imports are limited to das_view/gui/ and GUI entry points.
+- MainWindow contains only UI wiring: Open File, metadata display, file/preview information, Matplotlib canvas, toolbar, and status bar.
+- PreviewWorker is currently a thin synchronous wrapper around create_preview. It does not implement reader details and can later be moved into QThread.
+- MainWindow uses create_preview through PreviewWorker, format_metadata for metadata text, and plot_waterfall for the image.
+- Current GUI loading may briefly block on large files; background loading is deferred to Phase 1D or Phase 2A.
+
+### Old-code use
+
+No old GUI files were copied or imported. The old PyQt5 + Matplotlib approach was used only as a design reference; the new GUI calls the Phase 1B preview service instead of reading file internals directly.
+
+### Test result
+
+- python -B -m pytest -p no:cacheprovider
+- Result: 30 passed.
+
+### Not completed
+
+- Real ZD HDF5/Puniu DAT GUI validation.
+- Background QThread loading and cancellation.
+- Complex parameter panels and analysis workflows.
+- Waveform plot and additional plot types.
+
+### Suggested next round
+
+Phase 1D: validate the GUI with real small DAS files, improve error messages and loading robustness, then decide whether to add QThread background preview loading or move into Phase 2A IO/plotting enhancements.

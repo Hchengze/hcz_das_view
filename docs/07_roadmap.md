@@ -20,12 +20,14 @@ Goal:
 - Open a file, read metadata, and display a downsampled DAS image.
 - Phase 1A completed the first reader and non-GUI waterfall smoke path.
 - Phase 1B completed metadata display helpers and GUI-independent preview service.
+- Phase 1C completed the minimal PyQt5 GUI for opening a supported file, displaying metadata, and drawing a preview waterfall.
 
 Acceptance:
 
 - A small sample file can be opened.
 - Metadata and a basic waterfall/variable-density plot are shown.
-- The future GUI can call create_preview instead of implementing file IO directly.
+- The GUI calls create_preview instead of implementing file IO directly.
+- Next stabilization should focus on real-data validation, error handling, and moving preview loading to a background worker if needed.
 
 ## Phase 2: Stable IO and basic plotting
 

@@ -7,6 +7,9 @@ dependencies = [
     "numpy",
 ]
 
+[project.scripts]
+das-view-gui = "das_view.gui.app:run"
+
 [project.optional-dependencies]
 hdf5 = ["h5py"]
 plot = ["matplotlib"]
