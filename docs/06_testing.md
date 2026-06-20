@@ -37,10 +37,17 @@ Current coverage:
   input.
 - Local validation script tests cover path-list parsing, missing path-list friendly
   exit behavior, and path-safe preview summaries.
+- Basic preprocessing function tests cover demean, linear detrend, taper,
+  maxabs/minmax normalization, standardization, clipping, invalid parameters,
+  NaN/Inf behavior, and no in-place modification.
+- Preprocessing service tests cover DASData copying, metadata preservation,
+  preprocessing_history records, multi-step ordering, unknown steps, and invalid
+  parameters.
+- Preprocessing example tests cover CLI step construction without requiring real
+  DAS input files.
 
 Future coverage:
 
-- Preprocessing functions.
 - Filter functions.
 - STFT/FK/PSD numerical smoke tests.
 - Reader edge cases with real small sample files.

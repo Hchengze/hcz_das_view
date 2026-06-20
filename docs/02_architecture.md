@@ -17,6 +17,8 @@
       - hdf5_zd.py
       - puniu_dat.py
     - processing/
+      - preprocess.py
+      - service.py
     - analysis/
     - plotting/
       - waterfall.py
@@ -35,7 +37,8 @@
 
 - core: data model, metadata display formatting, package-wide constants, and exceptions.
 - io: data readers, metadata readers, format registry, GUI-independent preview workflow, and bounded data selection services.
-- processing: preprocessing operations such as demean, detrend, taper, filtering, and resampling.
+- processing: GUI-independent preprocessing operations such as demean, linear
+  detrend, taper, normalization, standardization, clipping, and later filtering/resampling.
 - analysis: scientific analysis such as spectrum, STFT, FK, and PSD.
 - plotting: Matplotlib plotting helpers independent from GUI widgets, including waterfall and waveform views.
 - gui: optional PyQt5 layer that calls preview, formatting, and plotting services.
@@ -98,6 +101,19 @@ Reader responsibilities:
 - plot_waveform draws one or more channel traces from DASData with optional normalization
   and offsets. It is pure Matplotlib and does not depend on PyQt5.
 - Plotting helpers assume the internal data convention (n_samples, n_channels).
+
+## Processing services
+
+- das_view/processing/preprocess.py provides pure numpy array functions. The
+  default axis=0 follows the DAS convention and processes each channel along
+  time.
+- das_view/processing/service.py applies named preprocessing steps to DASData,
+  returns a new DASData, preserves metadata, and appends preprocessing_history
+  in metadata.extra_attrs.
+- The service accepts simple step definitions such as ("demean", {"axis": 0})
+  and is the intended integration point for future GUI or CLI workflows.
+- Phase 3A preprocessing is preview-level and in-memory only. It does not export
+  processed full-size DAS files and does not implement filters/STFT/FK/PSD.
 
 ## GUI design direction
 

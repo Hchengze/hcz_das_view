@@ -29,3 +29,26 @@ The current code does not import old_code. It reimplements small, well-understoo
 - Basic non-GUI DAS waterfall plotting follows the old GUI workflow idea but is implemented as a clean plotting helper.
 
 These are covered by synthetic tests.
+
+## Phase 3A preprocessing migration decision
+
+The following old files were reviewed read-only for basic preprocessing:
+
+- old_code/old_code1/tools/analysis_tools.py
+- old_code/old_code4/hcz_signal_preprocess.py
+
+No old_code files are imported by the new runtime, and old_code/ was not
+modified. The old functions are mostly single-trace helpers, often scipy-based,
+and do not consistently document DAS dimensions. Phase 3A therefore reimplemented
+the small, well-understood operations with numpy and explicit
+(n_samples, n_channels) axis semantics.
+
+| Function | Old source | Judgment | New location | Tests | Interface / dimension changes |
+|---|---|---|---|---|---|
+| demean | old_code/old_code1/tools/analysis_tools.py::demeaning; old_code/old_code4/hcz_signal_preprocess.py::demeaning | 重构后复写 | das_view/processing/preprocess.py::demean | tests/test_preprocess.py | Adds axis argument; default axis=0 removes per-channel time mean for DAS arrays; finite statistics ignore NaN/Inf. |
+| detrend_linear | old_code/old_code1/tools/analysis_tools.py::detrending; old_code/old_code4/hcz_signal_preprocess.py::delineaaar_trend | 仅参考 | das_view/processing/preprocess.py::detrend_linear | tests/test_preprocess.py | Rewritten without scipy; operates along explicit axis; finite samples are fitted per trace. |
+| taper | old_code/old_code1/tools/analysis_tools.py::taper/taper_filter; old_code/old_code4/hcz_signal_preprocess.py::taper | 重构后复写 | das_view/processing/preprocess.py::taper | tests/test_preprocess.py | Uses ratio instead of taper_point; default axis=0; currently supports Hann edge taper only. |
+| normalize | old_code/old_code4/hcz_signal_preprocess.py::normalization | 重构后复写 | das_view/processing/preprocess.py::normalize | tests/test_preprocess.py | Adds mode=maxabs/minmax, axis, and eps; all-zero/constant inputs are safe. |
+| standardize | old_code/old_code4/hcz_signal_preprocess.py::standardization | 重构后复写 | das_view/processing/preprocess.py::standardize | tests/test_preprocess.py | Adds axis and eps; constant finite slices become zero. |
+| clip | No focused old helper found in reviewed files | 新实现 | das_view/processing/preprocess.py::clip | tests/test_preprocess.py | Adds explicit min/max and percentile clipping over finite values. |
+| simple preprocessing workflow | old_code/old_code4/hcz_signal_preprocess.py::data_preprocess | 废弃 | das_view/processing/service.py::apply_preprocess | tests/test_preprocessing_service.py | Old workflow is empty/pass; new service applies explicit ordered steps and records metadata history. |

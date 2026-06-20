@@ -58,11 +58,16 @@ Acceptance:
 Goal:
 
 - Add demean, detrend, taper, filtering, resampling, spectrum, and STFT.
+- Phase 3A added numpy-only basic preprocessing functions, a DASData service
+  that records preprocessing history, and a preview-level preprocessing CLI
+  example.
 
 Acceptance:
 
-- Core operations are covered by numerical tests.
+- Basic preprocessing operations are covered by numerical tests.
 - GUI can run operations without blocking for typical data sizes.
+- Next work can add filters in Phase 3B or improve GUI background loading in
+  Phase 2D.
 
 ## Phase 4: Advanced analysis
 

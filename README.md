@@ -3,7 +3,8 @@
 HCZ DAS View is an early-stage DAS data viewing and analysis package. The
 current focus is a small, testable workflow for reading DAS files, displaying
 metadata, creating bounded preview data, and showing a waterfall image.
-Phase 2A also adds bounded data selection helpers and waveform plotting.
+Phase 2A also adds bounded data selection helpers and waveform plotting. Phase
+3A adds small preview-level preprocessing helpers.
 
 ## Current status
 
@@ -18,12 +19,16 @@ Implemented so far:
 - Matplotlib waveform plot.
 - Reader-independent data selection service for bounded windows and traces.
 - Minimal optional PyQt5 GUI with waterfall preview and waveform tab.
+- Basic preprocessing functions: demean, linear detrend, taper, normalize,
+  standardize, and clipping.
+- DASData preprocessing service that records processing history in metadata.
 - Synthetic tests for core readers and preview workflows.
 
 Still intentionally deferred:
 
 - Full analysis platform.
 - STFT/FK/PSD and advanced processing.
+- Full-file preprocessing export.
 - SEGY/SAC/TDMS support.
 - Real DAS data committed to the repository.
 
@@ -67,6 +72,11 @@ Plot one or more waveform traces:
     python examples/plot_waveform.py input.h5 --channel 10 --output trace.png
     python examples/plot_waveform.py input.dat --channels 10 20 30 --output traces.png
 
+Apply basic preprocessing to a bounded preview and save a processed waterfall:
+
+    python examples/preprocess_file.py input.h5 --output preview_processed.png --demean --taper 0.05 --normalize
+    python examples/preprocess_file.py input.dat --output preview_processed.png --demean --normalize
+
 Run the minimal GUI:
 
     python examples/run_gui.py
@@ -83,7 +93,9 @@ If installed with the console script, the GUI can also be started with:
 ## Data policy
 
 Do not commit real DAS data or generated preview images. Large files should be
-opened through slicing/downsampling preview workflows. The internal array
+opened through slicing/downsampling preview workflows. The preprocessing example
+works on bounded preview data only; it does not export processed full-size DAS
+arrays. The internal array
 convention is always:
 
     data.shape == (n_samples, n_channels)
@@ -99,6 +111,6 @@ generated images are intentionally ignored by git.
 - New runtime code must not import old_code.
 - old_code/ is local reference material only.
 - GUI code calls services such as create_preview, read_trace, format_metadata,
-  plot_waterfall, and plot_waveform; it must not implement HDF5/DAT internals
-  directly.
+  plot_waterfall, plot_waveform, and preprocessing service helpers; it must not
+  implement HDF5/DAT internals directly.
 - Core, IO, processing, analysis, and plotting layers must not depend on PyQt5.

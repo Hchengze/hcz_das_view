@@ -438,3 +438,72 @@ the new reader/service layer and local validation tooling.
 Phase 3A: migrate small preprocessing functions first, such as demean, detrend,
 taper, and normalization; or Phase 2D: add QThread background loading, cancel,
 and progress feedback for the GUI.
+
+## 2026-06-21: Phase 3A basic preprocessing functions and service
+
+### Added files
+
+- das_view/processing/service.py
+- examples/preprocess_file.py
+- tests/test_preprocess.py
+- tests/test_preprocessing_service.py
+- tests/test_preprocess_example.py
+
+### Modified files
+
+- das_view/processing/preprocess.py
+- das_view/processing/__init__.py
+- README.md
+- docs/02_architecture.md
+- docs/03_old_code_review.md
+- docs/05_development_log.md
+- docs/06_testing.md
+- docs/07_roadmap.md
+
+### Design decisions
+
+- Implemented numpy-only preprocessing functions for arrays: demean,
+  detrend_linear, taper, normalize, standardize, and clip.
+- The default axis=0 follows the project convention data.shape ==
+  (n_samples, n_channels), so time-axis operations are per channel by default.
+- Functions return new float arrays and do not modify input arrays in place.
+- Finite statistics ignore NaN/Inf values; NaN/Inf values are preserved at their
+  positions where practical.
+- apply_preprocess applies explicit ordered steps to DASData, returns a new
+  DASData, preserves metadata, and appends preprocessing_history in
+  metadata.extra_attrs.
+- examples/preprocess_file.py applies preprocessing only to bounded preview data
+  from create_preview and saves a processed waterfall image. It does not export
+  processed full-size DAS arrays.
+
+### Old-code migration judgment
+
+| Old source | Function/topic | Judgment | New location | Tests | Interface or dimension changes |
+|---|---|---|---|---|---|
+| old_code/old_code1/tools/analysis_tools.py; old_code/old_code4/hcz_signal_preprocess.py | demeaning | 重构后复写 | das_view/processing/preprocess.py::demean | tests/test_preprocess.py | Adds axis; default axis=0 is per-channel time mean. |
+| old_code/old_code1/tools/analysis_tools.py; old_code/old_code4/hcz_signal_preprocess.py | detrending/delineaaar_trend | 仅参考 | das_view/processing/preprocess.py::detrend_linear | tests/test_preprocess.py | Rewritten without scipy and with explicit axis semantics. |
+| old_code/old_code1/tools/analysis_tools.py; old_code/old_code4/hcz_signal_preprocess.py | taper/taper_filter | 重构后复写 | das_view/processing/preprocess.py::taper | tests/test_preprocess.py | Uses ratio instead of taper_point and supports Hann taper along an axis. |
+| old_code/old_code4/hcz_signal_preprocess.py | normalization | 重构后复写 | das_view/processing/preprocess.py::normalize | tests/test_preprocess.py | Adds maxabs/minmax modes, axis, eps, and all-zero safety. |
+| old_code/old_code4/hcz_signal_preprocess.py | standardization | 重构后复写 | das_view/processing/preprocess.py::standardize | tests/test_preprocess.py | Adds axis and eps; constant finite slices become zero. |
+| Reviewed old files | clipping | 新实现 | das_view/processing/preprocess.py::clip | tests/test_preprocess.py | Adds explicit min/max and percentile clipping over finite values. |
+| old_code/old_code4/hcz_signal_preprocess.py | data_preprocess workflow | 废弃 | das_view/processing/service.py::apply_preprocess | tests/test_preprocessing_service.py | Old workflow is pass; new service records ordered processing history. |
+
+No old_code files were imported, copied directly, or modified.
+
+### Test result
+
+- python -B -m pytest -p no:cacheprovider
+- Result: 97 passed.
+
+### Not completed
+
+- Bandpass/highpass/lowpass/notch filters are not implemented.
+- STFT/FK/PSD remain deferred.
+- GUI preprocessing panel is not implemented.
+- Full-size preprocessing export is not implemented.
+
+### Suggested next round
+
+Phase 3B: migrate basic filter functions, starting with bandpass, highpass,
+lowpass, and notch; or Phase 2D: add QThread background loading, cancel, and
+progress feedback for the GUI.
