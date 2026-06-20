@@ -36,17 +36,22 @@ Goal:
 
 - Stabilize ZD HDF5 and Puniu DAT readers.
 - Support time/channel slicing and memory-aware plotting.
+- Phase 2A added a reader-independent data selection service, waveform plotting,
+  and a waveform CLI example.
 
 Acceptance:
 
 - Reader tests cover orientation and metadata.
 - Large files are not blindly loaded for plotting.
+- CLI workflows can create bounded waterfall previews and waveform trace plots.
+- Next work should validate with real small samples and decide whether to integrate
+  waveform plotting into the GUI.
 
 ## Phase 3: Common preprocessing and interactive analysis
 
 Goal:
 
-- Add demean, detrend, taper, filtering, resampling, single-channel waveform, spectrum, and STFT.
+- Add demean, detrend, taper, filtering, resampling, spectrum, and STFT.
 
 Acceptance:
 

@@ -18,6 +18,10 @@ Current coverage:
 - plot_waterfall edge cases for constant matrices and empty data.
 - GUI smoke coverage: PyQt-free GUI model helpers, and MainWindow creation when PyQt5 and Matplotlib Qt support are available.
 - GUI preview limit parsing, status summary formatting, and error formatting.
+- Data service coverage for synthetic ZD HDF5 and Puniu DAT selections, trace reads,
+  slicing, downsampling, invalid channels, empty selections, and unsupported formats.
+- plot_waveform coverage for single-channel, multi-channel, image save with Agg,
+  invalid channels, and constant/zero data.
 
 Future coverage:
 
@@ -25,7 +29,7 @@ Future coverage:
 - Filter functions.
 - STFT/FK/PSD numerical smoke tests.
 - Reader edge cases with real small sample files.
-- Additional plot types.
+- Additional plot types beyond waterfall and waveform.
 - GUI load-file behavior with real small files.
 
 ## Command
@@ -40,6 +44,9 @@ For cache-free runs during agent work:
 
 - h5py tests use pytest.importorskip("h5py").
 - matplotlib plotting tests use pytest.importorskip("matplotlib") and the Agg backend.
+- Waveform plotting tests also use the Agg backend and write only to pytest tmp_path.
 - GUI smoke tests use pytest.importorskip("PyQt5") and pytest.importorskip("matplotlib"). If PyQt5 is not installed, GUI creation tests skip cleanly while core/io/plotting tests continue to run.
 - GUI automation is deferred; GUI-independent state and worker logic should still be testable.
-- Real or quasi-real file validation should use examples/validate_file.py with local data paths. Do not commit the input data or generated preview images.
+- Real or quasi-real file validation should use examples/validate_file.py and
+  examples/plot_waveform.py with local data paths. Do not commit the input data
+  or generated preview/waveform images.

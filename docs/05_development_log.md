@@ -263,3 +263,61 @@ Phase 1D: validate the GUI with real small DAS files, improve error messages and
 ### Suggested next round
 
 Phase 2A: stabilize IO and preview services further, add a waveform plot path, and start building small reusable data service helpers for GUI and CLI workflows.
+
+## 2026-06-21: Phase 2A waveform plotting and data selection service
+
+### Added files
+
+- das_view/io/data_service.py
+- tests/test_data_service.py
+- tests/test_waveform_plot.py
+- examples/plot_waveform.py
+
+### Modified files
+
+- das_view/plotting/waveform.py
+- das_view/io/__init__.py
+- das_view/plotting/__init__.py
+- README.md
+- docs/02_architecture.md
+- docs/05_development_log.md
+- docs/06_testing.md
+- docs/07_roadmap.md
+
+### Design decisions
+
+- read_selection is the GUI/CLI reusable service for bounded file reads. It selects
+  a reader through the registry, validates internal time/channel slices, and delegates
+  actual IO to the reader.
+- read_trace is a waveform-oriented helper. Single-channel and arithmetic channel
+  selections are read as narrow reader slices; non-contiguous selections read the
+  smallest enclosing channel window and then retain requested columns in memory.
+- plot_waveform is pure Matplotlib and accepts DASData only. It supports single or
+  multiple internal channel indices, per-trace normalization, offset display, and
+  clear channel validation errors.
+- GUI waveform integration was intentionally deferred to avoid expanding the Phase 1D
+  preview GUI. Future GUI work should call read_trace/read_selection plus plot_waveform.
+
+### Old-code use
+
+No old_code files were copied, imported, or modified. Phase 2A implemented new
+service and plotting layers using the existing DASData/DASMetadata convention and
+reader APIs established in earlier phases.
+
+### Test result
+
+- python -B -m pytest -p no:cacheprovider
+- Result: 46 passed.
+
+### Not completed
+
+- Real ZD HDF5/Puniu DAT sample validation is still pending.
+- GUI waveform integration is not implemented.
+- Background QThread loading and cancellation are still deferred.
+- STFT/FK/PSD and preprocessing migration remain deferred.
+
+### Suggested next round
+
+Phase 2B: validate ZD HDF5 and Puniu DAT readers against real small samples,
+integrate a lightweight GUI waveform preview if the CLI waveform path is stable,
+and fix reader edge cases discovered by real data.

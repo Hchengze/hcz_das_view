@@ -3,6 +3,7 @@
 HCZ DAS View is an early-stage DAS data viewing and analysis package. The
 current focus is a small, testable workflow for reading DAS files, displaying
 metadata, creating bounded preview data, and showing a waterfall image.
+Phase 2A also adds bounded data selection helpers and waveform plotting.
 
 ## Current status
 
@@ -14,6 +15,8 @@ Implemented so far:
 - Metadata formatting helpers.
 - Reader registry and preview API.
 - Matplotlib waterfall plot.
+- Matplotlib waveform plot.
+- Reader-independent data selection service for bounded windows and traces.
 - Minimal optional PyQt5 GUI.
 - Synthetic tests for core readers and preview workflows.
 
@@ -52,6 +55,11 @@ Validate a real or quasi-real sample without adding data to the repo:
 
     python examples/validate_file.py input.h5
     python examples/validate_file.py input.dat --output preview.png
+
+Plot one or more waveform traces:
+
+    python examples/plot_waveform.py input.h5 --channel 10 --output trace.png
+    python examples/plot_waveform.py input.dat --channels 10 20 30 --output traces.png
 
 Run the minimal GUI:
 
