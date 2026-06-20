@@ -5,7 +5,11 @@ from __future__ import annotations
 from pathlib import Path
 
 from das_view.core.metadata_format import format_metadata
-from das_view.gui.models import PreviewDisplayInfo, format_error_message
+from das_view.gui.models import (
+    PreviewDisplayInfo,
+    format_error_message,
+    parse_preview_limits,
+)
 from das_view.gui.workers import PreviewWorker
 from das_view.plotting.waterfall import plot_waterfall
 
@@ -47,8 +51,18 @@ class MainWindow(_qt_widgets().QMainWindow):
 
         self.file_info = QtWidgets.QPlainTextEdit()
         self.file_info.setReadOnly(True)
-        self.file_info.setMaximumHeight(110)
+        self.file_info.setMaximumHeight(150)
         self.file_info.setPlainText("No file loaded.")
+
+        self.max_samples_input = QtWidgets.QSpinBox()
+        self.max_samples_input.setRange(1, 10_000_000)
+        self.max_samples_input.setValue(self.max_samples)
+        self.max_samples_input.setToolTip("Maximum time samples to read for preview")
+
+        self.max_channels_input = QtWidgets.QSpinBox()
+        self.max_channels_input.setRange(1, 1_000_000)
+        self.max_channels_input.setValue(self.max_channels)
+        self.max_channels_input.setToolTip("Maximum channels to read for preview")
 
         self.metadata_text = QtWidgets.QPlainTextEdit()
         self.metadata_text.setReadOnly(True)
@@ -61,6 +75,10 @@ class MainWindow(_qt_widgets().QMainWindow):
         left_layout = QtWidgets.QVBoxLayout(left_panel)
         left_layout.addWidget(QtWidgets.QLabel("File information"))
         left_layout.addWidget(self.file_info)
+        limits_layout = QtWidgets.QFormLayout()
+        limits_layout.addRow("Max samples", self.max_samples_input)
+        limits_layout.addRow("Max channels", self.max_channels_input)
+        left_layout.addLayout(limits_layout)
         left_layout.addWidget(QtWidgets.QLabel("Metadata"))
         left_layout.addWidget(self.metadata_text)
 
@@ -97,10 +115,14 @@ class MainWindow(_qt_widgets().QMainWindow):
         self.metadata_text.setPlainText("")
         self._clear_figure()
         try:
+            limits = parse_preview_limits(
+                self.max_samples_input.value(),
+                self.max_channels_input.value(),
+            )
             result = PreviewWorker(
                 path,
-                max_samples=self.max_samples,
-                max_channels=self.max_channels,
+                max_samples=limits.max_samples,
+                max_channels=limits.max_channels,
             ).run()
             display = PreviewDisplayInfo.from_preview_result(result)
             lines = display.as_lines()
@@ -108,11 +130,12 @@ class MainWindow(_qt_widgets().QMainWindow):
             self.file_info.setPlainText("\n".join(lines))
             self.metadata_text.setPlainText(format_metadata(result.metadata))
             self._draw_preview(result.preview)
-            self.statusBar().showMessage("Loaded")
+            self.statusBar().showMessage(display.loaded_status())
         except Exception as exc:  # noqa: BLE001 - GUI boundary should catch and display all errors.
             message = format_error_message(exc)
-            self.file_info.setPlainText(f"Path: {path}\n{message}")
-            self.metadata_text.setPlainText("")
+            self.file_info.setPlainText(f"Path: {path}\nError: {message}")
+            self.metadata_text.setPlainText(f"Failed to load preview.\n\n{message}")
+            self._clear_figure()
             self.statusBar().showMessage(f"Error: {message}")
             _qt_widgets().QMessageBox.critical(self, "DAS View error", message)
 

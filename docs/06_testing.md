@@ -17,6 +17,7 @@ Current coverage:
 - Reader preview API for synthetic ZD HDF5 and Puniu DAT, including automatic downsampling, unsupported formats, and metadata error wrapping.
 - plot_waterfall edge cases for constant matrices and empty data.
 - GUI smoke coverage: PyQt-free GUI model helpers, and MainWindow creation when PyQt5 and Matplotlib Qt support are available.
+- GUI preview limit parsing, status summary formatting, and error formatting.
 
 Future coverage:
 
@@ -41,3 +42,4 @@ For cache-free runs during agent work:
 - matplotlib plotting tests use pytest.importorskip("matplotlib") and the Agg backend.
 - GUI smoke tests use pytest.importorskip("PyQt5") and pytest.importorskip("matplotlib"). If PyQt5 is not installed, GUI creation tests skip cleanly while core/io/plotting tests continue to run.
 - GUI automation is deferred; GUI-independent state and worker logic should still be testable.
+- Real or quasi-real file validation should use examples/validate_file.py with local data paths. Do not commit the input data or generated preview images.

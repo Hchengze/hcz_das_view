@@ -87,6 +87,8 @@ Phase 1C GUI rules:
 
 - PyQt5 imports live only in das_view/gui/ or GUI entry points.
 - MainWindow calls PreviewWorker, which is a thin wrapper around create_preview.
+- MainWindow exposes max_samples and max_channels controls; these values are
+  validated in GUI model helpers and then passed to PreviewWorker/create_preview.
 - Metadata text comes from format_metadata.
 - The image panel uses plot_waterfall with an embedded Matplotlib Qt canvas.
 - Current loading is synchronous and may briefly block for larger files; a later worker/QThread pass should move PreviewWorker into the background without changing reader logic.

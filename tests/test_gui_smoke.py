@@ -1,6 +1,6 @@
 import pytest
 
-from das_view.gui.models import PreviewDisplayInfo, format_error_message
+from das_view.gui.models import PreviewDisplayInfo, format_error_message, parse_preview_limits
 
 
 def test_gui_display_info_and_error_formatting_are_pyqt_free():
@@ -19,7 +19,28 @@ def test_gui_display_info_and_error_formatting_are_pyqt_free():
 
     assert info.preview_shape == (10, 4)
     assert "synthetic" in "\n".join(info.as_lines())
+    assert info.loaded_status() == "Loaded: synthetic | preview=(10, 4) | downsample=(2, 3)"
     assert format_error_message(ValueError("bad file")) == "ValueError: bad file"
+
+
+def test_parse_preview_limits_accepts_positive_integer_values():
+    limits = parse_preview_limits("2000", 500)
+
+    assert limits.max_samples == 2000
+    assert limits.max_channels == 500
+
+
+@pytest.mark.parametrize(
+    ("max_samples", "max_channels", "message"),
+    [
+        ("abc", 500, "must be integers"),
+        (0, 500, "max_samples must be positive"),
+        (2000, -1, "max_channels must be positive"),
+    ],
+)
+def test_parse_preview_limits_rejects_invalid_values(max_samples, max_channels, message):
+    with pytest.raises(ValueError, match=message):
+        parse_preview_limits(max_samples, max_channels)
 
 
 def test_main_window_can_be_created_when_pyqt5_is_available():
@@ -35,5 +56,7 @@ def test_main_window_can_be_created_when_pyqt5_is_available():
 
     assert window.windowTitle() == "DAS View"
     assert window.statusBar().currentMessage() == "Ready"
+    assert window.max_samples_input.value() == 2000
+    assert window.max_channels_input.value() == 500
     window.close()
     app.processEvents()

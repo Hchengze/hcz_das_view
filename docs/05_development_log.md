@@ -211,3 +211,55 @@ No old GUI files were copied or imported. The old PyQt5 + Matplotlib approach wa
 ### Suggested next round
 
 Phase 1D: validate the GUI with real small DAS files, improve error messages and loading robustness, then decide whether to add QThread background preview loading or move into Phase 2A IO/plotting enhancements.
+
+## 2026-06-20: Phase 1D GUI stabilization and usage entry points
+
+### Added files
+
+- README.md
+- examples/validate_file.py
+
+### Modified files
+
+- das_view/gui/main_window.py
+- das_view/gui/models.py
+- tests/test_gui_smoke.py
+- docs/02_architecture.md
+- docs/05_development_log.md
+- docs/06_testing.md
+- docs/07_roadmap.md
+
+### GUI structure review
+
+- GUI still calls create_preview through PreviewWorker and does not read HDF5/DAT internals directly.
+- No PyQt5 imports were added outside das_view/gui/ or GUI entry points.
+- PreviewWorker remains a thin synchronous wrapper around create_preview.
+- The main remaining architectural limitation is synchronous loading; QThread migration is still deferred.
+
+### Stability changes
+
+- Added max_samples and max_channels controls to the main window.
+- Added parse_preview_limits for GUI-safe validation before values reach create_preview.
+- Improved file information display, warning display, error text, and loaded status summaries.
+- On load failure, metadata and plot area are cleared so stale previews are less likely to mislead users.
+
+### README and validation
+
+- Added README.md with installation, testing, example, GUI, data policy, and development principle notes.
+- Added examples/validate_file.py for local real/quasi-real ZD HDF5 or Puniu DAT validation without committing data.
+
+### Test result
+
+- python -B -m pytest -p no:cacheprovider
+- Result: 34 passed.
+
+### Not completed
+
+- Real-data validation results are not yet recorded.
+- Background QThread loading and cancellation are not implemented.
+- Waveform plot and additional preview views are not implemented.
+- Advanced processing and analysis remain deferred.
+
+### Suggested next round
+
+Phase 2A: stabilize IO and preview services further, add a waveform plot path, and start building small reusable data service helpers for GUI and CLI workflows.

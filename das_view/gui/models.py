@@ -8,6 +8,14 @@ from typing import Any
 
 
 @dataclass(frozen=True, slots=True)
+class PreviewLimits:
+    """Validated preview size limits from GUI controls or CLI options."""
+
+    max_samples: int = 2000
+    max_channels: int = 500
+
+
+@dataclass(frozen=True, slots=True)
 class PreviewDisplayInfo:
     """Display-ready summary for a preview result."""
 
@@ -34,6 +42,29 @@ class PreviewDisplayInfo:
             f"Preview shape: {self.preview_shape[0]} samples x {self.preview_shape[1]} channels",
             f"Downsample: time_step={self.downsample[0]}, channel_step={self.downsample[1]}",
         ]
+
+    def loaded_status(self) -> str:
+        """Return a compact status bar summary."""
+
+        return (
+            f"Loaded: {self.reader_name} | "
+            f"preview={self.preview_shape} | downsample={self.downsample}"
+        )
+
+
+def parse_preview_limits(max_samples: Any, max_channels: Any) -> PreviewLimits:
+    """Validate preview limits before passing them to create_preview."""
+
+    try:
+        parsed_samples = int(max_samples)
+        parsed_channels = int(max_channels)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("max_samples and max_channels must be integers") from exc
+    if parsed_samples <= 0:
+        raise ValueError("max_samples must be positive")
+    if parsed_channels <= 0:
+        raise ValueError("max_channels must be positive")
+    return PreviewLimits(max_samples=parsed_samples, max_channels=parsed_channels)
 
 
 def format_error_message(error: BaseException) -> str:
