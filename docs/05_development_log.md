@@ -372,3 +372,69 @@ existing Phase 2A services into the minimal GUI and tightened service tests.
 Phase 3A: migrate small preprocessing functions first, such as demean, detrend,
 taper, and normalization; or Phase 2C: validate readers with real small samples
 and fix edge cases discovered during local validation.
+
+## 2026-06-21: Phase 2C local validation tools and reader edge-case checks
+
+### Added files
+
+- examples/validate_local_samples.py
+- tests/test_validation_scripts.py
+
+### Modified files
+
+- .gitignore
+- README.md
+- das_view/io/hdf5_zd.py
+- das_view/io/puniu_dat.py
+- das_view/io/preview.py
+- examples/validate_file.py
+- tests/test_hdf5_zd_reader.py
+- tests/test_puniu_dat_reader.py
+- docs/04_data_formats.md
+- docs/05_development_log.md
+- docs/06_testing.md
+- docs/07_roadmap.md
+
+### Design decisions and fixes
+
+- local_validation_paths.txt, validation_outputs/, outputs/, DAS data files, and
+  generated images are ignored by git.
+- validate_file.py now reports metadata, raw_shape/orientation when available,
+  preview shape/downsample/warnings, and optional waveform output.
+- validate_local_samples.py reads ignored local path lists, skips comments and
+  blank lines, and batch-validates files without saving outputs by default.
+- ZD HDF5 attribute handling now accepts numpy scalar attributes and decodes
+  UTF-8 byte attributes where possible.
+- ZD HDF5, Puniu DAT, and preview paths now surface empty selection errors as
+  clear ReaderError messages.
+- Puniu DAT header parsing now gives clearer errors for invalid/non-finite
+  numeric header values.
+
+### Real/quasi-real validation result
+
+- local_validation_paths.txt was not present in the project root during this run.
+- The no-path-list validation smoke path was executed successfully and exited
+  with a friendly message.
+- No real data paths, DAS data files, or generated images were committed.
+
+### Old-code use
+
+No old_code files were copied, imported, or modified. Phase 2C only hardened
+the new reader/service layer and local validation tooling.
+
+### Test result
+
+- python -B -m pytest -p no:cacheprovider
+- Result: 72 passed.
+
+### Not completed
+
+- Reader behavior has not yet been verified against real local DAS samples.
+- GUI loading remains synchronous; QThread/cancel/progress are deferred.
+- Preprocessing and STFT/FK/PSD remain deferred.
+
+### Suggested next round
+
+Phase 3A: migrate small preprocessing functions first, such as demean, detrend,
+taper, and normalization; or Phase 2D: add QThread background loading, cancel,
+and progress feedback for the GUI.

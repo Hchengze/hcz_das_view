@@ -11,7 +11,11 @@ Current coverage:
 - Dimension mismatch errors.
 - Reader registry registration and lookup.
 - ZD HDF5 metadata read, full read, time slicing, channel slicing, downsampling, orientation transpose, missing path errors, and ambiguous orientation errors.
+- ZD HDF5 edge cases for numpy scalar attrs, bytes attrs, missing RawData,
+  Count/NumberOfLoci mismatches, ambiguous orientation, and empty selections.
 - Puniu DAT header parsing, full read, slicing, downsampling, start_time conversion, and length mismatch errors.
+- Puniu DAT edge cases for incomplete headers, invalid seek, unaligned payloads,
+  invalid timestamps, and empty/out-of-range selections.
 - plot_waterfall smoke test with non-interactive Matplotlib backend and image save.
 - Metadata formatting to dict, text summary, missing-value display, and duration calculation.
 - Reader preview API for synthetic ZD HDF5 and Puniu DAT, including automatic downsampling, unsupported formats, and metadata error wrapping.
@@ -31,6 +35,8 @@ Current coverage:
 - Channel parser tests are PyQt-free and cover single channel input, comma-separated
   input, spaces, duplicate preservation, empty input, non-integer input, and negative
   input.
+- Local validation script tests cover path-list parsing, missing path-list friendly
+  exit behavior, and path-safe preview summaries.
 
 Future coverage:
 
@@ -61,3 +67,6 @@ For cache-free runs during agent work:
 - Real or quasi-real file validation should use examples/validate_file.py and
   examples/plot_waveform.py with local data paths. Do not commit the input data
   or generated preview/waveform images.
+- Batch real/quasi-real validation should use examples/validate_local_samples.py
+  with local_validation_paths.txt. The path file and validation output directories
+  are ignored by git.

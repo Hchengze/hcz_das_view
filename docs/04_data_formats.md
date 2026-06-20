@@ -39,6 +39,9 @@ Current reader support:
 - read(path, time_slice=None, channel_slice=None, downsample=None) supports slicing and simple stride downsampling.
 - downsample may be an int or (time_step, channel_step).
 - metadata.extra_attrs records raw_shape, raw_orientation, orientation_basis, and key HDF5 paths.
+- Phase 2C scalarizes numpy scalar attributes and decodes UTF-8 byte attributes where possible.
+- Missing raw dataset errors include the expected path.
+- Empty time/channel selections raise ReaderError with axis-specific messages.
 
 Orientation logic:
 
@@ -46,6 +49,8 @@ Orientation logic:
 - If raw_shape == (NumberOfLoci, Count), raw orientation is channel_time and the reader transposes to internal convention.
 - If only one hint exists, it must match exactly one axis.
 - If orientation is ambiguous or cannot be inferred from Count/NumberOfLoci, the reader raises ReaderError instead of guessing.
+- Count/NumberOfLoci mismatches with raw_shape are treated as cannot-infer errors;
+  the reader does not silently guess orientation.
 
 Slicing and downsampling:
 
@@ -85,6 +90,20 @@ Current reader support:
 - read(path, time_slice=None, channel_slice=None, downsample=None) supports basic slicing and stride downsampling.
 - Output data is always (n_samples, n_channels).
 - metadata.extra_attrs keeps data_format, timestamp fields, seek, light_channel, and raw_header_bytes.
+- Phase 2C validates incomplete headers, non-finite numeric header fields,
+  seek offsets, float32 payload alignment, payload length mismatches, and empty
+  selections with clearer ReaderError messages.
+- Timestamp conversion failures return start_time=None instead of crashing metadata reads.
+
+## Real/quasi-real local validation
+
+- examples/validate_file.py validates one file by reading metadata, creating a
+  bounded preview, optionally saving a waterfall image, and optionally saving a
+  waveform image.
+- examples/validate_local_samples.py reads ignored local_validation_paths.txt and
+  batch-validates local files without committing inputs or outputs.
+- Phase 2C prepared these tools and ran the no-path-list smoke path. No real
+  sample paths or generated images were committed.
 
 ## Deferred formats
 

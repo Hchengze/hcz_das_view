@@ -114,6 +114,8 @@ class ZDHDF5Reader(BaseDASReader):
             normalize_slice(channel_slice, full_metadata.n_channels, axis_name="channel"),
             channel_step,
         )
+        _ensure_non_empty(internal_time_slice, axis_name="time")
+        _ensure_non_empty(internal_channel_slice, axis_name="channel")
 
         with h5py.File(path, "r") as handle:
             dataset = handle[ZD_RAW_DATASET]
@@ -264,19 +266,39 @@ def _slice_to_tuple(value: slice) -> tuple[int, int, int]:
     return int(value.start), int(value.stop), int(value.step)
 
 
+def _ensure_non_empty(value: slice, *, axis_name: str) -> None:
+    if slice_length(value) <= 0:
+        raise ReaderError(f"{axis_name} selection is empty")
+
+
 def _scalarize(value: Any) -> Any:
-    if hasattr(value, "shape") and getattr(value, "shape", None) == ():
-        return value.item()
+    if hasattr(value, "shape"):
+        shape = getattr(value, "shape", None)
+        if shape == ():
+            value = value.item()
+        elif getattr(value, "size", None) == 1:
+            value = np.asarray(value).reshape(-1)[0].item()
+    if isinstance(value, bytes):
+        try:
+            return value.decode("utf-8")
+        except UnicodeDecodeError:
+            return value
     return value
 
 
 def _as_optional_int(value: Any) -> int | None:
     if value is None:
         return None
-    return int(value)
+    try:
+        return int(value)
+    except (TypeError, ValueError) as exc:
+        raise ReaderError(f"Cannot convert HDF5 attribute value {value!r} to int") from exc
 
 
 def _as_optional_float(value: Any) -> float | None:
     if value is None:
         return None
-    return float(value)
+    try:
+        return float(value)
+    except (TypeError, ValueError) as exc:
+        raise ReaderError(f"Cannot convert HDF5 attribute value {value!r} to float") from exc

@@ -70,6 +70,10 @@ def create_preview(
     )
     selected_samples = slice_length(normalized_time)
     selected_channels = slice_length(normalized_channel)
+    if selected_samples <= 0:
+        raise ReaderError("time selection is empty")
+    if selected_channels <= 0:
+        raise ReaderError("channel selection is empty")
     time_step = _preview_step(selected_samples, max_samples)
     channel_step = _preview_step(selected_channels, max_channels)
     downsample = (time_step, channel_step)

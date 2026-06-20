@@ -101,6 +101,8 @@ class PuniuDATReader(BaseDASReader):
             normalize_slice(channel_slice, metadata.n_channels, axis_name="channel"),
             channel_step,
         )
+        _ensure_non_empty(internal_time_slice, axis_name="time")
+        _ensure_non_empty(internal_channel_slice, axis_name="channel")
 
         expected_values = metadata.n_samples * metadata.n_channels
         available_values = _available_data_values(source, int(metadata.extra_attrs["seek"]))
@@ -138,16 +140,19 @@ def parse_puniu_dat_header(path: str | Path) -> PuniuDATHeader:
     if header.size != PUNIU_HEADER_COUNT:
         raise ReaderError(f"Puniu DAT header is incomplete: {source}")
 
-    channel_count = int(header[0])
-    dx_m = float(header[1])
-    n_samples = int(header[2])
-    dt_s = float(header[3])
-    data_format = int(header[4])
-    timestamp_seconds = float(header[5])
-    timestamp_nanoseconds = float(header[6])
-    start_channel = int(header[7])
-    seek = int(header[8])
-    light_channel = int(header[9])
+    try:
+        channel_count = _finite_int(header[0], "channel_count")
+        dx_m = _finite_float(header[1], "dx_m")
+        n_samples = _finite_int(header[2], "n_samples")
+        dt_s = _finite_float(header[3], "dt_s")
+        data_format = _finite_int(header[4], "data_format")
+        timestamp_seconds = float(header[5])
+        timestamp_nanoseconds = float(header[6])
+        start_channel = _finite_int(header[7], "start_channel")
+        seek = _finite_int(header[8], "seek")
+        light_channel = _finite_int(header[9], "light_channel")
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ReaderError(f"Puniu DAT header contains invalid numeric values: {exc}") from exc
 
     if channel_count <= 0:
         raise ReaderError("Puniu DAT channel count must be positive")
@@ -182,6 +187,19 @@ def parse_puniu_dat_header(path: str | Path) -> PuniuDATHeader:
 
 def _available_data_values(path: Path, seek: int) -> int:
     return (path.stat().st_size - seek) // np.dtype(np.float32).itemsize
+
+
+def _finite_int(value: float, name: str) -> int:
+    if not np.isfinite(value):
+        raise ValueError(f"{name} must be finite")
+    return int(value)
+
+
+def _finite_float(value: float, name: str) -> float:
+    parsed = float(value)
+    if not np.isfinite(parsed):
+        raise ValueError(f"{name} must be finite")
+    return parsed
 
 
 def _slice_metadata(
@@ -223,3 +241,8 @@ def _slice_metadata(
 
 def _slice_to_tuple(value: slice) -> tuple[int, int, int]:
     return int(value.start), int(value.stop), int(value.step)
+
+
+def _ensure_non_empty(value: slice, *, axis_name: str) -> None:
+    if slice_length(value) <= 0:
+        raise ReaderError(f"{axis_name} selection is empty")

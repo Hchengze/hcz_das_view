@@ -55,6 +55,12 @@ Validate a real or quasi-real sample without adding data to the repo:
 
     python examples/validate_file.py input.h5
     python examples/validate_file.py input.dat --output preview.png
+    python examples/validate_file.py input.h5 --waveform-output trace.png --channel 10
+
+Batch-validate local samples listed in an ignored local_validation_paths.txt:
+
+    python examples/validate_local_samples.py
+    python examples/validate_local_samples.py --save-preview-dir validation_outputs
 
 Plot one or more waveform traces:
 
@@ -84,6 +90,9 @@ convention is always:
 
 Reader implementations convert external formats into this convention and store
 source-specific details in metadata extra_attrs.
+
+local_validation_paths.txt, validation_outputs/, outputs/, DAS data files, and
+generated images are intentionally ignored by git.
 
 ## Development principles
 

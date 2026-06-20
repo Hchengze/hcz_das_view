@@ -35,6 +35,27 @@ def test_zd_hdf5_reader_reads_metadata(tmp_path):
     assert metadata.extra_attrs["raw_orientation"] == "time_channel"
 
 
+def test_zd_hdf5_reader_accepts_numpy_scalar_and_bytes_attrs(tmp_path):
+    path = tmp_path / "scalar_attrs.h5"
+    data = np.arange(6, dtype=np.float32).reshape(3, 2)
+    with h5py.File(path, "w") as handle:
+        raw_group = handle.create_group("/Acquisition/Raw[0]")
+        raw_group.attrs["NumberOfLoci"] = np.array(2, dtype=np.int64)
+        raw_group.attrs["OutputDataRate"] = np.array(1000.0, dtype=np.float64)
+        acquisition = handle["/Acquisition"]
+        acquisition.attrs["SpatialSamplingInterval"] = np.array(0.4, dtype=np.float64)
+        time_group = handle.create_group("/Acquisition/Raw[0]/RawDataTime")
+        time_group.attrs["Count"] = np.array(3, dtype=np.int64)
+        dataset = handle.create_dataset(ZD_RAW_DATASET, data=data)
+        dataset.attrs["PartStartTime"] = b"synthetic-start"
+
+    metadata = ZDHDF5Reader().read_metadata(path)
+
+    assert metadata.n_samples == 3
+    assert metadata.n_channels == 2
+    assert metadata.extra_attrs["PartStartTime"] == "synthetic-start"
+
+
 def test_zd_hdf5_reader_reads_full_time_channel_data(tmp_path):
     path = tmp_path / "synthetic.h5"
     data = np.arange(6, dtype=np.float32).reshape(3, 2)
@@ -121,6 +142,15 @@ def test_zd_hdf5_reader_missing_raw_dataset_has_clear_error(tmp_path):
         ZDHDF5Reader().read_metadata(path)
 
 
+def test_zd_hdf5_reader_rejects_mismatched_shape_hints(tmp_path):
+    path = tmp_path / "mismatch.h5"
+    data = np.zeros((3, 2), dtype=np.float32)
+    create_zd_h5(path, data, count=99, number_of_loci=2)
+
+    with pytest.raises(ReaderError, match="Cannot infer"):
+        ZDHDF5Reader().read_metadata(path)
+
+
 def test_zd_hdf5_reader_rejects_ambiguous_orientation(tmp_path):
     path = tmp_path / "ambiguous.h5"
     data = np.zeros((4, 4), dtype=np.float32)
@@ -128,3 +158,14 @@ def test_zd_hdf5_reader_rejects_ambiguous_orientation(tmp_path):
 
     with pytest.raises(ReaderError, match="Ambiguous"):
         ZDHDF5Reader().read_metadata(path)
+
+
+def test_zd_hdf5_reader_rejects_empty_time_or_channel_slice(tmp_path):
+    path = tmp_path / "synthetic.h5"
+    data = np.arange(20, dtype=np.float32).reshape(5, 4)
+    create_zd_h5(path, data)
+
+    with pytest.raises(ReaderError, match="time selection is empty"):
+        ZDHDF5Reader().read(path, time_slice=slice(2, 2))
+    with pytest.raises(ReaderError, match="channel selection is empty"):
+        ZDHDF5Reader().read(path, channel_slice=slice(3, 3))

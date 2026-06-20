@@ -41,6 +41,8 @@ Goal:
 - Phase 2B integrated waveform plotting into the minimal GUI, added channel input
   parsing, and expanded data-service boundary tests for reordered, duplicate, and
   non-contiguous channel selections.
+- Phase 2C added local real/quasi-real sample validation tools and expanded
+  ZD HDF5/Puniu DAT edge-case tests without committing real data.
 
 Acceptance:
 
@@ -48,8 +50,8 @@ Acceptance:
 - Large files are not blindly loaded for plotting.
 - CLI workflows can create bounded waterfall previews and waveform trace plots.
 - The GUI can show both bounded waterfall previews and simple waveform traces.
-- Next work should validate with real small samples and decide whether to add
-  background loading or begin small preprocessing functions.
+- Next work should run the prepared validation tools on real local samples,
+  add background GUI loading, or begin small preprocessing functions.
 
 ## Phase 3: Common preprocessing and interactive analysis
 

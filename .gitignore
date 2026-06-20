@@ -11,6 +11,7 @@ __pycache__/
 Thumbs.db
 .vscode/
 .idea/
+local_validation_paths.txt
 
 # Local environments and build outputs
 .env
@@ -40,6 +41,8 @@ old_code/
 *.txt
 
 # Generated figures and image outputs
+validation_outputs/
+outputs/
 *.png
 *.jpg
 *.jpeg
