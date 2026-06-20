@@ -1,0 +1,37 @@
+# Testing
+
+## Test goals
+
+The project should test core logic independently from the GUI.
+
+Current coverage:
+
+- DASMetadata initialization.
+- DASData dimension convention.
+- Dimension mismatch errors.
+- Reader registry registration and lookup.
+- ZD HDF5 metadata read, full read, time slicing, channel slicing, downsampling, orientation transpose, missing path errors, and ambiguous orientation errors.
+- Puniu DAT header parsing, full read, slicing, downsampling, start_time conversion, and length mismatch errors.
+- plot_waterfall smoke test with non-interactive Matplotlib backend and image save.
+
+Future coverage:
+
+- Preprocessing functions.
+- Filter functions.
+- STFT/FK/PSD numerical smoke tests.
+- Reader edge cases with real small sample files.
+- Plotting edge cases and additional plot types.
+
+## Command
+
+    python -m pytest
+
+For cache-free runs during agent work:
+
+    python -B -m pytest -p no:cacheprovider
+
+## Optional dependency strategy
+
+- h5py tests use pytest.importorskip("h5py").
+- matplotlib plotting tests use pytest.importorskip("matplotlib") and the Agg backend.
+- GUI automation is deferred; GUI-independent state and worker logic should still be testable.

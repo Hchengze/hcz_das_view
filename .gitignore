@@ -1,0 +1,47 @@
+# Python caches and bytecode
+__pycache__/
+.pytest_cache/
+*.pyc
+*.pyo
+*.pyd
+
+# Logs and OS/editor files
+*.log
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Local environments and build outputs
+.env
+.venv/
+venv/
+build/
+dist/
+*.egg-info/
+
+# Local legacy/reference assets
+old_code/
+.git_broken_*/
+
+# DAS, seismic, numeric, and tabular data files
+*.h5
+*.hdf5
+*.dat
+*.sgy
+*.segy
+*.sac
+*.tdms
+*.npy
+*.npz
+*.mat
+*.csv
+*.xlsx
+*.txt
+
+# Generated figures and image outputs
+*.png
+*.jpg
+*.jpeg
+*.tif
+*.tiff

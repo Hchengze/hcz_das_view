@@ -1,0 +1,1 @@
+"""Baseline resampling module placeholder."""

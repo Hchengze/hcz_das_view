@@ -1,0 +1,17 @@
+[project]
+name = "das-view"
+version = "0.1.0.dev0"
+description = "DAS data viewer and analysis package"
+requires-python = ">=3.10"
+dependencies = [
+    "numpy",
+]
+
+[project.optional-dependencies]
+hdf5 = ["h5py"]
+plot = ["matplotlib"]
+gui = ["PyQt5", "matplotlib"]
+dev = ["pytest", "h5py", "matplotlib"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
