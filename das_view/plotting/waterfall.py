@@ -18,6 +18,7 @@ def plot_waterfall(
     percentile_clip: tuple[float, float] | None = (1, 99),
     cmap: str = "seismic",
     show_colorbar: bool = True,
+    title: str | None = None,
 ):
     """Plot a DAS variable-density image and return (figure, axes).
 
@@ -30,6 +31,8 @@ def plot_waterfall(
     data = np.asarray(das_data.data)
     if data.ndim != 2:
         raise ValueError("plot_waterfall expects DASData.data shaped as (n_samples, n_channels)")
+    if data.size == 0 or data.shape[0] == 0 or data.shape[1] == 0:
+        raise ValueError("plot_waterfall cannot plot empty DAS data")
 
     if ax is None:
         fig, ax = plt.subplots()
@@ -50,7 +53,7 @@ def plot_waterfall(
     )
     ax.set_xlabel(_x_label(das_data))
     ax.set_ylabel("Time (s)" if das_data.metadata.dt_s is not None else "Sample index")
-    ax.set_title("DAS waterfall")
+    ax.set_title(title if title is not None else _default_title(das_data))
     if show_colorbar:
         fig.colorbar(image, ax=ax, label="Amplitude")
     return fig, ax
@@ -104,3 +107,9 @@ def _x_label(das_data: DASData) -> str:
     if das_data.metadata.dx_m is not None:
         return "Distance (m)"
     return "Channel"
+
+
+def _default_title(das_data: DASData) -> str:
+    metadata = das_data.metadata
+    source = metadata.source_format or "unknown format"
+    return f"DAS waterfall - {source} ({metadata.n_samples} x {metadata.n_channels})"

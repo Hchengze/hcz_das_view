@@ -18,11 +18,14 @@ Goal:
 
 - Support one first-priority format end to end.
 - Open a file, read metadata, and display a downsampled DAS image.
+- Phase 1A completed the first reader and non-GUI waterfall smoke path.
+- Phase 1B completed metadata display helpers and GUI-independent preview service.
 
 Acceptance:
 
 - A small sample file can be opened.
 - Metadata and a basic waterfall/variable-density plot are shown.
+- The future GUI can call create_preview instead of implementing file IO directly.
 
 ## Phase 2: Stable IO and basic plotting
 

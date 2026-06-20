@@ -13,6 +13,9 @@ Current coverage:
 - ZD HDF5 metadata read, full read, time slicing, channel slicing, downsampling, orientation transpose, missing path errors, and ambiguous orientation errors.
 - Puniu DAT header parsing, full read, slicing, downsampling, start_time conversion, and length mismatch errors.
 - plot_waterfall smoke test with non-interactive Matplotlib backend and image save.
+- Metadata formatting to dict, text summary, missing-value display, and duration calculation.
+- Reader preview API for synthetic ZD HDF5 and Puniu DAT, including automatic downsampling, unsupported formats, and metadata error wrapping.
+- plot_waterfall edge cases for constant matrices and empty data.
 
 Future coverage:
 
@@ -20,7 +23,7 @@ Future coverage:
 - Filter functions.
 - STFT/FK/PSD numerical smoke tests.
 - Reader edge cases with real small sample files.
-- Plotting edge cases and additional plot types.
+- Additional plot types.
 
 ## Command
 

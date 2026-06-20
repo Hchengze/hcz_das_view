@@ -6,11 +6,13 @@
     - __init__.py
     - core/
       - data_model.py
+      - metadata_format.py
       - exceptions.py
       - config.py
     - io/
       - base.py
       - registry.py
+      - preview.py
       - hdf5_zd.py
       - puniu_dat.py
     - processing/
@@ -25,8 +27,8 @@
 
 ## Layer responsibilities
 
-- core: data model, package-wide constants, and exceptions.
-- io: data readers, metadata readers, and format registry.
+- core: data model, metadata display formatting, package-wide constants, and exceptions.
+- io: data readers, metadata readers, format registry, and GUI-independent preview workflow.
 - processing: preprocessing operations such as demean, detrend, taper, filtering, and resampling.
 - analysis: scientific analysis such as spectrum, STFT, FK, and PSD.
 - plotting: Matplotlib plotting helpers independent from GUI widgets.
@@ -62,6 +64,17 @@ Reader responsibilities:
 - Record source format and source path.
 - Preserve source-specific information in extra_attrs.
 
+## Metadata display and preview service
+
+- das_view/core/metadata_format.py converts DASMetadata into stable dictionaries,
+  summary lines, and text blocks for CLI and GUI display.
+- das_view/io/preview.py owns the lightweight preview workflow:
+  path -> reader selection -> metadata read -> bounded slice/downsample read -> PreviewResult.
+- PreviewResult includes full-file metadata, preview DASData, reader name, normalized
+  slices, downsampling steps, and warnings.
+- max_samples and max_channels are used to compute simple integer downsampling before
+  data is read, so large files are not loaded blindly for preview.
+
 ## GUI design direction
 
-The GUI should call reader, processing, analysis, and plotting services. It should not know details like /Acquisition/Raw[0]/RawData except through reader-facing abstractions.
+The GUI should call preview, reader, processing, analysis, and plotting services. It should not know details like /Acquisition/Raw[0]/RawData except through reader-facing abstractions. The first minimal GUI should call create_preview rather than opening DAS files directly.

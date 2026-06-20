@@ -115,3 +115,52 @@ Implement and test the first practical reader workflow: choose either ZD HDF5 or
 ### Suggested next round
 
 Validate ZD HDF5 against a real small sample file, then add metadata formatting and a small CLI/API helper that prints metadata and creates a downsampled preview without requiring users to write Python code.
+
+## 2026-06-20: Phase 1B metadata display and preview workflow
+
+### Added files
+
+- das_view/core/metadata_format.py
+- das_view/io/preview.py
+- examples/preview_file.py
+- tests/test_metadata_format.py
+- tests/test_preview_api.py
+
+### Modified files
+
+- das_view/core/__init__.py
+- das_view/io/__init__.py
+- das_view/plotting/waterfall.py
+- tests/test_plot_waterfall.py
+- docs/02_architecture.md
+- docs/05_development_log.md
+- docs/06_testing.md
+- docs/07_roadmap.md
+
+### Design decisions
+
+- Metadata display is implemented in core without importing h5py, Matplotlib, or PyQt5.
+- create_preview is the GUI-independent service for future file-open workflows.
+- create_preview selects a reader through the registry, reads metadata first, normalizes requested slices, computes integer downsampling from max_samples/max_channels, then asks the reader to read only the preview selection.
+- PreviewResult keeps both full-file metadata and preview DASData so GUI widgets can show source metadata while plotting a bounded preview matrix.
+- plot_waterfall now rejects empty data, tolerates constant matrices, and generates a metadata-aware default title.
+
+### Old-code use
+
+No old_code files were copied or imported. This round used prior audit conclusions only as architectural context: GUI file opening should be separated from reader and plotting logic, and preview reads should avoid loading full DAS files.
+
+### Test result
+
+- python -B -m pytest -p no:cacheprovider
+- Result: 28 passed.
+
+### Not completed
+
+- Real data validation against user-provided ZD HDF5 or Puniu DAT files.
+- Full PyQt5 GUI.
+- GUI threading/workers for long file reads.
+- Additional data formats and analysis algorithms.
+
+### Suggested next round
+
+Phase 1C: build the smallest PyQt5 GUI that opens a supported file, calls create_preview, displays formatted metadata, and shows the preview waterfall without adding analysis features.
