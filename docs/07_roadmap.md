@@ -38,14 +38,18 @@ Goal:
 - Support time/channel slicing and memory-aware plotting.
 - Phase 2A added a reader-independent data selection service, waveform plotting,
   and a waveform CLI example.
+- Phase 2B integrated waveform plotting into the minimal GUI, added channel input
+  parsing, and expanded data-service boundary tests for reordered, duplicate, and
+  non-contiguous channel selections.
 
 Acceptance:
 
 - Reader tests cover orientation and metadata.
 - Large files are not blindly loaded for plotting.
 - CLI workflows can create bounded waterfall previews and waveform trace plots.
-- Next work should validate with real small samples and decide whether to integrate
-  waveform plotting into the GUI.
+- The GUI can show both bounded waterfall previews and simple waveform traces.
+- Next work should validate with real small samples and decide whether to add
+  background loading or begin small preprocessing functions.
 
 ## Phase 3: Common preprocessing and interactive analysis
 

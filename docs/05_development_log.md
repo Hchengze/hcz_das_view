@@ -321,3 +321,54 @@ reader APIs established in earlier phases.
 Phase 2B: validate ZD HDF5 and Puniu DAT readers against real small samples,
 integrate a lightweight GUI waveform preview if the CLI waveform path is stable,
 and fix reader edge cases discovered by real data.
+
+## 2026-06-21: Phase 2B GUI waveform integration and channel boundary tests
+
+### Modified files
+
+- das_view/gui/main_window.py
+- das_view/gui/models.py
+- das_view/io/data_service.py
+- tests/test_gui_smoke.py
+- tests/test_data_service.py
+- README.md
+- docs/02_architecture.md
+- docs/05_development_log.md
+- docs/06_testing.md
+- docs/07_roadmap.md
+
+### Design decisions
+
+- Added a minimal Waveform tab to the optional PyQt5 GUI while preserving the
+  existing Waterfall preview tab.
+- GUI waveform loading calls read_trace and plot_waveform. The GUI does not read
+  HDF5/DAT internals and does not implement channel slicing or downsampling logic.
+- Channel input parsing is kept in das_view/gui/models.py so it is testable
+  without PyQt5. Duplicate channel indices are preserved by design.
+- read_trace now wraps non-integer sequence input in ReaderError for clearer
+  service-boundary messages.
+- Non-contiguous, reordered, and duplicate waveform selections keep requested
+  order and clear dx_m to avoid implying regular spatial spacing.
+
+### Old-code use
+
+No old_code files were copied, imported, or modified. Phase 2B only integrated
+existing Phase 2A services into the minimal GUI and tightened service tests.
+
+### Test result
+
+- python -B -m pytest -p no:cacheprovider
+- Result: 61 passed.
+
+### Not completed
+
+- Real-data validation using the user-provided local data directories is still
+  pending and should not commit any input data or generated images.
+- GUI loading is still synchronous; QThread/background loading remains deferred.
+- STFT/FK/PSD and preprocessing migration remain deferred.
+
+### Suggested next round
+
+Phase 3A: migrate small preprocessing functions first, such as demean, detrend,
+taper, and normalization; or Phase 2C: validate readers with real small samples
+and fix edge cases discovered during local validation.

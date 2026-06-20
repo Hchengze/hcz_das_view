@@ -20,8 +20,17 @@ Current coverage:
 - GUI preview limit parsing, status summary formatting, and error formatting.
 - Data service coverage for synthetic ZD HDF5 and Puniu DAT selections, trace reads,
   slicing, downsampling, invalid channels, empty selections, and unsupported formats.
+- Phase 2B extends data service trace coverage to contiguous multi-channel reads,
+  non-contiguous reads, non-increasing channel order, duplicate channels, negative
+  channels, empty channel selections, non-integer channel sequences, and metadata
+  spacing behavior for non-contiguous selections.
 - plot_waveform coverage for single-channel, multi-channel, image save with Agg,
   invalid channels, and constant/zero data.
+- GUI waveform smoke coverage checks that the Waveform tab and controls can be
+  constructed when PyQt5 is available.
+- Channel parser tests are PyQt-free and cover single channel input, comma-separated
+  input, spaces, duplicate preservation, empty input, non-integer input, and negative
+  input.
 
 Future coverage:
 
@@ -46,6 +55,8 @@ For cache-free runs during agent work:
 - matplotlib plotting tests use pytest.importorskip("matplotlib") and the Agg backend.
 - Waveform plotting tests also use the Agg backend and write only to pytest tmp_path.
 - GUI smoke tests use pytest.importorskip("PyQt5") and pytest.importorskip("matplotlib"). If PyQt5 is not installed, GUI creation tests skip cleanly while core/io/plotting tests continue to run.
+- GUI waveform tests avoid real file dialogs and real DAS data; they only instantiate
+  widgets and test GUI-independent parser/model helpers.
 - GUI automation is deferred; GUI-independent state and worker logic should still be testable.
 - Real or quasi-real file validation should use examples/validate_file.py and
   examples/plot_waveform.py with local data paths. Do not commit the input data

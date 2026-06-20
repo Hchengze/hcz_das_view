@@ -17,7 +17,7 @@ Implemented so far:
 - Matplotlib waterfall plot.
 - Matplotlib waveform plot.
 - Reader-independent data selection service for bounded windows and traces.
-- Minimal optional PyQt5 GUI.
+- Minimal optional PyQt5 GUI with waterfall preview and waveform tab.
 - Synthetic tests for core readers and preview workflows.
 
 Still intentionally deferred:
@@ -65,6 +65,11 @@ Run the minimal GUI:
 
     python examples/run_gui.py
 
+In the GUI, open a supported file first, then use the Waveform tab to enter a
+zero-based channel index such as 10 or comma-separated indices such as
+10,20,30. The GUI calls the shared data service; it does not read format
+internals directly.
+
 If installed with the console script, the GUI can also be started with:
 
     das-view-gui
@@ -84,6 +89,7 @@ source-specific details in metadata extra_attrs.
 
 - New runtime code must not import old_code.
 - old_code/ is local reference material only.
-- GUI code calls services such as create_preview, format_metadata, and
-  plot_waterfall; it must not implement HDF5/DAT internals directly.
+- GUI code calls services such as create_preview, read_trace, format_metadata,
+  plot_waterfall, and plot_waveform; it must not implement HDF5/DAT internals
+  directly.
 - Core, IO, processing, analysis, and plotting layers must not depend on PyQt5.

@@ -67,6 +67,31 @@ def parse_preview_limits(max_samples: Any, max_channels: Any) -> PreviewLimits:
     return PreviewLimits(max_samples=parsed_samples, max_channels=parsed_channels)
 
 
+def parse_channel_indices(text: str) -> tuple[int, ...]:
+    """Parse comma-separated zero-based channel indices for waveform display.
+
+    Duplicate channel indices are preserved intentionally so the GUI and tests
+    reflect the user's requested order exactly.
+    """
+
+    if text is None:
+        raise ValueError("channel input must not be empty")
+    parts = [part.strip() for part in str(text).split(",")]
+    if not parts or any(part == "" for part in parts):
+        raise ValueError("channel input must contain one or more comma-separated integers")
+
+    channels: list[int] = []
+    for part in parts:
+        try:
+            value = int(part)
+        except ValueError as exc:
+            raise ValueError(f"channel index must be an integer: {part!r}") from exc
+        if value < 0:
+            raise ValueError("channel indices must be non-negative")
+        channels.append(value)
+    return tuple(channels)
+
+
 def format_error_message(error: BaseException) -> str:
     """Return a concise error message suitable for status bars/dialogs."""
 

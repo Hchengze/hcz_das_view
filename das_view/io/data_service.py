@@ -173,7 +173,10 @@ def _normalize_trace_channels(channel: int | Sequence[int], n_channels: int) -> 
     if isinstance(channel, int):
         channels = [channel]
     elif isinstance(channel, Sequence) and not isinstance(channel, (str, bytes)):
-        channels = [int(value) for value in channel]
+        try:
+            channels = [int(value) for value in channel]
+        except (TypeError, ValueError) as exc:
+            raise ReaderError("channel sequence must contain only integer indices") from exc
     else:
         raise ReaderError("channel must be an int or a sequence of ints")
 

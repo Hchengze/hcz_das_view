@@ -101,7 +101,7 @@ Reader responsibilities:
 
 ## GUI design direction
 
-The GUI should call preview, reader, processing, analysis, and plotting services. It should not know details like /Acquisition/Raw[0]/RawData except through reader-facing abstractions.
+The GUI should call preview, data-service, processing, analysis, and plotting services. It should not know details like /Acquisition/Raw[0]/RawData except through reader-facing abstractions.
 
 Phase 1C GUI rules:
 
@@ -111,6 +111,11 @@ Phase 1C GUI rules:
   validated in GUI model helpers and then passed to PreviewWorker/create_preview.
 - Metadata text comes from format_metadata.
 - The image panel uses plot_waterfall with an embedded Matplotlib Qt canvas.
-- Future waveform GUI views should call read_trace/read_selection plus plot_waveform,
-  not concrete ZD HDF5 or Puniu DAT reader internals.
+- Phase 2B adds a Waveform tab. It parses zero-based channel indices in GUI
+  model helpers, then calls read_trace and plot_waveform. The GUI does not
+  implement channel slicing, downsampling algorithms, or concrete reader paths.
+- Non-contiguous, reordered, or duplicate channel waveform selections are
+  represented in metadata extra_attrs. dx_m is cleared for non-contiguous
+  selections so downstream displays do not pretend the selected traces are
+  evenly spaced.
 - Current loading is synchronous and may briefly block for larger files; a later worker/QThread pass should move PreviewWorker into the background without changing reader logic.

@@ -96,6 +96,57 @@ def test_read_trace_multiple_noncontiguous_channels_preserves_order(tmp_path):
     assert result.das_data.metadata.extra_attrs["selected_channel_indices"] == (5, 1, 3)
 
 
+def test_read_trace_contiguous_multi_channel_keeps_spacing_metadata(tmp_path):
+    path = tmp_path / "sample.h5"
+    data = np.arange(80, dtype=np.float32).reshape(10, 8)
+    write_zd_h5(path, data)
+
+    result = read_trace(path, channel=[1, 2, 3], downsample=(2, 1))
+
+    assert result.requested_channels == (1, 2, 3)
+    np.testing.assert_array_equal(result.das_data.data, data[::2, 1:4])
+    assert result.das_data.data.shape == (5, 3)
+    assert result.das_data.metadata.dx_m == 0.5
+    assert result.das_data.metadata.extra_attrs["trace_selection_contiguous"] is True
+
+
+def test_read_trace_noncontiguous_channels_clear_spacing_metadata(tmp_path):
+    path = tmp_path / "sample.h5"
+    data = np.arange(80, dtype=np.float32).reshape(10, 8)
+    write_zd_h5(path, data)
+
+    result = read_trace(path, channel=[1, 3, 6])
+
+    np.testing.assert_array_equal(result.das_data.data, data[:, [1, 3, 6]])
+    assert result.das_data.metadata.dx_m is None
+    assert result.das_data.metadata.extra_attrs["trace_selection_contiguous"] is False
+
+
+def test_read_trace_non_increasing_channels_preserve_requested_order(tmp_path):
+    path = tmp_path / "sample.h5"
+    data = np.arange(80, dtype=np.float32).reshape(10, 8)
+    write_zd_h5(path, data)
+
+    result = read_trace(path, channel=[3, 1])
+
+    assert result.requested_channels == (3, 1)
+    np.testing.assert_array_equal(result.das_data.data, data[:, [3, 1]])
+    assert result.das_data.metadata.dx_m is None
+
+
+def test_read_trace_duplicate_channels_are_preserved(tmp_path):
+    path = tmp_path / "sample.dat"
+    data = np.arange(80, dtype=np.float32).reshape(10, 8)
+    write_puniu_dat(path, data)
+
+    result = read_trace(path, channel=[2, 2], downsample=(3, 1))
+
+    assert result.requested_channels == (2, 2)
+    np.testing.assert_array_equal(result.das_data.data, data[::3][:, [2, 2]])
+    assert result.das_data.data.shape == (4, 2)
+    assert result.das_data.metadata.dx_m is None
+
+
 def test_read_trace_rejects_invalid_channel(tmp_path):
     path = tmp_path / "sample.dat"
     data = np.arange(20, dtype=np.float32).reshape(5, 4)
@@ -103,6 +154,26 @@ def test_read_trace_rejects_invalid_channel(tmp_path):
 
     with pytest.raises(ReaderError, match="out of range"):
         read_trace(path, channel=4)
+
+
+def test_read_trace_rejects_negative_and_empty_channels(tmp_path):
+    path = tmp_path / "sample.dat"
+    data = np.arange(20, dtype=np.float32).reshape(5, 4)
+    write_puniu_dat(path, data)
+
+    with pytest.raises(ReaderError, match="out of range"):
+        read_trace(path, channel=-1)
+    with pytest.raises(ReaderError, match="at least one"):
+        read_trace(path, channel=[])
+
+
+def test_read_trace_rejects_non_integer_channel_sequence(tmp_path):
+    path = tmp_path / "sample.dat"
+    data = np.arange(20, dtype=np.float32).reshape(5, 4)
+    write_puniu_dat(path, data)
+
+    with pytest.raises(ReaderError, match="integer"):
+        read_trace(path, channel=["bad"])
 
 
 def test_read_selection_rejects_empty_time_slice(tmp_path):
