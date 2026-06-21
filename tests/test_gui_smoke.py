@@ -3,13 +3,18 @@ import pytest
 from das_view.gui.models import (
     PreviewDisplayInfo,
     format_error_message,
+    format_spectrum_status,
     format_task_status,
     parse_channel_indices,
+    parse_optional_nonnegative_int,
+    parse_optional_positive_int,
     parse_preview_limits,
+    parse_spectrum_request,
     should_apply_task_result,
+    spectrum_analysis_label,
     task_control_state,
 )
-from das_view.gui.workers import PreviewWorker, WaveformWorker
+from das_view.gui.workers import PreviewWorker, SpectrumWorker, WaveformWorker
 
 
 def test_gui_display_info_and_error_formatting_are_pyqt_free():
@@ -53,6 +58,7 @@ def test_gui_task_control_state_helper():
     assert not running.open_enabled
     assert not running.preview_controls_enabled
     assert not running.waveform_controls_enabled
+    assert not running.spectrum_controls_enabled
     assert running.cancel_enabled
     assert running.progress_visible
     assert running.progress_minimum == running.progress_maximum == 0
@@ -60,6 +66,7 @@ def test_gui_task_control_state_helper():
     assert idle.open_enabled
     assert idle.preview_controls_enabled
     assert idle.waveform_controls_enabled
+    assert idle.spectrum_controls_enabled
     assert not idle.cancel_enabled
     assert not idle.progress_visible
     assert idle.progress_minimum == 0
@@ -114,9 +121,111 @@ def test_parse_channel_indices_rejects_invalid_input(text, message):
         parse_channel_indices(text)
 
 
+def test_spectrum_optional_integer_parsers():
+    assert parse_optional_positive_int("", name="nfft") is None
+    assert parse_optional_positive_int("512", name="nfft") == 512
+    assert parse_optional_nonnegative_int("", name="noverlap") is None
+    assert parse_optional_nonnegative_int("0", name="noverlap") == 0
+
+    with pytest.raises(ValueError, match="nfft must be a positive integer"):
+        parse_optional_positive_int("abc", name="nfft")
+    with pytest.raises(ValueError, match="nfft must be a positive integer"):
+        parse_optional_positive_int("0", name="nfft")
+    with pytest.raises(ValueError, match="noverlap must be a non-negative integer"):
+        parse_optional_nonnegative_int("-1", name="noverlap")
+
+
+@pytest.mark.parametrize(
+    ("label", "expected"),
+    [
+        ("Amplitude spectrum", "amplitude"),
+        ("Power spectrum", "power"),
+        ("PSD periodogram", "psd_periodogram"),
+        ("PSD Welch", "psd_welch"),
+        ("Spectrogram", "spectrogram"),
+    ],
+)
+def test_parse_spectrum_request_maps_gui_labels(label, expected):
+    request = parse_spectrum_request(
+        analysis_type=label,
+        channel_text="2",
+        nfft_text="1024",
+        nperseg_text="128",
+        noverlap_text="64",
+        db=True,
+    )
+
+    assert request.analysis_type == expected
+    assert request.channel == 2
+    assert request.nfft == 1024
+    assert request.nperseg == 128
+    assert request.noverlap == 64
+    assert request.db is True
+
+
+def test_parse_spectrum_request_defaults_and_validation():
+    request = parse_spectrum_request(
+        analysis_type="amplitude",
+        channel_text="0",
+        nfft_text="",
+        nperseg_text="",
+        noverlap_text="",
+        db=False,
+    )
+
+    assert request.nfft is None
+    assert request.nperseg == 256
+    assert request.noverlap is None
+    assert request.db is False
+
+    with pytest.raises(ValueError, match="exactly one channel"):
+        parse_spectrum_request(analysis_type="amplitude", channel_text="0,1")
+    with pytest.raises(ValueError, match="noverlap must be less than nperseg"):
+        parse_spectrum_request(
+            analysis_type="spectrogram",
+            channel_text="0",
+            nperseg_text="128",
+            noverlap_text="128",
+        )
+
+
+def test_format_spectrum_status_is_pyqt_free():
+    request = parse_spectrum_request(
+        analysis_type="PSD Welch",
+        channel_text="3",
+        nfft_text="512",
+        nperseg_text="128",
+        noverlap_text="64",
+        db=True,
+    )
+
+    class AnalysisResult:
+        frequencies_hz = [0.0, 1.0, 2.0]
+        sample_rate_hz = 100.0
+
+    class ServiceResult:
+        reader_name = "synthetic"
+        result = AnalysisResult()
+
+    lines = format_spectrum_status(ServiceResult(), request)
+
+    assert spectrum_analysis_label(request.analysis_type) == "PSD Welch"
+    assert "Reader: synthetic" in lines
+    assert "Analysis: PSD Welch" in lines
+    assert "Channel: 3" in lines
+    assert "Frequency bins: 3" in lines
+    assert "PSD display: dB" in lines
+
+
 def test_callable_workers_store_service_parameters():
     preview = PreviewWorker("sample.h5", max_samples=10, max_channels=5)
     waveform = WaveformWorker("sample.h5", channels=(1, 3), time_step=4)
+    spectrum_request = parse_spectrum_request(
+        analysis_type="Power spectrum",
+        channel_text="2",
+        nfft_text="1024",
+    )
+    spectrum = SpectrumWorker("sample.h5", request=spectrum_request)
 
     assert preview.path.name == "sample.h5"
     assert preview.max_samples == 10
@@ -124,22 +233,32 @@ def test_callable_workers_store_service_parameters():
     assert waveform.path.name == "sample.h5"
     assert waveform.channels == (1, 3)
     assert waveform.time_step == 4
+    assert spectrum.path.name == "sample.h5"
+    assert spectrum.request.analysis_type == "power"
+    assert spectrum.request.channel == 2
 
 
 def test_qt_workers_can_be_constructed_and_cancelled_when_pyqt5_is_available():
     pytest.importorskip("PyQt5")
 
-    from das_view.gui.workers import QtPreviewWorker, QtWaveformWorker
+    from das_view.gui.workers import QtPreviewWorker, QtSpectrumWorker, QtWaveformWorker
 
     preview = QtPreviewWorker("sample.h5", max_samples=10, max_channels=5)
     waveform = QtWaveformWorker("sample.h5", channels=(1, 3), time_step=4)
+    spectrum = QtSpectrumWorker(
+        "sample.h5",
+        request=parse_spectrum_request(analysis_type="Spectrogram", channel_text="0"),
+    )
 
     assert not preview.is_cancelled()
     assert not waveform.is_cancelled()
+    assert not spectrum.is_cancelled()
     preview.cancel()
     waveform.cancel()
+    spectrum.cancel()
     assert preview.is_cancelled()
     assert waveform.is_cancelled()
+    assert spectrum.is_cancelled()
 
 
 def test_main_window_can_be_created_when_pyqt5_is_available():
@@ -157,9 +276,16 @@ def test_main_window_can_be_created_when_pyqt5_is_available():
     assert window.statusBar().currentMessage() == "Ready"
     assert window.max_samples_input.value() == 2000
     assert window.max_channels_input.value() == 500
-    assert window.plot_tabs.count() == 2
+    assert window.plot_tabs.count() == 3
+    assert window.plot_tabs.tabText(2) == "Spectrum"
     assert window.waveform_channel_input.text() == "0"
     assert window.waveform_time_step_input.value() == 1
+    assert window.spectrum_channel_input.text() == "0"
+    assert window.spectrum_type_combo.currentText() == "Amplitude spectrum"
+    assert window.spectrum_nfft_input.text() == ""
+    assert window.spectrum_nperseg_input.text() == "256"
+    assert window.spectrum_noverlap_input.text() == ""
+    assert window.spectrum_button.text() == "Run spectrum"
     assert window.progress_bar is not None
     assert window.cancel_button is not None
     assert window.progress_bar.isHidden()
@@ -184,6 +310,13 @@ def test_main_window_task_controls_switch_when_pyqt5_is_available():
     assert not window.max_samples_input.isEnabled()
     assert not window.max_channels_input.isEnabled()
     assert not window.waveform_button.isEnabled()
+    assert not window.spectrum_channel_input.isEnabled()
+    assert not window.spectrum_type_combo.isEnabled()
+    assert not window.spectrum_nfft_input.isEnabled()
+    assert not window.spectrum_nperseg_input.isEnabled()
+    assert not window.spectrum_noverlap_input.isEnabled()
+    assert not window.spectrum_db_checkbox.isEnabled()
+    assert not window.spectrum_button.isEnabled()
     assert window.cancel_button.isEnabled()
     assert not window.progress_bar.isHidden()
 
@@ -192,6 +325,13 @@ def test_main_window_task_controls_switch_when_pyqt5_is_available():
     assert window.max_samples_input.isEnabled()
     assert window.max_channels_input.isEnabled()
     assert window.waveform_button.isEnabled()
+    assert window.spectrum_channel_input.isEnabled()
+    assert window.spectrum_type_combo.isEnabled()
+    assert window.spectrum_nfft_input.isEnabled()
+    assert window.spectrum_nperseg_input.isEnabled()
+    assert window.spectrum_noverlap_input.isEnabled()
+    assert window.spectrum_db_checkbox.isEnabled()
+    assert window.spectrum_button.isEnabled()
     assert not window.cancel_button.isEnabled()
     assert window.progress_bar.isHidden()
     window.close()
@@ -227,5 +367,37 @@ def test_main_window_cancel_requests_soft_cancel_when_pyqt5_is_available():
     assert window._task_cancel_requested
     assert not window.cancel_button.isEnabled()
     assert "Cancelling waveform" in window.waveform_info.toPlainText()
+    window.close()
+    app.processEvents()
+
+
+def test_main_window_cancel_updates_spectrum_info_when_pyqt5_is_available():
+    pytest.importorskip("PyQt5")
+    matplotlib = pytest.importorskip("matplotlib")
+    matplotlib.use("Agg", force=True)
+
+    from PyQt5 import QtWidgets
+    from das_view.gui.main_window import MainWindow
+
+    class FakeWorker:
+        def __init__(self) -> None:
+            self.cancelled = False
+
+        def cancel(self) -> None:
+            self.cancelled = True
+
+    app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
+    window = MainWindow()
+    worker = FakeWorker()
+    window._task_worker = worker
+    window._active_task_id = 1
+    window._task_kind = "spectrum"
+    window.cancel_button.setEnabled(True)
+
+    window.cancel_active_task()
+
+    assert worker.cancelled
+    assert window._task_cancel_requested
+    assert "Cancelling spectrum" in window.spectrum_info.toPlainText()
     window.close()
     app.processEvents()

@@ -76,6 +76,10 @@ Goal:
 - Phase 3D added periodogram PSD, Welch PSD, PSD plotting with optional dB
   display, and a reusable analysis service for bounded spectrum/PSD/spectrogram
   file workflows.
+- Phase 3E added a minimal GUI Spectrum tab that runs amplitude, power,
+  periodogram PSD, Welch PSD, and spectrogram tasks through QThread-backed
+  service workers, with main-thread plotting and Phase 2D cancel/progress state
+  reuse.
 
 Acceptance:
 
@@ -83,10 +87,11 @@ Acceptance:
 - Basic filters are covered by numerical tests and service integration tests.
 - Basic spectrum, PSD/Welch, and spectrogram smoke paths are covered by
   numerical, plotting, service, and CLI parsing tests.
+- The GUI can launch minimal spectrum/PSD/spectrogram service tasks from the
+  Spectrum tab without embedding analysis algorithms in the GUI layer.
 - GUI can run operations without blocking for typical data sizes.
-- Next work can add a minimal GUI spectrum panel in Phase 3E, improve GUI
-  spectrum integration after the Phase 2D background loading foundation, or
-  begin FK smoke-path work in Phase 4A.
+- Next work can validate real local samples in Phase 2E, or begin FK smoke-path
+  work in Phase 4A.
 
 ## Phase 4: Advanced analysis
 

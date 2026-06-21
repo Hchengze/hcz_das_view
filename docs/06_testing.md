@@ -28,6 +28,11 @@ Current coverage:
   bar and Cancel button presence, initial disabled Cancel state, task control
   switching, and soft-cancel status updates without opening real file dialogs or
   requiring real DAS data.
+- Phase 3E GUI spectrum tests cover PyQt-free spectrum parameter parsing,
+  analysis type to service-request mapping, PSD dB flag preservation for
+  plotting, spectrum status formatting, SpectrumWorker parameter storage,
+  QtSpectrumWorker construction/cancellation flags when PyQt5 is available, and
+  Spectrum tab widget/control smoke checks without real DAS data.
 - Data service coverage for synthetic ZD HDF5 and Puniu DAT selections, trace reads,
   slicing, downsampling, invalid channels, empty selections, and unsupported formats.
 - Phase 2B extends data service trace coverage to contiguous multi-channel reads,
@@ -105,8 +110,11 @@ For cache-free runs during agent work:
 - GUI smoke tests use pytest.importorskip("PyQt5") and pytest.importorskip("matplotlib"). If PyQt5 is not installed, GUI creation and Qt worker tests skip cleanly while core/io/plotting and PyQt-free GUI model tests continue to run.
 - GUI waveform tests avoid real file dialogs and real DAS data; they only instantiate
   widgets and test GUI-independent parser/model helpers.
+- GUI spectrum tests also avoid real file dialogs and real DAS data. They check
+  parser/model helpers and construction/state transitions for the minimal
+  Spectrum tab; they do not automate a real asynchronous spectrum computation.
 - GUI automation is deferred; GUI-independent state and worker logic should still
-  be testable. Phase 2D tests exercise QThread worker construction and soft
+  be testable. Phase 2D/3E tests exercise QThread worker construction and soft
   cancellation flags, but do not automate real asynchronous file loading through
   a file dialog.
 - Real or quasi-real file validation should use examples/validate_file.py and

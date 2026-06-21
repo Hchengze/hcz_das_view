@@ -799,3 +799,66 @@ round only changed the new GUI worker/state wiring around existing services.
 Phase 3E: add a minimal GUI spectrum panel for amplitude/PSD/spectrogram after
 the QThread loading foundation; or Phase 2E: real sample validation if local
 real data paths are provided.
+
+## 2026-06-21: Phase 3E minimal GUI spectrum panel
+
+### Modified files
+
+- das_view/gui/workers.py
+- das_view/gui/models.py
+- das_view/gui/main_window.py
+- tests/test_gui_smoke.py
+- docs/02_architecture.md
+- docs/05_development_log.md
+- docs/06_testing.md
+- docs/07_roadmap.md
+- docs/08_project_handoff.md
+
+### Design decisions
+
+- Added a minimal Spectrum tab to MainWindow with a single-channel input,
+  analysis type selector, optional nfft/nperseg/noverlap text fields, a PSD dB
+  checkbox, Run spectrum button, info area, and Matplotlib canvas.
+- Added SpectrumWorker as a no-Qt callable wrapper around the existing analysis
+  service layer, and QtSpectrumWorker as a QObject worker for QThread execution.
+- SpectrumWorker calls only compute_spectrum_for_file, compute_psd_for_file, or
+  compute_spectrogram_for_file. No new frequency-domain algorithms were added in
+  this phase.
+- Matplotlib rendering remains in the main GUI thread. The worker returns a
+  SpectrumServiceResult; MainWindow then calls plot_spectrum, plot_psd, or
+  plot_spectrogram for the latest non-cancelled task.
+- Spectrum tasks reuse the Phase 2D single-active-task model, busy progress bar,
+  Cancel button, stale-result guard, and thread cleanup path.
+- Cancellation remains soft/cooperative. It cannot forcibly interrupt
+  synchronous reader IO or analysis calls already in progress, but cancelled or
+  stale spectrum results are not applied to the GUI.
+- Added PyQt-free GUI model helpers for optional integer parsing, spectrum
+  request validation, analysis type normalization, and display status formatting.
+  The PSD dB flag is preserved for plotting only and is not passed as an
+  analysis-service computation parameter.
+
+### Old-code migration judgment
+
+No old_code files were copied, imported, modified, or used for this phase. This
+round only connected the new GUI to existing das_view.analysis.service and
+das_view.plotting.spectra APIs.
+
+### Test result
+
+- D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest tests/test_gui_smoke.py -p no:cacheprovider
+- Result: 31 passed.
+- D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider
+- Result: 166 passed.
+
+### Not completed
+
+- GUI preprocessing and filter panels are not implemented.
+- FK, F-J/MASW, and a complete STFT workflow are not implemented.
+- Full processing/analysis export is not implemented.
+- Real large-file spectrum performance and cancellation timing have not been
+  validated with production samples.
+
+### Suggested next round
+
+Phase 2E: real sample validation if local real data paths are provided; or
+Phase 4A: FK transform smoke path.

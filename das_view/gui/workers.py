@@ -4,6 +4,13 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from das_view.analysis.service import (
+    SpectrumServiceResult,
+    compute_psd_for_file,
+    compute_spectrogram_for_file,
+    compute_spectrum_for_file,
+)
+from das_view.gui.models import SpectrumAnalysisRequest
 from das_view.io.data_service import SelectionResult, read_trace
 from das_view.io.preview import PreviewResult, create_preview
 
@@ -59,6 +66,67 @@ class WaveformWorker:
             channel=self.channels,
             downsample=(self.time_step, 1),
         )
+
+
+class SpectrumWorker:
+    """Thin callable wrapper around file-level spectrum analysis services."""
+
+    def __init__(
+        self,
+        path: str | Path,
+        *,
+        request: SpectrumAnalysisRequest,
+    ) -> None:
+        self.path = Path(path)
+        self.request = request
+
+    def run(self) -> SpectrumServiceResult:
+        request = self.request
+        if request.analysis_type == "amplitude":
+            return compute_spectrum_for_file(
+                self.path,
+                channel=request.channel,
+                max_samples=request.max_samples,
+                kind="amplitude",
+                nfft=request.nfft,
+            )
+        if request.analysis_type == "power":
+            return compute_spectrum_for_file(
+                self.path,
+                channel=request.channel,
+                max_samples=request.max_samples,
+                kind="power",
+                nfft=request.nfft,
+            )
+        if request.analysis_type == "psd_periodogram":
+            return compute_psd_for_file(
+                self.path,
+                channel=request.channel,
+                max_samples=request.max_samples,
+                method="periodogram",
+                nfft=request.nfft,
+                nperseg=request.nperseg,
+                noverlap=request.noverlap,
+            )
+        if request.analysis_type == "psd_welch":
+            return compute_psd_for_file(
+                self.path,
+                channel=request.channel,
+                max_samples=request.max_samples,
+                method="welch",
+                nfft=request.nfft,
+                nperseg=request.nperseg,
+                noverlap=request.noverlap,
+            )
+        if request.analysis_type == "spectrogram":
+            return compute_spectrogram_for_file(
+                self.path,
+                channel=request.channel,
+                max_samples=request.max_samples,
+                nperseg=request.nperseg,
+                noverlap=request.noverlap,
+            )
+        raise ValueError(f"unsupported spectrum analysis type: {request.analysis_type!r}")
 
 
 if QtCore is not None:
@@ -164,6 +232,39 @@ if QtCore is not None:
                 return
             self.finished.emit(result)
 
+
+    class QtSpectrumWorker(_BaseQtWorker):
+        """QObject worker that runs spectrum analysis services in a QThread."""
+
+        finished = QtCore.pyqtSignal(object)
+
+        def __init__(
+            self,
+            path: str | Path,
+            *,
+            request: SpectrumAnalysisRequest,
+        ) -> None:
+            super().__init__()
+            self.worker = SpectrumWorker(path, request=request)
+
+        @QtCore.pyqtSlot()
+        def run(self) -> None:
+            self.started.emit()
+            self.progress.emit("Computing spectrum", 25)
+            if self._emit_cancelled_if_requested():
+                return
+            try:
+                result = self.worker.run()
+            except Exception as exc:  # noqa: BLE001 - worker boundary reports all errors.
+                if self._emit_cancelled_if_requested():
+                    return
+                self.failed.emit(_format_worker_error(exc))
+                return
+            self.progress.emit("Spectrum computed", 100)
+            if self._emit_cancelled_if_requested():
+                return
+            self.finished.emit(result)
+
 else:
 
     class QtPreviewWorker:  # type: ignore[no-redef]
@@ -178,6 +279,13 @@ else:
 
         def __init__(self, *args, **kwargs) -> None:  # noqa: ANN002, ANN003
             raise ImportError("PyQt5 is required to use QtWaveformWorker")
+
+
+    class QtSpectrumWorker:  # type: ignore[no-redef]
+        """Placeholder that fails only when Qt worker construction is requested."""
+
+        def __init__(self, *args, **kwargs) -> None:  # noqa: ANN002, ANN003
+            raise ImportError("PyQt5 is required to use QtSpectrumWorker")
 
 
 def _format_worker_error(error: BaseException) -> str:

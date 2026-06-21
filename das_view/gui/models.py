@@ -4,7 +4,15 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
+
+SpectrumAnalysisType = Literal[
+    "amplitude",
+    "power",
+    "psd_periodogram",
+    "psd_welch",
+    "spectrogram",
+]
 
 
 @dataclass(frozen=True, slots=True)
@@ -59,10 +67,28 @@ class TaskControlState:
     open_enabled: bool
     preview_controls_enabled: bool
     waveform_controls_enabled: bool
+    spectrum_controls_enabled: bool
     cancel_enabled: bool
     progress_visible: bool
     progress_minimum: int
     progress_maximum: int
+
+
+@dataclass(frozen=True, slots=True)
+class SpectrumAnalysisRequest:
+    """Validated GUI request for a single-channel spectrum analysis task."""
+
+    analysis_type: SpectrumAnalysisType
+    channel: int = 0
+    max_samples: int = 4096
+    nfft: int | None = None
+    nperseg: int = 256
+    noverlap: int | None = None
+    db: bool = False
+
+    @property
+    def label(self) -> str:
+        return spectrum_analysis_label(self.analysis_type)
 
 
 def task_control_state(is_running: bool) -> TaskControlState:
@@ -73,6 +99,7 @@ def task_control_state(is_running: bool) -> TaskControlState:
             open_enabled=False,
             preview_controls_enabled=False,
             waveform_controls_enabled=False,
+            spectrum_controls_enabled=False,
             cancel_enabled=True,
             progress_visible=True,
             progress_minimum=0,
@@ -82,6 +109,7 @@ def task_control_state(is_running: bool) -> TaskControlState:
         open_enabled=True,
         preview_controls_enabled=True,
         waveform_controls_enabled=True,
+        spectrum_controls_enabled=True,
         cancel_enabled=False,
         progress_visible=False,
         progress_minimum=0,
@@ -96,6 +124,7 @@ def format_task_status(task_name: str, state: str, message: str | None = None) -
     labels = {
         "preview": "preview",
         "waveform": "waveform",
+        "spectrum": "spectrum",
     }
     label = labels.get(normalized_task, normalized_task or "task")
     normalized_state = str(state).strip().lower()
@@ -165,6 +194,138 @@ def parse_channel_indices(text: str) -> tuple[int, ...]:
             raise ValueError("channel indices must be non-negative")
         channels.append(value)
     return tuple(channels)
+
+
+def parse_optional_positive_int(text: Any, *, name: str) -> int | None:
+    """Parse an optional positive integer from a GUI text field."""
+
+    if text is None or str(text).strip() == "":
+        return None
+    try:
+        value = int(str(text).strip())
+    except ValueError as exc:
+        raise ValueError(f"{name} must be a positive integer") from exc
+    if value <= 0:
+        raise ValueError(f"{name} must be a positive integer")
+    return value
+
+
+def parse_optional_nonnegative_int(text: Any, *, name: str) -> int | None:
+    """Parse an optional non-negative integer from a GUI text field."""
+
+    if text is None or str(text).strip() == "":
+        return None
+    try:
+        value = int(str(text).strip())
+    except ValueError as exc:
+        raise ValueError(f"{name} must be a non-negative integer") from exc
+    if value < 0:
+        raise ValueError(f"{name} must be a non-negative integer")
+    return value
+
+
+def parse_spectrum_request(
+    *,
+    analysis_type: str,
+    channel_text: str,
+    nfft_text: Any = "",
+    nperseg_text: Any = "",
+    noverlap_text: Any = "",
+    db: bool = False,
+    max_samples: Any = 4096,
+) -> SpectrumAnalysisRequest:
+    """Validate Spectrum tab controls before starting a background task."""
+
+    channels = parse_channel_indices(channel_text)
+    if len(channels) != 1:
+        raise ValueError("spectrum analysis expects exactly one channel index")
+    nfft = parse_optional_positive_int(nfft_text, name="nfft")
+    nperseg = parse_optional_positive_int(nperseg_text, name="nperseg") or 256
+    noverlap = parse_optional_nonnegative_int(noverlap_text, name="noverlap")
+    if noverlap is not None and noverlap >= nperseg:
+        raise ValueError("noverlap must be less than nperseg")
+    try:
+        parsed_max_samples = int(max_samples)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("max_samples must be a positive integer") from exc
+    if parsed_max_samples <= 0:
+        raise ValueError("max_samples must be a positive integer")
+
+    return SpectrumAnalysisRequest(
+        analysis_type=normalize_spectrum_analysis_type(analysis_type),
+        channel=channels[0],
+        max_samples=parsed_max_samples,
+        nfft=nfft,
+        nperseg=nperseg,
+        noverlap=noverlap,
+        db=bool(db),
+    )
+
+
+def normalize_spectrum_analysis_type(value: str) -> SpectrumAnalysisType:
+    """Normalize a GUI combo-box label or stable key to an analysis type."""
+
+    normalized = str(value).strip().lower().replace("-", " ").replace("_", " ")
+    normalized = " ".join(normalized.split())
+    mapping: dict[str, SpectrumAnalysisType] = {
+        "amplitude": "amplitude",
+        "amplitude spectrum": "amplitude",
+        "power": "power",
+        "power spectrum": "power",
+        "psd periodogram": "psd_periodogram",
+        "periodogram psd": "psd_periodogram",
+        "periodogram": "psd_periodogram",
+        "psd welch": "psd_welch",
+        "welch psd": "psd_welch",
+        "welch": "psd_welch",
+        "spectrogram": "spectrogram",
+    }
+    try:
+        return mapping[normalized]
+    except KeyError as exc:
+        raise ValueError(f"unsupported spectrum analysis type: {value!r}") from exc
+
+
+def spectrum_analysis_label(analysis_type: str) -> str:
+    """Return a user-facing label for a normalized spectrum analysis type."""
+
+    labels = {
+        "amplitude": "Amplitude spectrum",
+        "power": "Power spectrum",
+        "psd_periodogram": "PSD periodogram",
+        "psd_welch": "PSD Welch",
+        "spectrogram": "Spectrogram",
+    }
+    return labels.get(str(analysis_type), str(analysis_type))
+
+
+def format_spectrum_status(result: Any, request: SpectrumAnalysisRequest) -> list[str]:
+    """Return display-ready Spectrum tab summary lines for a service result."""
+
+    analysis_result = result.result
+    frequencies = getattr(analysis_result, "frequencies_hz", ())
+    times = getattr(analysis_result, "times_s", None)
+    sample_rate_hz = getattr(analysis_result, "sample_rate_hz", None)
+    lines = [
+        f"Reader: {result.reader_name}",
+        f"Analysis: {request.label}",
+        f"Channel: {request.channel}",
+        f"Sample rate: {sample_rate_hz} Hz",
+        f"Frequency bins: {len(frequencies)}",
+    ]
+    if times is not None:
+        lines.append(f"Time bins: {len(times)}")
+    lines.extend(
+        [
+            f"Max samples: {request.max_samples}",
+            f"nfft: {request.nfft if request.nfft is not None else 'auto'}",
+            f"nperseg: {request.nperseg}",
+            f"noverlap: {request.noverlap if request.noverlap is not None else 'auto'}",
+        ]
+    )
+    if request.analysis_type in {"psd_periodogram", "psd_welch"}:
+        lines.append(f"PSD display: {'dB' if request.db else 'linear'}")
+    return lines
 
 
 def format_error_message(error: BaseException) -> str:

@@ -9,13 +9,16 @@ from das_view.core.metadata_format import format_metadata
 from das_view.gui.models import (
     PreviewDisplayInfo,
     format_error_message,
+    format_spectrum_status,
     format_task_status,
     parse_channel_indices,
     parse_preview_limits,
+    parse_spectrum_request,
     should_apply_task_result,
     task_control_state,
 )
-from das_view.gui.workers import QtPreviewWorker, QtWaveformWorker
+from das_view.gui.workers import QtPreviewWorker, QtSpectrumWorker, QtWaveformWorker
+from das_view.plotting.spectra import plot_psd, plot_spectrogram, plot_spectrum
 from das_view.plotting.waterfall import plot_waterfall
 from das_view.plotting.waveform import plot_waveform
 
@@ -93,6 +96,9 @@ class MainWindow(_qt_widgets().QMainWindow):
         self.waveform_figure, self.waveform_canvas, self.waveform_toolbar = (
             _create_matplotlib_widgets(self)
         )
+        self.spectrum_figure, self.spectrum_canvas, self.spectrum_toolbar = (
+            _create_matplotlib_widgets(self)
+        )
 
         self.waveform_channel_input = QtWidgets.QLineEdit("0")
         self.waveform_channel_input.setToolTip("Zero-based channel index, e.g. 10 or 10,20,30")
@@ -106,6 +112,28 @@ class MainWindow(_qt_widgets().QMainWindow):
         self.waveform_info.setReadOnly(True)
         self.waveform_info.setMaximumHeight(120)
         self.waveform_info.setPlainText("Load a file, then plot one or more channels.")
+
+        self.spectrum_channel_input = QtWidgets.QLineEdit("0")
+        self.spectrum_channel_input.setToolTip("Zero-based single channel index")
+        self.spectrum_type_combo = QtWidgets.QComboBox()
+        self.spectrum_type_combo.addItem("Amplitude spectrum", "amplitude")
+        self.spectrum_type_combo.addItem("Power spectrum", "power")
+        self.spectrum_type_combo.addItem("PSD periodogram", "psd_periodogram")
+        self.spectrum_type_combo.addItem("PSD Welch", "psd_welch")
+        self.spectrum_type_combo.addItem("Spectrogram", "spectrogram")
+        self.spectrum_nfft_input = QtWidgets.QLineEdit("")
+        self.spectrum_nfft_input.setToolTip("Optional positive nfft; blank means auto")
+        self.spectrum_nperseg_input = QtWidgets.QLineEdit("256")
+        self.spectrum_nperseg_input.setToolTip("Optional positive segment length; blank means 256")
+        self.spectrum_noverlap_input = QtWidgets.QLineEdit("")
+        self.spectrum_noverlap_input.setToolTip("Optional non-negative overlap; blank means auto")
+        self.spectrum_db_checkbox = QtWidgets.QCheckBox("PSD in dB")
+        self.spectrum_button = QtWidgets.QPushButton("Run spectrum")
+        self.spectrum_button.clicked.connect(self.load_spectrum)
+        self.spectrum_info = QtWidgets.QPlainTextEdit()
+        self.spectrum_info.setReadOnly(True)
+        self.spectrum_info.setMaximumHeight(140)
+        self.spectrum_info.setPlainText("Load a file, then run a single-channel spectrum analysis.")
 
         self.progress_bar = QtWidgets.QProgressBar()
         self.progress_bar.setRange(0, 100)
@@ -148,9 +176,25 @@ class MainWindow(_qt_widgets().QMainWindow):
         waveform_layout.addWidget(self.waveform_toolbar)
         waveform_layout.addWidget(self.waveform_canvas)
 
+        spectrum_panel = QtWidgets.QWidget()
+        spectrum_layout = QtWidgets.QVBoxLayout(spectrum_panel)
+        spectrum_controls = QtWidgets.QFormLayout()
+        spectrum_controls.addRow("Channel index", self.spectrum_channel_input)
+        spectrum_controls.addRow("Analysis type", self.spectrum_type_combo)
+        spectrum_controls.addRow("nfft", self.spectrum_nfft_input)
+        spectrum_controls.addRow("nperseg", self.spectrum_nperseg_input)
+        spectrum_controls.addRow("noverlap", self.spectrum_noverlap_input)
+        spectrum_controls.addRow("", self.spectrum_db_checkbox)
+        spectrum_layout.addLayout(spectrum_controls)
+        spectrum_layout.addWidget(self.spectrum_button)
+        spectrum_layout.addWidget(self.spectrum_info)
+        spectrum_layout.addWidget(self.spectrum_toolbar)
+        spectrum_layout.addWidget(self.spectrum_canvas)
+
         self.plot_tabs = QtWidgets.QTabWidget()
         self.plot_tabs.addTab(waterfall_panel, "Waterfall")
         self.plot_tabs.addTab(waveform_panel, "Waveform")
+        self.plot_tabs.addTab(spectrum_panel, "Spectrum")
 
         splitter.addWidget(left_panel)
         splitter.addWidget(self.plot_tabs)
@@ -161,6 +205,7 @@ class MainWindow(_qt_widgets().QMainWindow):
         self._build_menu()
         self._clear_waterfall_figure()
         self._clear_waveform_figure()
+        self._clear_spectrum_figure()
         self._apply_task_control_state(is_running=False)
         self.statusBar().showMessage("Ready")
 
@@ -185,8 +230,10 @@ class MainWindow(_qt_widgets().QMainWindow):
         self.file_info.setPlainText(f"Path: {path}\nLoading preview...")
         self.metadata_text.setPlainText("Loading preview...")
         self.waveform_info.setPlainText("Load a file, then plot one or more channels.")
+        self.spectrum_info.setPlainText("Load a file, then run a single-channel spectrum analysis.")
         self._clear_waterfall_figure()
         self._clear_waveform_figure()
+        self._clear_spectrum_figure()
         try:
             limits = parse_preview_limits(
                 self.max_samples_input.value(),
@@ -197,8 +244,10 @@ class MainWindow(_qt_widgets().QMainWindow):
             self.file_info.setPlainText(f"Path: {path}\nError: {message}")
             self.metadata_text.setPlainText(f"Failed to load preview.\n\n{message}")
             self.waveform_info.setPlainText(f"Waveform unavailable.\n\n{message}")
+            self.spectrum_info.setPlainText(f"Spectrum unavailable.\n\n{message}")
             self._clear_waterfall_figure()
             self._clear_waveform_figure()
+            self._clear_spectrum_figure()
             self.statusBar().showMessage(f"Error: {message}")
             _qt_widgets().QMessageBox.critical(self, "DAS View error", message)
             return
@@ -258,6 +307,50 @@ class MainWindow(_qt_widgets().QMainWindow):
             ),
         )
 
+    def load_spectrum(self) -> None:
+        """Compute a single-channel spectrum analysis in the background."""
+
+        if self._active_task_id is not None:
+            self.statusBar().showMessage("A background task is already running")
+            return
+        if self.current_path is None:
+            message = "Open a supported DAS file before running spectrum analysis."
+            self.spectrum_info.setPlainText(message)
+            self.statusBar().showMessage(f"Error: {message}")
+            _qt_widgets().QMessageBox.warning(self, "DAS View spectrum", message)
+            return
+
+        try:
+            request = parse_spectrum_request(
+                analysis_type=self.spectrum_type_combo.currentData()
+                or self.spectrum_type_combo.currentText(),
+                channel_text=self.spectrum_channel_input.text(),
+                nfft_text=self.spectrum_nfft_input.text(),
+                nperseg_text=self.spectrum_nperseg_input.text(),
+                noverlap_text=self.spectrum_noverlap_input.text(),
+                db=self.spectrum_db_checkbox.isChecked(),
+            )
+        except Exception as exc:  # noqa: BLE001 - GUI boundary should catch and display all errors.
+            message = format_error_message(exc)
+            self.spectrum_info.setPlainText(f"Failed to run spectrum analysis.\n\n{message}")
+            self._clear_spectrum_figure()
+            self.statusBar().showMessage(f"Error: {message}")
+            _qt_widgets().QMessageBox.critical(self, "DAS View spectrum error", message)
+            return
+
+        self.spectrum_info.setPlainText(f"Loading spectrum...\n\nAnalysis: {request.label}")
+        self.statusBar().showMessage(format_task_status("spectrum", "loading"))
+        worker = QtSpectrumWorker(self.current_path, request=request)
+        self._start_background_task(
+            "spectrum",
+            worker,
+            on_finished=lambda result, task_id: self._handle_spectrum_finished(
+                result,
+                task_id=task_id,
+                request=request,
+            ),
+        )
+
     def _build_menu(self) -> None:
         file_menu = self.menuBar().addMenu("&File")
         self.open_action = file_menu.addAction("&Open File")
@@ -286,6 +379,12 @@ class MainWindow(_qt_widgets().QMainWindow):
             self.waveform_info.setPlainText(
                 "Cancelling waveform load...\n\n"
                 "Soft cancellation cannot interrupt a reader call already in progress, "
+                "but cancelled results will not be applied."
+            )
+        elif task == "spectrum":
+            self.spectrum_info.setPlainText(
+                "Cancelling spectrum analysis...\n\n"
+                "Soft cancellation cannot interrupt a reader or analysis call already in progress, "
                 "but cancelled results will not be applied."
             )
 
@@ -393,6 +492,23 @@ class MainWindow(_qt_widgets().QMainWindow):
             f"shape={result.das_data.data.shape} | downsample={result.downsample}"
         )
 
+    def _handle_spectrum_finished(self, result: Any, *, task_id: int, request: Any) -> None:
+        if not should_apply_task_result(
+            task_id=task_id,
+            active_task_id=self._active_task_id,
+            was_cancelled=self._task_cancel_requested,
+        ):
+            return
+        self._draw_spectrum(result, request)
+        self.spectrum_info.setPlainText("\n".join(format_spectrum_status(result, request)))
+        frequencies = getattr(result.result, "frequencies_hz", ())
+        times = getattr(result.result, "times_s", None)
+        extra = f", times={len(times)}" if times is not None else ""
+        self.statusBar().showMessage(
+            f"Loaded spectrum: {request.label} | channel={request.channel} | "
+            f"frequency bins={len(frequencies)}{extra}"
+        )
+
     def _handle_task_failed(self, task_kind: str, message: str, *, task_id: int) -> None:
         if not should_apply_task_result(
             task_id=task_id,
@@ -404,14 +520,20 @@ class MainWindow(_qt_widgets().QMainWindow):
             self.file_info.setPlainText(f"Error: {message}")
             self.metadata_text.setPlainText(f"Failed to load preview.\n\n{message}")
             self.waveform_info.setPlainText(f"Waveform unavailable.\n\n{message}")
+            self.spectrum_info.setPlainText(f"Spectrum unavailable.\n\n{message}")
             self.current_path = None
             self._clear_waterfall_figure()
             self._clear_waveform_figure()
+            self._clear_spectrum_figure()
             title = "DAS View error"
-        else:
+        elif task_kind == "waveform":
             self.waveform_info.setPlainText(f"Failed to load waveform.\n\n{message}")
             self._clear_waveform_figure()
             title = "DAS View waveform error"
+        else:
+            self.spectrum_info.setPlainText(f"Failed to run spectrum analysis.\n\n{message}")
+            self._clear_spectrum_figure()
+            title = "DAS View spectrum error"
         self.statusBar().showMessage(format_task_status(task_kind, "error", message))
         _qt_widgets().QMessageBox.critical(self, title, message)
 
@@ -425,9 +547,13 @@ class MainWindow(_qt_widgets().QMainWindow):
             self.metadata_text.setPlainText("Preview load cancelled.")
             self._clear_waterfall_figure()
             self._clear_waveform_figure()
+            self._clear_spectrum_figure()
         elif task_kind == "waveform":
             self.waveform_info.setPlainText("Waveform load cancelled.")
             self._clear_waveform_figure()
+        elif task_kind == "spectrum":
+            self.spectrum_info.setPlainText("Spectrum analysis cancelled.")
+            self._clear_spectrum_figure()
 
     def _cleanup_task(self, *, task_id: int) -> None:
         if self._active_task_id != task_id:
@@ -448,6 +574,13 @@ class MainWindow(_qt_widgets().QMainWindow):
         self.waveform_channel_input.setEnabled(state.waveform_controls_enabled)
         self.waveform_time_step_input.setEnabled(state.waveform_controls_enabled)
         self.waveform_button.setEnabled(state.waveform_controls_enabled)
+        self.spectrum_channel_input.setEnabled(state.spectrum_controls_enabled)
+        self.spectrum_type_combo.setEnabled(state.spectrum_controls_enabled)
+        self.spectrum_nfft_input.setEnabled(state.spectrum_controls_enabled)
+        self.spectrum_nperseg_input.setEnabled(state.spectrum_controls_enabled)
+        self.spectrum_noverlap_input.setEnabled(state.spectrum_controls_enabled)
+        self.spectrum_db_checkbox.setEnabled(state.spectrum_controls_enabled)
+        self.spectrum_button.setEnabled(state.spectrum_controls_enabled)
         self.cancel_button.setEnabled(state.cancel_enabled)
         self.progress_bar.setVisible(state.progress_visible)
         self.progress_bar.setRange(state.progress_minimum, state.progress_maximum)
@@ -470,6 +603,14 @@ class MainWindow(_qt_widgets().QMainWindow):
         ax.set_yticks([])
         self.waveform_canvas.draw_idle()
 
+    def _clear_spectrum_figure(self) -> None:
+        self.spectrum_figure.clear()
+        ax = self.spectrum_figure.add_subplot(111)
+        ax.set_title("No spectrum loaded")
+        ax.set_xticks([])
+        ax.set_yticks([])
+        self.spectrum_canvas.draw_idle()
+
     def _draw_preview(self, preview_data) -> None:
         self.figure.clear()
         ax = self.figure.add_subplot(111)
@@ -488,3 +629,18 @@ class MainWindow(_qt_widgets().QMainWindow):
         )
         self.waveform_figure.tight_layout()
         self.waveform_canvas.draw_idle()
+
+    def _draw_spectrum(self, service_result, request) -> None:
+        self.spectrum_figure.clear()
+        ax = self.spectrum_figure.add_subplot(111)
+        title = f"{request.label} - channel {request.channel}"
+        if request.analysis_type in {"amplitude", "power"}:
+            plot_spectrum(service_result.result, ax=ax, title=title)
+        elif request.analysis_type in {"psd_periodogram", "psd_welch"}:
+            plot_psd(service_result.result, ax=ax, title=title, db=request.db)
+        elif request.analysis_type == "spectrogram":
+            plot_spectrogram(service_result.result, ax=ax, title=title)
+        else:
+            raise ValueError(f"unsupported spectrum analysis type: {request.analysis_type!r}")
+        self.spectrum_figure.tight_layout()
+        self.spectrum_canvas.draw_idle()

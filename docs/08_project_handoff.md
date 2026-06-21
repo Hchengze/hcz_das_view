@@ -1,7 +1,7 @@
-# Project handoff summary
+﻿# Project handoff summary
 
 This document is the handoff point for starting a new Codex conversation on
-hcz_das_view. It records the current repository state after Phase 3D and the
+hcz_das_view. It records the current repository state after Phase 3E and the
 rules that should be preserved before any further development.
 
 ## 1. Project identity
@@ -17,8 +17,10 @@ rules that should be preserved before any further development.
 - Latest handoff commit: 41382a3 Add project handoff summary.
 - Latest GUI responsiveness commit: current HEAD after Phase 2D,
   Add GUI background loading with cancel and progress.
-- Current phase: Phase 2D, GUI QThread background loading, cancel, and progress.
-- Current test result after Phase 2D: 157 passed.
+- Latest GUI spectrum commit: current HEAD after Phase 3E,
+  Add minimal GUI spectrum panel.
+- Current phase: Phase 3E, minimal GUI spectrum panel.
+- Current test result after Phase 3E: 166 passed.
 
 ## 2. Repository and environment
 
@@ -108,11 +110,12 @@ Key modules:
   - waveform.py: waveform trace plotting.
   - spectra.py: spectrum, spectrogram, and PSD plotting.
 - GUI:
-  - main_window.py: minimal GUI with metadata, waterfall, and waveform tabs.
+  - main_window.py: minimal GUI with metadata, waterfall, waveform, and
+    spectrum tabs.
   - app.py: GUI application entry point.
   - models.py: GUI-independent parsing and small models.
   - workers.py: no-Qt callable service wrappers plus QThread QObject workers for
-    preview and waveform background loading.
+    preview, waveform, and spectrum background loading.
 
 ## 5. Completed phase history
 
@@ -231,6 +234,16 @@ Key modules:
 - Not completed: FK, F-J/MASW, GUI spectrum panel, QThread responsiveness, real
   large-data performance validation.
 
+### Phase 3E: minimal GUI spectrum panel
+
+- Goal: connect existing amplitude, power, PSD, Welch PSD, and spectrogram
+  services to the GUI without adding new algorithms.
+- Key modules: Spectrum tab in MainWindow, SpectrumWorker / QtSpectrumWorker,
+  spectrum request parser/status helpers, and GUI smoke tests.
+- Test result: 166 passed.
+- Not completed: GUI preprocessing/filter panels, FK/F-J/MASW, complete STFT,
+  full export, and real large-file spectrum performance validation.
+
 ## 6. Current supported capabilities
 
 ### Readers
@@ -264,12 +277,15 @@ Key modules:
 - Display formatted metadata.
 - Show bounded waterfall preview tab.
 - Show waveform tab.
+- Show Spectrum tab for single-channel amplitude spectrum, power spectrum,
+  PSD periodogram, PSD Welch, and spectrogram tasks.
 - Configure max_samples and max_channels.
 - Parse single or comma-separated channel input.
-- Preview and waveform reads run in QThread-backed background workers with busy
-  progress feedback and soft cancellation.
+- Preview, waveform, and spectrum tasks run in QThread-backed background
+  workers with busy progress feedback and soft cancellation.
 - Current limitation: cancellation cannot forcibly interrupt synchronous reader
-  IO already in progress; cancelled results are ignored when they return.
+  IO or analysis calls already in progress; cancelled results are ignored when
+  they return.
 
 ### Processing
 
@@ -350,6 +366,8 @@ Current coverage includes:
 - Preview API tests for bounded preview shape, downsampling, and metadata.
 - Plotting tests for waterfall, waveform, spectrum, spectrogram, and PSD output.
 - GUI smoke tests that cleanly skip when optional PyQt5 is unavailable.
+- GUI spectrum smoke tests for parser/model helpers, Spectrum tab controls,
+  worker construction, and soft cancellation state.
 - Data service tests for read_selection, read_trace, and channel boundary
   behavior.
 - Validation script tests for path-list parsing and no-real-data workflows.
@@ -366,7 +384,7 @@ Current full test command and result:
 
       D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider
 
-      150 passed
+      166 passed
 
 ## 9. Old code migration status
 
@@ -396,11 +414,11 @@ No old_code files are imported by the new runtime package.
 
 1. ZD HDF5 and Puniu DAT have not been systematically validated with real
    production samples.
-2. GUI preview and waveform loading use QThread workers, but real production
-   large-file responsiveness has not been validated.
+2. GUI preview, waveform, and spectrum tasks use QThread workers, but real
+   production large-file responsiveness has not been validated.
 3. GUI cancellation is soft and cannot forcibly interrupt synchronous reader IO
-   already in progress.
-4. There is no GUI preprocessing, filter, or spectrum panel.
+   or analysis calls already in progress.
+4. There is no GUI preprocessing or filter panel.
 5. FK analysis is not implemented.
 6. F-J / MASW analysis is not implemented.
 7. A complete STFT workflow is not implemented.
@@ -410,46 +428,27 @@ No old_code files are imported by the new runtime package.
 
 ## 11. Recommended next phases
 
-### Option A: Phase 2D GUI responsiveness
+### Option A: Phase 2E real sample validation
 
 Goal:
 
-      QThread 后台加载、取消、进度提示，避免大文件 preview / waveform / spectrum 卡 GUI。
+      Use local_validation_paths.txt to validate real/quasi-real ZD HDF5 and Puniu DAT samples.
 
-This is the highest-priority technical debt before adding more GUI analysis
-panels.
+If real sample paths are provided, prioritize this before expanding analysis features.
 
-### Option B: Phase 3E minimal GUI spectrum panel
-
-Goal:
-
-      把 amplitude / PSD / spectrogram 接入 GUI，但只做最小界面。
-
-This is useful, but it is safer after Phase 2D background loading is in place.
-
-### Option C: Phase 4A FK transform smoke path
+### Option B: Phase 4A FK transform smoke path
 
 Goal:
 
-      实现最基础 FK transform + FK plot + synthetic tests。
+      Add a minimal FK transform + FK plot + synthetic tests.
 
-Keep this to a smoke path first; do not add complex FK filters or surface-wave
-analysis in the same round.
-
-### Option D: Phase 2E real sample validation
-
-Goal:
-
-      用 local_validation_paths.txt 对真实/准真实 ZD HDF5 / Puniu DAT 做只读验证，修正 reader 边界。
-
-If real sample paths are provided, prioritize this before expanding analysis
-features.
+Keep this to a smoke path first; do not add complex FK filters or surface-wave analysis in the same round.
 
 ## 12. Suggested first prompt for the new Codex chat
 
 Copy this into the next Codex conversation:
 
-    请先不要开发新功能。请先阅读：
+    璇峰厛涓嶈寮€鍙戞柊鍔熻兘銆傝鍏堥槄璇伙細
 
     - AGENTS.md
     - README.md
@@ -457,19 +456,16 @@ Copy this into the next Codex conversation:
     - docs/05_development_log.md
     - docs/07_roadmap.md
 
-    然后执行：
-
+    鐒跺悗鎵ц锛?
     git status --short
     git branch -vv
     git log --oneline -8
     D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider
 
-    请先返回当前仓库状态、最新 HEAD、测试结果和你对下一步的建议，不要直接修改代码。
+    璇峰厛杩斿洖褰撳墠浠撳簱鐘舵€併€佹渶鏂?HEAD銆佹祴璇曠粨鏋滃拰浣犲涓嬩竴姝ョ殑寤鸿锛屼笉瑕佺洿鎺ヤ慨鏀逛唬鐮併€?
+    榛樿涓嬩竴姝ュ缓璁繘鍏ワ細
 
-    默认下一步建议进入：
+    Phase 2D锛欸UI QThread 鍚庡彴鍔犺浇銆佸彇娑堜笌杩涘害鎻愮ず
 
-    Phase 2D：GUI QThread 后台加载、取消与进度提示
-
-    但如果我明确提供真实数据路径，则优先进入：
-
-    Phase 2E：real sample validation
+    浣嗗鏋滄垜鏄庣‘鎻愪緵鐪熷疄鏁版嵁璺緞锛屽垯浼樺厛杩涘叆锛?
+    Phase 2E锛歳eal sample validation

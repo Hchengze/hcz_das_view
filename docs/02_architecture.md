@@ -182,3 +182,13 @@ GUI rules:
 - Phase 2D cancellation is cooperative. It cannot forcibly interrupt synchronous
   reader IO already in progress, but cancelled or stale task results are not
   applied to the GUI.
+- Phase 3E adds a minimal Spectrum tab. It parses a single channel plus nfft,
+  nperseg, noverlap, analysis type, and PSD dB display options in GUI model
+  helpers, then starts a QThread-backed spectrum worker.
+- Spectrum workers call only das_view.analysis.service helpers:
+  compute_spectrum_for_file, compute_psd_for_file, and
+  compute_spectrogram_for_file. They do not inspect HDF5/DAT internal paths and
+  do not implement FFT, PSD, or spectrogram algorithms in the GUI layer.
+- Spectrum plotting remains in the main GUI thread. MainWindow receives the
+  latest non-cancelled service result and calls plot_spectrum, plot_psd, or
+  plot_spectrogram on the embedded Matplotlib Qt canvas.
