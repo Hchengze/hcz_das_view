@@ -73,3 +73,25 @@ explicit DAS axis semantics, SOS-based filtering, and validation.
 | bandstop | analysis_tools.py::filter_butter_bandstop | 重构后复写 | das_view/processing/filters.py::bandstop | tests/test_filters.py | New explicit DAS-axis API and SOS implementation. |
 | notch | analysis_tools.py::filter_fir_notch; hcz_signal_preprocess.py::filter_iirnotch | 仅参考 | das_view/processing/filters.py::notch | tests/test_filters.py | Reimplemented with scipy.signal.iirnotch plus SOS conversion; validates quality and notch_hz. |
 | taper_filter | analysis_tools.py::taper_filter | 已由 Phase 3A 覆盖 | das_view/processing/preprocess.py::taper | tests/test_preprocess.py | Kept separate from filtering; ratio-based Hann taper. |
+
+## Phase 3C spectrum and spectrogram migration decision
+
+The following old files were reviewed read-only for spectrum and time-frequency
+ideas:
+
+- old_code/old_code1/tools/analysis_tools.py
+- old_code/old_code4/hcz_signal_analyse.py
+
+The old code contains useful FFT amplitude-scaling and scipy.signal.stft ideas,
+but the functions are either single-trace only, directly coupled to plotting, or
+mixed with broader FK/PSD workflows. Phase 3C therefore reimplemented a small
+GUI-independent spectrum module with explicit DAS axis semantics and separate
+plotting helpers.
+
+| Function/topic | Old source | Judgment | New location | Tests | Interface / dimension changes |
+|---|---|---|---|---|---|
+| amplitude spectrum | analysis_tools.py::get_fp; hcz_signal_analyse.py::plot_FS | Reimplemented after refactor | das_view/analysis/spectrum.py::amplitude_spectrum | tests/test_spectrum_analysis.py | Accepts numpy or DASData, default axis=0, optional channel selection/averaging, explicit sample_rate_hz and nfft validation. |
+| power spectrum | analysis_tools.py::psd_periodogram/psd_welch ideas | Reference only | das_view/analysis/spectrum.py::power_spectrum | tests/test_spectrum_analysis.py | Implements a simple FFT-derived power path only; full PSD/Welch is deferred to Phase 3D. |
+| spectrogram smoke path | analysis_tools.py::get_tfp/tfp_analysis; hcz_signal_analyse.py::plot_TF | Reimplemented after refactor | das_view/analysis/spectrum.py::single_channel_spectrogram | tests/test_spectrum_analysis.py | Uses scipy.signal.spectrogram for one selected channel; no GUI coupling and no full STFT analysis platform. |
+| spectrum plotting | hcz_signal_analyse.py::plot_FS/plot_analysis | Reference only | das_view/plotting/spectra.py | tests/test_spectrum_plotting.py | Plotting is separated from analysis results and remains Matplotlib-only. |
+| FK/F-J/MASW and advanced PSD | analysis_tools.py FK/PSD sections | Deferred | Not implemented | Not applicable | Out of scope for Phase 3C. |

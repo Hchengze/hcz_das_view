@@ -587,3 +587,72 @@ No old_code files were imported, copied directly, or modified.
 Phase 3C: add basic amplitude spectrum, power spectrum, and spectrogram smoke
 paths; or Phase 2D: add QThread background loading, cancel, and progress
 feedback for the GUI.
+
+## 2026-06-21: Phase 3C basic spectrum analysis and plotting
+
+### Added files
+
+- examples/spectrum_file.py
+- tests/test_spectrum_analysis.py
+- tests/test_spectrum_plotting.py
+- tests/test_spectrum_example.py
+
+### Modified files
+
+- das_view/analysis/spectrum.py
+- das_view/analysis/__init__.py
+- das_view/plotting/spectra.py
+- das_view/plotting/__init__.py
+- README.md
+- docs/02_architecture.md
+- docs/03_old_code_review.md
+- docs/05_development_log.md
+- docs/06_testing.md
+- docs/07_roadmap.md
+
+### Design decisions
+
+- Implemented SpectrumResult and SpectrogramResult containers in the analysis layer.
+- amplitude_spectrum and power_spectrum accept numpy arrays or DASData. DASData
+  input can supply sample_rate_hz from metadata.
+- The default axis=0 follows data.shape == (n_samples, n_channels), so frequency
+  analysis is along time by default.
+- Spectrum helpers support channel selection and optional channel-average spectra
+  for 2-D DAS arrays.
+- single_channel_spectrogram uses scipy.signal.spectrogram for a bounded,
+  single-channel smoke path only. It is not a full STFT analysis platform.
+- plot_spectrum and plot_spectrogram are Matplotlib-only helpers in the plotting
+  layer and do not depend on PyQt5.
+- examples/spectrum_file.py reads a bounded trace through read_trace, optionally
+  applies a bandpass step through apply_preprocess, and saves an amplitude,
+  power, or spectrogram image. It does not export full-size data.
+
+### Old-code migration judgment
+
+| Old source | Function/topic | Judgment | New location | Tests | Interface or dimension changes |
+|---|---|---|---|---|---|
+| old_code/old_code1/tools/analysis_tools.py::get_fp; old_code/old_code4/hcz_signal_analyse.py::plot_FS | amplitude spectrum | Reimplemented after refactor | das_view/analysis/spectrum.py::amplitude_spectrum | tests/test_spectrum_analysis.py | Adds DASData input, sample_rate_hz validation, default axis=0, nfft validation, channel selection, and channel averaging. |
+| old_code/old_code1/tools/analysis_tools.py::psd_periodogram/psd_welch | power spectrum idea | Reference only | das_view/analysis/spectrum.py::power_spectrum | tests/test_spectrum_analysis.py | Implements simple FFT-derived power spectrum; full PSD/Welch remains deferred. |
+| old_code/old_code1/tools/analysis_tools.py::get_tfp/tfp_analysis; old_code/old_code4/hcz_signal_analyse.py::plot_TF | spectrogram/STFT idea | Reimplemented after refactor | das_view/analysis/spectrum.py::single_channel_spectrogram | tests/test_spectrum_analysis.py | Uses scipy.signal.spectrogram for one selected channel; no GUI plotting coupling. |
+| old_code/old_code4/hcz_signal_analyse.py::plot_analysis | combined analysis plot | Reference only | das_view/plotting/spectra.py | tests/test_spectrum_plotting.py | Plotting separated from analysis results. |
+| old_code FK/F-J/MASW and advanced PSD sections | advanced analysis | Deferred | Not implemented | Not applicable | Out of scope for Phase 3C. |
+
+No old_code files were imported, copied directly, or modified.
+
+### Test result
+
+- python -B -m pytest -p no:cacheprovider
+- Result: 134 passed.
+
+### Not completed
+
+- Full STFT workflows are not implemented.
+- PSD/Welch service helpers are not implemented.
+- FK/F-J/MASW are not implemented.
+- GUI spectrum panel is not implemented.
+- Real large-file spectrum performance has not been validated.
+
+### Suggested next round
+
+Phase 3D: add PSD/Welch and spectrum service helpers; or Phase 2D: add QThread
+background loading, cancel, and progress feedback for the GUI.

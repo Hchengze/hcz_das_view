@@ -64,13 +64,18 @@ Goal:
 - Phase 3B added scipy-based lowpass, highpass, bandpass, bandstop, and notch
   filters, integrated them with apply_preprocess, and added a preview-level
   filter CLI example.
+- Phase 3C added basic amplitude spectrum, power spectrum, and single-channel
+  spectrogram smoke paths, plus Matplotlib spectrum/spectrogram plotting and a
+  bounded trace CLI example.
 
 Acceptance:
 
 - Basic preprocessing operations are covered by numerical tests.
 - Basic filters are covered by numerical tests and service integration tests.
+- Basic spectrum and spectrogram smoke paths are covered by numerical and
+  plotting tests.
 - GUI can run operations without blocking for typical data sizes.
-- Next work can add spectrum/spectrogram smoke paths in Phase 3C or improve GUI
+- Next work can add PSD/Welch service helpers in Phase 3D or improve GUI
   background loading in Phase 2D.
 
 ## Phase 4: Advanced analysis

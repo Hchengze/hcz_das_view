@@ -54,11 +54,21 @@ Current coverage:
   regression.
 - Filter example tests cover CLI filter-step construction without requiring real
   DAS input files.
+- Spectrum analysis tests cover amplitude/power peak detection, frequency-axis
+  lengths, nfft resolution changes, axis=0/axis=1, channel selection, DASData
+  sample-rate metadata, invalid parameters, and NaN/Inf rejection.
+- Spectrogram tests cover single-channel scipy.signal spectrogram smoke paths,
+  output dimension consistency, invalid channel/nperseg/noverlap errors, and
+  Matplotlib Agg image saving.
+- Spectrum plotting tests cover plot_spectrum, plot_spectrogram, and clear
+  errors for empty or malformed result containers.
+- Spectrum example tests cover CLI processing-step construction without
+  requiring real DAS input files.
 
 Future coverage:
 
 - Filter functions.
-- STFT/FK/PSD numerical smoke tests.
+- Full STFT/FK/PSD numerical smoke tests.
 - Reader edge cases with real small sample files.
 - Additional plot types beyond waterfall and waveform.
 - GUI load-file behavior with real small files.
@@ -76,8 +86,8 @@ For cache-free runs during agent work:
 - h5py tests use pytest.importorskip("h5py").
 - matplotlib plotting tests use pytest.importorskip("matplotlib") and the Agg backend.
 - scipy-based filter tests use pytest.importorskip("scipy"). scipy is currently
-  a main project dependency because basic filters are part of the processing
-  layer.
+  a main project dependency because basic filters and spectrogram smoke paths
+  are part of the processing/analysis layers.
 - Waveform plotting tests also use the Agg backend and write only to pytest tmp_path.
 - GUI smoke tests use pytest.importorskip("PyQt5") and pytest.importorskip("matplotlib"). If PyQt5 is not installed, GUI creation tests skip cleanly while core/io/plotting tests continue to run.
 - GUI waveform tests avoid real file dialogs and real DAS data; they only instantiate

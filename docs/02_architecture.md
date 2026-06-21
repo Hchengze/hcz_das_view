@@ -21,9 +21,11 @@
       - filters.py
       - service.py
     - analysis/
+      - spectrum.py
     - plotting/
       - waterfall.py
       - waveform.py
+      - spectra.py
     - gui/
       - app.py
       - main_window.py
@@ -40,8 +42,11 @@
 - io: data readers, metadata readers, format registry, GUI-independent preview workflow, and bounded data selection services.
 - processing: GUI-independent preprocessing operations such as demean, linear
   detrend, taper, normalization, standardization, clipping, and later filtering/resampling.
-- analysis: scientific analysis such as spectrum, STFT, FK, and PSD.
-- plotting: Matplotlib plotting helpers independent from GUI widgets, including waterfall and waveform views.
+- analysis: GUI-independent scientific analysis. Phase 3C adds basic amplitude
+  spectrum, power spectrum, and single-channel spectrogram smoke-path helpers.
+  Full STFT/FK/PSD workflows remain deferred.
+- plotting: Matplotlib plotting helpers independent from GUI widgets, including
+  waterfall, waveform, spectrum, and spectrogram views.
 - gui: optional PyQt5 layer that calls preview, formatting, and plotting services.
 - utils: validation, slicing, logging, and shared small helpers.
 
@@ -101,7 +106,22 @@ Reader responsibilities:
 - plot_waterfall draws variable-density DAS previews from DASData.
 - plot_waveform draws one or more channel traces from DASData with optional normalization
   and offsets. It is pure Matplotlib and does not depend on PyQt5.
+- plot_spectrum and plot_spectrogram draw results from the analysis layer. They
+  do not compute spectra and do not depend on PyQt5.
 - Plotting helpers assume the internal data convention (n_samples, n_channels).
+
+## Analysis services
+
+- das_view/analysis/spectrum.py provides SpectrumResult and SpectrogramResult
+  containers plus amplitude_spectrum, power_spectrum, and
+  single_channel_spectrogram.
+- The default axis=0 follows the DAS convention and treats each column as an
+  independent channel through time.
+- Spectrum helpers accept numpy arrays or DASData. DASData input can provide
+  sample_rate_hz from metadata.
+- The current spectrogram path is intentionally single-channel and smoke-test
+  oriented. GUI integration should call analysis and plotting helpers instead
+  of implementing FFT/STFT logic in das_view/gui/.
 
 ## Processing services
 

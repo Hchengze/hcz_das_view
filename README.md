@@ -4,7 +4,8 @@ HCZ DAS View is an early-stage DAS data viewing and analysis package. The
 current focus is a small, testable workflow for reading DAS files, displaying
 metadata, creating bounded preview data, and showing a waterfall image.
 Phase 2A also adds bounded data selection helpers and waveform plotting. Phase
-3A adds small preview-level preprocessing helpers.
+3A adds small preview-level preprocessing helpers. Phase 3C adds basic spectrum
+and single-channel spectrogram smoke paths.
 
 ## Current status
 
@@ -23,12 +24,14 @@ Implemented so far:
   standardize, and clipping.
 - Basic scipy-based filters: lowpass, highpass, bandpass, bandstop, and notch.
 - DASData preprocessing service that records processing history in metadata.
+- Basic amplitude spectrum, power spectrum, and single-channel spectrogram
+  analysis helpers with Matplotlib plotting.
 - Synthetic tests for core readers and preview workflows.
 
 Still intentionally deferred:
 
 - Full analysis platform.
-- STFT/FK/PSD and advanced processing.
+- Full STFT/FK/PSD and advanced processing.
 - Full-file preprocessing export.
 - GUI filter parameter panel.
 - SEGY/SAC/TDMS support.
@@ -85,6 +88,13 @@ Apply a basic filter to a bounded preview and save a filtered waterfall:
     python examples/filter_file.py input.dat --output preview_filtered.png --lowpass 80
     python examples/filter_file.py input.h5 --output preview_filtered.png --notch 50
 
+Compute a basic single-channel spectrum or spectrogram:
+
+    python examples/spectrum_file.py input.h5 --channel 10 --output spectrum.png
+    python examples/spectrum_file.py input.dat --channel 10 --power --output power.png
+    python examples/spectrum_file.py input.h5 --channel 10 --spectrogram --output spectrogram.png
+    python examples/spectrum_file.py input.h5 --channel 10 --bandpass 1 50 --output spectrum_filtered.png
+
 Run the minimal GUI:
 
     python examples/run_gui.py
@@ -101,10 +111,10 @@ If installed with the console script, the GUI can also be started with:
 ## Data policy
 
 Do not commit real DAS data or generated preview images. Large files should be
-opened through slicing/downsampling preview workflows. The preprocessing and
-filter examples work on bounded preview data only; they do not export processed
-full-size DAS arrays. Filtering depends on scipy.signal. The internal array
-convention is always:
+opened through slicing/downsampling preview workflows. The preprocessing,
+filter, and spectrum examples work on bounded preview/trace data only; they do
+not export processed full-size DAS arrays. Filtering and spectrogram analysis
+depend on scipy.signal. The internal array convention is always:
 
     data.shape == (n_samples, n_channels)
 
