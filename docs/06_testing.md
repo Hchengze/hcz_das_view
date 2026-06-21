@@ -54,21 +54,27 @@ Current coverage:
   regression.
 - Filter example tests cover CLI filter-step construction without requiring real
   DAS input files.
-- Spectrum analysis tests cover amplitude/power peak detection, frequency-axis
-  lengths, nfft resolution changes, axis=0/axis=1, channel selection, DASData
-  sample-rate metadata, invalid parameters, and NaN/Inf rejection.
+- Spectrum analysis tests cover amplitude/power peak detection, periodogram PSD,
+  Welch PSD, frequency-axis lengths, nfft resolution changes, axis=0/axis=1,
+  channel selection, channel averaging, DASData sample-rate metadata, invalid
+  PSD parameters, and NaN/Inf rejection.
 - Spectrogram tests cover single-channel scipy.signal spectrogram smoke paths,
   output dimension consistency, invalid channel/nperseg/noverlap errors, and
   Matplotlib Agg image saving.
-- Spectrum plotting tests cover plot_spectrum, plot_spectrogram, and clear
-  errors for empty or malformed result containers.
-- Spectrum example tests cover CLI processing-step construction without
-  requiring real DAS input files.
+- Spectrum plotting tests cover plot_spectrum, plot_psd, dB PSD display,
+  plot_spectrogram, and clear errors for empty or malformed result containers.
+- Spectrum service tests cover compute_spectrum_for_file, compute_psd_for_file,
+  and compute_spectrogram_for_file on synthetic ZD HDF5 data, including optional
+  bandpass preprocessing history.
+- Spectrum example tests cover CLI processing-step construction, analysis mode
+  selection, conflict handling, and PSD argument parsing without requiring real
+  DAS input files.
 
 Future coverage:
 
 - Filter functions.
-- Full STFT/FK/PSD numerical smoke tests.
+- Full STFT/FK numerical smoke tests.
+- Real large-file PSD/Welch performance validation.
 - Reader edge cases with real small sample files.
 - Additional plot types beyond waterfall and waveform.
 - GUI load-file behavior with real small files.

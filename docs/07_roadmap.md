@@ -67,22 +67,25 @@ Goal:
 - Phase 3C added basic amplitude spectrum, power spectrum, and single-channel
   spectrogram smoke paths, plus Matplotlib spectrum/spectrogram plotting and a
   bounded trace CLI example.
+- Phase 3D added periodogram PSD, Welch PSD, PSD plotting with optional dB
+  display, and a reusable analysis service for bounded spectrum/PSD/spectrogram
+  file workflows.
 
 Acceptance:
 
 - Basic preprocessing operations are covered by numerical tests.
 - Basic filters are covered by numerical tests and service integration tests.
-- Basic spectrum and spectrogram smoke paths are covered by numerical and
-  plotting tests.
+- Basic spectrum, PSD/Welch, and spectrogram smoke paths are covered by
+  numerical, plotting, service, and CLI parsing tests.
 - GUI can run operations without blocking for typical data sizes.
-- Next work can add PSD/Welch service helpers in Phase 3D or improve GUI
-  background loading in Phase 2D.
+- Next work can add a minimal GUI spectrum panel in Phase 3E, improve GUI
+  background loading in Phase 2D, or begin FK smoke-path work in Phase 4A.
 
 ## Phase 4: Advanced analysis
 
 Goal:
 
-- Add FK, PSD, FK filtering, and optional advanced methods such as surface-wave analysis.
+- Add FK, FK filtering, and optional advanced methods such as surface-wave analysis.
 
 Acceptance:
 

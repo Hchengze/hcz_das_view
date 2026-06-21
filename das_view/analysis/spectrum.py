@@ -15,6 +15,7 @@ import numpy as np
 from das_view.core.data_model import DASData
 
 SpectrumKind = Literal["amplitude", "power"]
+PSDMethod = Literal["periodogram", "welch"]
 
 
 @dataclass(frozen=True, slots=True)
@@ -60,6 +61,24 @@ class SpectrogramResult:
     nperseg: int
     noverlap: int
     scaling: str
+
+
+@dataclass(frozen=True, slots=True)
+class PSDResult:
+    """Power spectral density result from periodogram or Welch estimates."""
+
+    frequencies_hz: np.ndarray
+    values: np.ndarray
+    sample_rate_hz: float
+    method: PSDMethod
+    scaling: str
+    axis: int
+    channels: tuple[int, ...] | None = None
+    average_channels: bool = False
+    window: str | Sequence[float] | np.ndarray | None = None
+    nfft: int | None = None
+    nperseg: int | None = None
+    noverlap: int | None = None
 
 
 def amplitude_spectrum(
@@ -212,6 +231,115 @@ def single_channel_spectrogram(
     )
 
 
+def periodogram_psd(
+    data,
+    *,
+    sample_rate_hz: float | None = None,
+    axis: int = 0,
+    window: str | Sequence[float] | np.ndarray = "hann",
+    nfft: int | None = None,
+    scaling: Literal["density", "spectrum"] = "density",
+    channels: int | Sequence[int] | None = None,
+    average_channels: bool = False,
+) -> PSDResult:
+    """Estimate PSD with scipy.signal.periodogram using DAS axis semantics."""
+
+    array, sample_rate_hz = _as_array_and_sample_rate(data, sample_rate_hz)
+    axis = _normalize_axis(axis, array.ndim)
+    channel_tuple = _channels_for_array(array, axis=axis, channels=channels)
+    array = _select_channels(array, axis=axis, channels=channels)
+    n_samples = array.shape[axis]
+    nfft_value = None if nfft is None else _normalize_psd_nfft(nfft, minimum=1)
+    if scaling not in {"density", "spectrum"}:
+        raise ValueError("scaling must be 'density' or 'spectrum'")
+
+    signal = _scipy_signal()
+    frequencies, values = signal.periodogram(
+        array,
+        fs=sample_rate_hz,
+        window=window,
+        nfft=nfft_value,
+        scaling=scaling,
+        return_onesided=True,
+        axis=axis,
+    )
+    if n_samples <= 0:
+        raise ValueError("data must contain at least one sample along the analysis axis")
+    values = _maybe_average_channels(np.asarray(values), axis=axis, average_channels=average_channels)
+    return PSDResult(
+        frequencies_hz=np.asarray(frequencies),
+        values=values,
+        sample_rate_hz=sample_rate_hz,
+        method="periodogram",
+        scaling=scaling,
+        axis=axis,
+        channels=channel_tuple,
+        average_channels=average_channels,
+        window=window,
+        nfft=nfft_value,
+    )
+
+
+def welch_psd(
+    data,
+    *,
+    sample_rate_hz: float | None = None,
+    axis: int = 0,
+    nperseg: int = 256,
+    noverlap: int | None = None,
+    window: str | Sequence[float] | np.ndarray = "hann",
+    nfft: int | None = None,
+    scaling: Literal["density", "spectrum"] = "density",
+    channels: int | Sequence[int] | None = None,
+    average_channels: bool = False,
+) -> PSDResult:
+    """Estimate PSD with scipy.signal.welch using DAS axis semantics."""
+
+    array, sample_rate_hz = _as_array_and_sample_rate(data, sample_rate_hz)
+    axis = _normalize_axis(axis, array.ndim)
+    channel_tuple = _channels_for_array(array, axis=axis, channels=channels)
+    array = _select_channels(array, axis=axis, channels=channels)
+    n_samples = array.shape[axis]
+    nperseg_value = _normalize_positive_int(nperseg, name="nperseg")
+    if nperseg_value > n_samples:
+        raise ValueError("nperseg must be less than or equal to the selected data length")
+    if noverlap is None:
+        noverlap_value = None
+    else:
+        noverlap_value = _normalize_nonnegative_int(noverlap, name="noverlap")
+        if noverlap_value >= nperseg_value:
+            raise ValueError("noverlap must be less than nperseg")
+    nfft_value = None if nfft is None else _normalize_psd_nfft(nfft, minimum=nperseg_value)
+    if scaling not in {"density", "spectrum"}:
+        raise ValueError("scaling must be 'density' or 'spectrum'")
+
+    signal = _scipy_signal()
+    frequencies, values = signal.welch(
+        array,
+        fs=sample_rate_hz,
+        window=window,
+        nperseg=nperseg_value,
+        noverlap=noverlap_value,
+        nfft=nfft_value,
+        scaling=scaling,
+        return_onesided=True,
+        axis=axis,
+    )
+    values = _maybe_average_channels(np.asarray(values), axis=axis, average_channels=average_channels)
+    return PSDResult(
+        frequencies_hz=np.asarray(frequencies),
+        values=values,
+        sample_rate_hz=sample_rate_hz,
+        method="welch",
+        scaling=scaling,
+        axis=axis,
+        channels=channel_tuple,
+        average_channels=average_channels,
+        window=window,
+        nfft=nfft_value,
+        nperseg=nperseg_value,
+        noverlap=noverlap_value,
+    )
 def _as_array_and_sample_rate(data, sample_rate_hz: float | None) -> tuple[np.ndarray, float]:
     if isinstance(data, DASData):
         if sample_rate_hz is None:
@@ -256,6 +384,18 @@ def _normalize_nfft(nfft: int | None, n_samples: int) -> int:
         raise ValueError("nfft must be a positive integer")
     if value < n_samples:
         raise ValueError("nfft must be greater than or equal to the selected data length")
+    return value
+
+
+def _normalize_psd_nfft(nfft: int, *, minimum: int) -> int:
+    try:
+        value = int(nfft)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("nfft must be a positive integer") from exc
+    if value <= 0:
+        raise ValueError("nfft must be a positive integer")
+    if value < minimum:
+        raise ValueError(f"nfft must be greater than or equal to {minimum}")
     return value
 
 

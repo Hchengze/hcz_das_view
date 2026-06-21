@@ -4,9 +4,12 @@ import pytest
 pytest.importorskip("scipy")
 
 from das_view.analysis.spectrum import (
+    PSDResult,
     amplitude_spectrum,
+    periodogram_psd,
     power_spectrum,
     single_channel_spectrogram,
+    welch_psd,
 )
 from das_view.core.data_model import DASData, DASMetadata
 
@@ -153,3 +156,77 @@ def test_single_channel_spectrogram_rejects_invalid_params():
         single_channel_spectrogram(data, sample_rate_hz=200.0, nperseg=0)
     with pytest.raises(ValueError, match="noverlap"):
         single_channel_spectrogram(data, sample_rate_hz=200.0, nperseg=128, noverlap=128)
+
+
+def test_periodogram_psd_single_frequency_peak():
+    trace = sine_wave(frequency_hz=18.0, sample_rate_hz=300.0, n_samples=900)
+
+    result = periodogram_psd(trace, sample_rate_hz=300.0, window="boxcar")
+
+    assert isinstance(result, PSDResult)
+    assert result.method == "periodogram"
+    assert peak_frequency(result) == pytest.approx(18.0, abs=0.4)
+    assert result.values.shape == result.frequencies_hz.shape
+
+
+def test_welch_psd_single_frequency_peak():
+    trace = sine_wave(frequency_hz=30.0, sample_rate_hz=300.0, n_samples=1024)
+
+    result = welch_psd(trace, sample_rate_hz=300.0, nperseg=256, noverlap=128)
+
+    assert result.method == "welch"
+    assert peak_frequency(result) == pytest.approx(30.0, abs=1.5)
+    assert result.values.shape == result.frequencies_hz.shape
+
+
+def test_psd_channel_selection_and_average():
+    data = np.column_stack(
+        [
+            sine_wave(frequency_hz=10.0),
+            sine_wave(frequency_hz=20.0),
+            sine_wave(frequency_hz=20.0),
+        ]
+    )
+
+    selected = welch_psd(data, sample_rate_hz=200.0, channels=[1, 2], nperseg=200)
+    averaged = welch_psd(
+        data,
+        sample_rate_hz=200.0,
+        channels=[1, 2],
+        average_channels=True,
+        nperseg=200,
+    )
+
+    assert selected.channels == (1, 2)
+    assert selected.values.shape == (101, 2)
+    assert averaged.values.ndim == 1
+    assert averaged.average_channels is True
+    assert peak_frequency(averaged) == pytest.approx(20.0, abs=1.0)
+
+
+def test_psd_dasdata_input_reads_sample_rate_from_metadata():
+    das_data = make_das(np.column_stack([sine_wave(frequency_hz=15.0)]), sample_rate_hz=200.0)
+
+    result = periodogram_psd(das_data, channels=0)
+
+    assert result.sample_rate_hz == 200.0
+    assert peak_frequency(result) == pytest.approx(15.0, abs=0.25)
+
+
+def test_psd_rejects_invalid_parameters_and_nonfinite():
+    trace = sine_wave(n_samples=512)
+
+    with pytest.raises(ValueError, match="sample_rate_hz"):
+        periodogram_psd(trace, sample_rate_hz=0)
+    with pytest.raises(ValueError, match="nperseg"):
+        welch_psd(trace, sample_rate_hz=200.0, nperseg=0)
+    with pytest.raises(ValueError, match="less than or equal"):
+        welch_psd(trace, sample_rate_hz=200.0, nperseg=1024)
+    with pytest.raises(ValueError, match="noverlap"):
+        welch_psd(trace, sample_rate_hz=200.0, nperseg=128, noverlap=128)
+    with pytest.raises(ValueError, match="nfft"):
+        welch_psd(trace, sample_rate_hz=200.0, nperseg=128, nfft=64)
+    trace_with_inf = trace.copy()
+    trace_with_inf[0] = np.inf
+    with pytest.raises(ValueError, match="NaN/Inf"):
+        periodogram_psd(trace_with_inf, sample_rate_hz=200.0)

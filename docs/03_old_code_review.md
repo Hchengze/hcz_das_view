@@ -95,3 +95,25 @@ plotting helpers.
 | spectrogram smoke path | analysis_tools.py::get_tfp/tfp_analysis; hcz_signal_analyse.py::plot_TF | Reimplemented after refactor | das_view/analysis/spectrum.py::single_channel_spectrogram | tests/test_spectrum_analysis.py | Uses scipy.signal.spectrogram for one selected channel; no GUI coupling and no full STFT analysis platform. |
 | spectrum plotting | hcz_signal_analyse.py::plot_FS/plot_analysis | Reference only | das_view/plotting/spectra.py | tests/test_spectrum_plotting.py | Plotting is separated from analysis results and remains Matplotlib-only. |
 | FK/F-J/MASW and advanced PSD | analysis_tools.py FK/PSD sections | Deferred | Not implemented | Not applicable | Out of scope for Phase 3C. |
+
+## Phase 3D PSD/Welch and analysis service migration decision
+
+The following old files were reviewed read-only for PSD and Welch helpers:
+
+- old_code/old_code1/tools/analysis_tools.py
+- old_code/old_code4/hcz_signal_analyse.py
+
+old_code/old_code1/tools/analysis_tools.py contains thin wrappers around
+scipy.signal.periodogram and scipy.signal.welch. The scipy calls are useful, but
+the old functions default to axis=-1 and do not document DAS
+(n_samples, n_channels) semantics or channel selection. Phase 3D therefore
+reimplemented PSD/Welch with explicit axis=0 defaults, DASData support, channel
+selection, channel averaging, validation, plotting, and a file-level service.
+
+| Function/topic | Old source | Judgment | New location | Tests | Interface / dimension changes |
+|---|---|---|---|---|---|
+| Periodogram PSD | analysis_tools.py::psd_periodogram | Reimplemented after refactor | das_view/analysis/spectrum.py::periodogram_psd | tests/test_spectrum_analysis.py | Uses sample_rate_hz, default axis=0, optional channels/average_channels, explicit scaling and nfft validation. |
+| Welch PSD | analysis_tools.py::psd_welch | Reimplemented after refactor | das_view/analysis/spectrum.py::welch_psd | tests/test_spectrum_analysis.py | Uses nperseg/noverlap/nfft validation, default axis=0, DASData metadata sample-rate support, and channel selection. |
+| PSD plotting | Old plotting mixed with analysis in hcz_signal_analyse.py | Reference only | das_view/plotting/spectra.py::plot_psd | tests/test_spectrum_plotting.py | Plotting accepts PSDResult and optionally shows 10*log10 values; no PyQt5 dependency. |
+| File-level analysis workflow | Old scripts mix loading, plotting, and analysis | New implementation | das_view/analysis/service.py | tests/test_spectrum_service.py | Service reads bounded traces through data_service, optionally applies processing service steps, and returns result/metadata/history. |
+| FK/F-J/MASW | analysis_tools.py advanced sections | Deferred | Not implemented | Not applicable | Explicitly out of scope for Phase 3D. |

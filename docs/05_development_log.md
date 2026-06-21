@@ -656,3 +656,77 @@ No old_code files were imported, copied directly, or modified.
 
 Phase 3D: add PSD/Welch and spectrum service helpers; or Phase 2D: add QThread
 background loading, cancel, and progress feedback for the GUI.
+
+## 2026-06-21: Phase 3D PSD/Welch analysis and spectrum service
+
+### Added files
+
+- das_view/analysis/service.py
+- tests/test_spectrum_service.py
+
+### Modified files
+
+- das_view/analysis/spectrum.py
+- das_view/analysis/__init__.py
+- das_view/plotting/spectra.py
+- das_view/plotting/__init__.py
+- examples/spectrum_file.py
+- tests/test_spectrum_analysis.py
+- tests/test_spectrum_plotting.py
+- tests/test_spectrum_example.py
+- README.md
+- docs/02_architecture.md
+- docs/03_old_code_review.md
+- docs/05_development_log.md
+- docs/06_testing.md
+- docs/07_roadmap.md
+
+### Design decisions
+
+- Added PSDResult plus periodogram_psd and welch_psd in the analysis layer.
+- PSD functions accept numpy arrays or DASData. DASData input can provide
+  sample_rate_hz from metadata.
+- The default axis=0 follows data.shape == (n_samples, n_channels), so PSD is
+  estimated along time for each channel by default.
+- PSD functions support channel selection and optional channel averaging for
+  2-D DAS arrays.
+- NaN/Inf inputs are rejected to avoid silently contaminated spectral estimates.
+- plot_psd is a Matplotlib-only plotting helper and supports optional dB display
+  with safe handling for zero or tiny values.
+- das_view/analysis/service.py provides bounded file-level helpers for spectrum,
+  PSD, and spectrogram workflows. It reads traces through read_trace and can
+  apply preprocessing/filter steps through apply_preprocess before analysis.
+- examples/spectrum_file.py now uses the analysis service and supports
+  amplitude, power, periodogram PSD, Welch PSD, dB PSD display, spectrogram, and
+  optional bandpass preprocessing.
+
+### Old-code migration judgment
+
+| Old source | Function/topic | Judgment | New location | Tests | Interface or dimension changes |
+|---|---|---|---|---|---|
+| old_code/old_code1/tools/analysis_tools.py::psd_periodogram | Periodogram PSD | Reimplemented after refactor | das_view/analysis/spectrum.py::periodogram_psd | tests/test_spectrum_analysis.py | Uses sample_rate_hz, default axis=0, channel selection/averaging, and explicit nfft/scaling validation. |
+| old_code/old_code1/tools/analysis_tools.py::psd_welch | Welch PSD | Reimplemented after refactor | das_view/analysis/spectrum.py::welch_psd | tests/test_spectrum_analysis.py | Uses nperseg/noverlap/nfft validation and DASData metadata sample-rate support. |
+| old_code/old_code4/hcz_signal_analyse.py plotting workflows | PSD/spectrum plotting ideas | Reference only | das_view/plotting/spectra.py::plot_psd | tests/test_spectrum_plotting.py | Plotting is separated from analysis and remains PyQt5-independent. |
+| Old combined scripts/workflows | File-level spectrum workflow | New implementation | das_view/analysis/service.py | tests/test_spectrum_service.py | Uses read_trace and apply_preprocess services instead of embedding IO/filter logic in examples. |
+| old_code FK/F-J/MASW sections | Advanced analysis | Deferred | Not implemented | Not applicable | Out of scope for Phase 3D. |
+
+No old_code files were imported, copied directly, or modified.
+
+### Test result
+
+- python -B -m pytest -p no:cacheprovider
+- Result: 150 passed.
+
+### Not completed
+
+- FK/F-J/MASW are not implemented.
+- GUI spectrum panel is not implemented.
+- Full STFT workflow is not implemented.
+- Full-size spectral analysis/export workflow is not implemented.
+- Real large-file PSD/Welch performance has not been validated.
+
+### Suggested next round
+
+Phase 3E: add a minimal GUI spectrum panel for amplitude/PSD/spectrogram; or
+Phase 2D: add QThread background loading, cancel, and progress feedback for the
+GUI; or Phase 4A: FK transform smoke path.

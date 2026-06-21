@@ -6,11 +6,13 @@ matplotlib.use("Agg")
 pytest.importorskip("scipy")
 
 from das_view.analysis.spectrum import (
+    PSDResult,
     SpectrumResult,
     amplitude_spectrum,
+    welch_psd,
     single_channel_spectrogram,
 )
-from das_view.plotting.spectra import plot_spectrogram, plot_spectrum
+from das_view.plotting.spectra import plot_psd, plot_spectrogram, plot_spectrum
 
 
 def sine_data():
@@ -78,3 +80,49 @@ def test_plot_spectrogram_rejects_bad_shape():
 
     with pytest.raises(ValueError, match="shaped"):
         plot_spectrogram(bad)
+
+
+def test_plot_psd_saves_image(tmp_path):
+    result = welch_psd(sine_data(), sample_rate_hz=200.0, channels=[0, 1], nperseg=128)
+
+    fig, ax = plot_psd(result)
+    output = tmp_path / "psd.png"
+    fig.savefig(output)
+
+    assert output.exists()
+    assert output.stat().st_size > 0
+    assert ax.get_xlabel() == "Frequency (Hz)"
+    assert len(ax.lines) == 2
+
+
+def test_plot_psd_db_handles_zero_values(tmp_path):
+    result = PSDResult(
+        frequencies_hz=np.array([0.0, 1.0, 2.0]),
+        values=np.array([0.0, 1e-30, 1.0]),
+        sample_rate_hz=10.0,
+        method="welch",
+        scaling="density",
+        axis=0,
+    )
+
+    fig, ax = plot_psd(result, db=True)
+    output = tmp_path / "psd_db.png"
+    fig.savefig(output)
+
+    assert output.exists()
+    assert output.stat().st_size > 0
+    assert ax.get_ylabel() == "PSD (dB)"
+
+
+def test_plot_psd_rejects_bad_result():
+    result = PSDResult(
+        frequencies_hz=np.array([]),
+        values=np.array([]),
+        sample_rate_hz=10.0,
+        method="periodogram",
+        scaling="density",
+        axis=0,
+    )
+
+    with pytest.raises(ValueError, match="non-empty"):
+        plot_psd(result)
