@@ -12,9 +12,13 @@ rules that should be preserved before any further development.
 - Development model: the new das_view/ package is being rebuilt after auditing
   legacy material under old_code/.
 - New runtime code must not depend on, import, or call old_code.
-- Current latest commit: 818c756 Add PSD Welch analysis and spectrum service.
-- Current phase: Phase 3D, PSD / Welch / spectrum service enhancement.
-- Current test result: 150 passed.
+- Latest functional development commit: 818c756 Add PSD Welch analysis and
+  spectrum service.
+- Latest handoff commit: 41382a3 Add project handoff summary.
+- Latest GUI responsiveness commit: current HEAD after Phase 2D,
+  Add GUI background loading with cancel and progress.
+- Current phase: Phase 2D, GUI QThread background loading, cancel, and progress.
+- Current test result after Phase 2D: 157 passed.
 
 ## 2. Repository and environment
 
@@ -107,7 +111,8 @@ Key modules:
   - main_window.py: minimal GUI with metadata, waterfall, and waveform tabs.
   - app.py: GUI application entry point.
   - models.py: GUI-independent parsing and small models.
-  - workers.py: worker scaffold; full QThread workflow is not implemented yet.
+  - workers.py: no-Qt callable service wrappers plus QThread QObject workers for
+    preview and waveform background loading.
 
 ## 5. Completed phase history
 
@@ -178,6 +183,16 @@ Key modules:
   reader edge-case tests.
 - Test result: 72 passed.
 - Not completed: systematic real sample validation and GUI responsiveness.
+
+### Phase 2D: GUI QThread background loading
+
+- Goal: move preview and waveform data loading out of the GUI thread and add
+  cancel/progress feedback.
+- Key modules: QThread-backed preview/waveform workers, MainWindow task-state
+  wiring, progress bar, Cancel button, and GUI-independent task state helpers.
+- Test result: 157 passed.
+- Not completed: hard interruption of synchronous reader IO and real large-file
+  responsiveness validation.
 
 ### Phase 3A: basic preprocessing
 
@@ -251,7 +266,10 @@ Key modules:
 - Show waveform tab.
 - Configure max_samples and max_channels.
 - Parse single or comma-separated channel input.
-- Current limitation: loading is still synchronous and may block on large files.
+- Preview and waveform reads run in QThread-backed background workers with busy
+  progress feedback and soft cancellation.
+- Current limitation: cancellation cannot forcibly interrupt synchronous reader
+  IO already in progress; cancelled results are ignored when they return.
 
 ### Processing
 
@@ -378,9 +396,10 @@ No old_code files are imported by the new runtime package.
 
 1. ZD HDF5 and Puniu DAT have not been systematically validated with real
    production samples.
-2. GUI loading still uses synchronous calls and may freeze on large preview,
-   waveform, or future spectrum operations.
-3. There is no complete QThread, cancel, or progress workflow yet.
+2. GUI preview and waveform loading use QThread workers, but real production
+   large-file responsiveness has not been validated.
+3. GUI cancellation is soft and cannot forcibly interrupt synchronous reader IO
+   already in progress.
 4. There is no GUI preprocessing, filter, or spectrum panel.
 5. FK analysis is not implemented.
 6. F-J / MASW analysis is not implemented.

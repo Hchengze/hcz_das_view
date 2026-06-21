@@ -730,3 +730,72 @@ No old_code files were imported, copied directly, or modified.
 Phase 3E: add a minimal GUI spectrum panel for amplitude/PSD/spectrogram; or
 Phase 2D: add QThread background loading, cancel, and progress feedback for the
 GUI; or Phase 4A: FK transform smoke path.
+
+## 2026-06-21: Phase 2D GUI QThread background loading
+
+### Modified files
+
+- das_view/gui/workers.py
+- das_view/gui/models.py
+- das_view/gui/main_window.py
+- tests/test_gui_smoke.py
+- docs/02_architecture.md
+- docs/05_development_log.md
+- docs/06_testing.md
+- docs/07_roadmap.md
+- docs/08_project_handoff.md
+
+### Design decisions
+
+- Kept PreviewWorker as a no-Qt callable wrapper around create_preview and added
+  WaveformWorker as a no-Qt callable wrapper around read_trace.
+- Added QtPreviewWorker and QtWaveformWorker as QObject workers intended to run
+  in QThread. They emit started, progress, finished, failed, and cancelled
+  signals.
+- MainWindow now runs preview and waveform data reads in a single active
+  background task at a time. Open/preview controls and waveform controls are
+  disabled while a task is running.
+- Added a Cancel button plus an indeterminate/busy QProgressBar for background
+  work. The progress signal carries stage text and simple stage values, but the
+  GUI displays busy mode because the current readers do not provide true
+  byte/sample-level progress.
+- Cancellation is soft/cooperative. It cannot forcefully interrupt synchronous
+  create_preview or read_trace calls already inside a reader, but it sets a
+  cancellation flag and prevents cancelled or stale task results from being
+  applied to the GUI.
+- Matplotlib drawing remains on the main thread. Workers return service results;
+  MainWindow applies the latest non-cancelled result and then calls
+  plot_waterfall or plot_waveform.
+- Task cleanup is connected to worker completion/failure/cancellation and QThread
+  finished signals so worker/thread objects are released and controls are
+  restored safely.
+- GUI state helpers such as task_control_state, format_task_status, and
+  should_apply_task_result live in das_view/gui/models.py so they can be tested
+  without PyQt5.
+
+### Old-code migration judgment
+
+No old_code files were copied, imported, modified, or used for this phase. This
+round only changed the new GUI worker/state wiring around existing services.
+
+### Test result
+
+- D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest tests/test_gui_smoke.py -p no:cacheprovider
+- Result: 22 passed.
+- D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider
+- Result: 157 passed.
+
+### Not completed
+
+- Hard cancellation of lower-level synchronous reader IO is not implemented.
+- Real large-file GUI responsiveness and cancellation timing have not been
+  validated with production samples.
+- GUI preprocessing, filter, and spectrum panels are not implemented.
+- FK, F-J/MASW, full STFT, and complete processing/analysis export remain
+  deferred.
+
+### Suggested next round
+
+Phase 3E: add a minimal GUI spectrum panel for amplitude/PSD/spectrogram after
+the QThread loading foundation; or Phase 2E: real sample validation if local
+real data paths are provided.

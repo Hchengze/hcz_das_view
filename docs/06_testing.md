@@ -21,7 +21,13 @@ Current coverage:
 - Reader preview API for synthetic ZD HDF5 and Puniu DAT, including automatic downsampling, unsupported formats, and metadata error wrapping.
 - plot_waterfall edge cases for constant matrices and empty data.
 - GUI smoke coverage: PyQt-free GUI model helpers, and MainWindow creation when PyQt5 and Matplotlib Qt support are available.
-- GUI preview limit parsing, status summary formatting, and error formatting.
+- GUI preview limit parsing, status summary formatting, task status formatting,
+  stale/cancelled result rejection, control-state helpers, and error formatting.
+- Phase 2D GUI responsiveness tests cover callable worker parameter storage,
+  Qt worker construction/cancellation flags when PyQt5 is available, progress
+  bar and Cancel button presence, initial disabled Cancel state, task control
+  switching, and soft-cancel status updates without opening real file dialogs or
+  requiring real DAS data.
 - Data service coverage for synthetic ZD HDF5 and Puniu DAT selections, trace reads,
   slicing, downsampling, invalid channels, empty selections, and unsupported formats.
 - Phase 2B extends data service trace coverage to contiguous multi-channel reads,
@@ -78,6 +84,7 @@ Future coverage:
 - Reader edge cases with real small sample files.
 - Additional plot types beyond waterfall and waveform.
 - GUI load-file behavior with real small files.
+- Real large-file GUI responsiveness and cancellation timing.
 
 ## Command
 
@@ -95,10 +102,13 @@ For cache-free runs during agent work:
   a main project dependency because basic filters and spectrogram smoke paths
   are part of the processing/analysis layers.
 - Waveform plotting tests also use the Agg backend and write only to pytest tmp_path.
-- GUI smoke tests use pytest.importorskip("PyQt5") and pytest.importorskip("matplotlib"). If PyQt5 is not installed, GUI creation tests skip cleanly while core/io/plotting tests continue to run.
+- GUI smoke tests use pytest.importorskip("PyQt5") and pytest.importorskip("matplotlib"). If PyQt5 is not installed, GUI creation and Qt worker tests skip cleanly while core/io/plotting and PyQt-free GUI model tests continue to run.
 - GUI waveform tests avoid real file dialogs and real DAS data; they only instantiate
   widgets and test GUI-independent parser/model helpers.
-- GUI automation is deferred; GUI-independent state and worker logic should still be testable.
+- GUI automation is deferred; GUI-independent state and worker logic should still
+  be testable. Phase 2D tests exercise QThread worker construction and soft
+  cancellation flags, but do not automate real asynchronous file loading through
+  a file dialog.
 - Real or quasi-real file validation should use examples/validate_file.py and
   examples/plot_waveform.py with local data paths. Do not commit the input data
   or generated preview/waveform images.

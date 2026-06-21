@@ -43,6 +43,9 @@ Goal:
   non-contiguous channel selections.
 - Phase 2C added local real/quasi-real sample validation tools and expanded
   ZD HDF5/Puniu DAT edge-case tests without committing real data.
+- Phase 2D moved GUI preview and waveform data loading to QThread-backed
+  workers, added a Cancel button, busy progress feedback, and stale/cancelled
+  result protection while keeping plotting in the main thread.
 
 Acceptance:
 
@@ -50,8 +53,11 @@ Acceptance:
 - Large files are not blindly loaded for plotting.
 - CLI workflows can create bounded waterfall previews and waveform trace plots.
 - The GUI can show both bounded waterfall previews and simple waveform traces.
+- The GUI loads preview and waveform data through background workers for better
+  responsiveness; cancellation is soft and does not forcibly interrupt
+  synchronous reader IO already in progress.
 - Next work should run the prepared validation tools on real local samples,
-  add background GUI loading, or begin small preprocessing functions.
+  add a minimal GUI spectrum panel, or begin FK smoke-path work.
 
 ## Phase 3: Common preprocessing and interactive analysis
 
@@ -79,7 +85,8 @@ Acceptance:
   numerical, plotting, service, and CLI parsing tests.
 - GUI can run operations without blocking for typical data sizes.
 - Next work can add a minimal GUI spectrum panel in Phase 3E, improve GUI
-  background loading in Phase 2D, or begin FK smoke-path work in Phase 4A.
+  spectrum integration after the Phase 2D background loading foundation, or
+  begin FK smoke-path work in Phase 4A.
 
 ## Phase 4: Advanced analysis
 

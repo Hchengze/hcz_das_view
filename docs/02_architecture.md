@@ -154,19 +154,31 @@ Reader responsibilities:
 
 The GUI should call preview, data-service, processing, analysis, and plotting services. It should not know details like /Acquisition/Raw[0]/RawData except through reader-facing abstractions.
 
-Phase 1C GUI rules:
+GUI rules:
 
 - PyQt5 imports live only in das_view/gui/ or GUI entry points.
-- MainWindow calls PreviewWorker, which is a thin wrapper around create_preview.
+- MainWindow calls PreviewWorker / QtPreviewWorker, which wrap create_preview.
 - MainWindow exposes max_samples and max_channels controls; these values are
   validated in GUI model helpers and then passed to PreviewWorker/create_preview.
 - Metadata text comes from format_metadata.
 - The image panel uses plot_waterfall with an embedded Matplotlib Qt canvas.
 - Phase 2B adds a Waveform tab. It parses zero-based channel indices in GUI
-  model helpers, then calls read_trace and plot_waveform. The GUI does not
-  implement channel slicing, downsampling algorithms, or concrete reader paths.
+  model helpers, then calls read_trace through WaveformWorker / QtWaveformWorker
+  and plot_waveform in the main GUI thread. The GUI does not implement channel
+  slicing, downsampling algorithms, or concrete reader paths.
 - Non-contiguous, reordered, or duplicate channel waveform selections are
   represented in metadata extra_attrs. dx_m is cleared for non-contiguous
   selections so downstream displays do not pretend the selected traces are
   evenly spaced.
-- Current loading is synchronous and may briefly block for larger files; a later worker/QThread pass should move PreviewWorker into the background without changing reader logic.
+- Phase 2D moves preview and waveform data loading into QThread-backed QObject
+  workers. The workers call only service-layer functions: preview loading calls
+  create_preview, and waveform loading calls read_trace.
+- Matplotlib Qt canvas drawing remains in the main thread. Background workers
+  return data/service results; MainWindow applies the latest non-cancelled result
+  and then calls plot_waterfall or plot_waveform.
+- The GUI supports a single active background task at a time. Open/preview and
+  waveform controls are disabled while a task is running, a Cancel button requests
+  soft cancellation, and a busy progress bar shows that work is ongoing.
+- Phase 2D cancellation is cooperative. It cannot forcibly interrupt synchronous
+  reader IO already in progress, but cancelled or stale task results are not
+  applied to the GUI.

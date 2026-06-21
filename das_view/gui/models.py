@@ -52,6 +52,81 @@ class PreviewDisplayInfo:
         )
 
 
+@dataclass(frozen=True, slots=True)
+class TaskControlState:
+    """PyQt-free description of control availability during GUI tasks."""
+
+    open_enabled: bool
+    preview_controls_enabled: bool
+    waveform_controls_enabled: bool
+    cancel_enabled: bool
+    progress_visible: bool
+    progress_minimum: int
+    progress_maximum: int
+
+
+def task_control_state(is_running: bool) -> TaskControlState:
+    """Return the control state for idle or running background tasks."""
+
+    if is_running:
+        return TaskControlState(
+            open_enabled=False,
+            preview_controls_enabled=False,
+            waveform_controls_enabled=False,
+            cancel_enabled=True,
+            progress_visible=True,
+            progress_minimum=0,
+            progress_maximum=0,
+        )
+    return TaskControlState(
+        open_enabled=True,
+        preview_controls_enabled=True,
+        waveform_controls_enabled=True,
+        cancel_enabled=False,
+        progress_visible=False,
+        progress_minimum=0,
+        progress_maximum=100,
+    )
+
+
+def format_task_status(task_name: str, state: str, message: str | None = None) -> str:
+    """Return a compact status message for GUI background tasks."""
+
+    normalized_task = str(task_name).strip().lower()
+    labels = {
+        "preview": "preview",
+        "waveform": "waveform",
+    }
+    label = labels.get(normalized_task, normalized_task or "task")
+    normalized_state = str(state).strip().lower()
+
+    if normalized_state in {"loading", "running", "started"}:
+        base = f"Loading {label}"
+    elif normalized_state == "loaded":
+        base = f"Loaded {label}"
+    elif normalized_state == "cancelled":
+        base = "Cancelled"
+    elif normalized_state == "error":
+        base = "Error"
+    else:
+        base = normalized_state.capitalize() if normalized_state else "Task"
+
+    if message:
+        return f"{base}: {message}"
+    return base
+
+
+def should_apply_task_result(
+    *,
+    task_id: int,
+    active_task_id: int | None,
+    was_cancelled: bool,
+) -> bool:
+    """Return whether a worker result still belongs to the active GUI task."""
+
+    return active_task_id == task_id and not was_cancelled
+
+
 def parse_preview_limits(max_samples: Any, max_channels: Any) -> PreviewLimits:
     """Validate preview limits before passing them to create_preview."""
 
