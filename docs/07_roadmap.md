@@ -103,17 +103,20 @@ Goal:
 - Phase 4B added a simple FK velocity fan filter smoke path with mask
   construction, FK-domain masking, inverse transform back to time-channel data,
   file-level service integration, a bounded CLI example, and synthetic tests.
+- Phase 4C added a minimal GUI FK tab that runs existing FK transform and FK
+  velocity-filter services through QThread-backed workers, keeps plotting in the
+  main thread, and reuses the existing Cancel/progress task state.
 
 Acceptance:
 
 - Algorithms have synthetic-data smoke tests.
 - Parameters and results are reproducible.
-- Current Phase 4B support is limited to basic FK amplitude/power transform,
-  plotting, simple velocity fan masks, and inverse FK filter smoke paths.
-  Engineering-grade FK denoising, F-J, MASW, dispersion picking, and GUI FK
-  panels remain deferred.
+- Current Phase 4C support is limited to basic FK amplitude/power transform,
+  plotting, simple velocity fan masks, inverse FK filter smoke paths, and a
+  minimal GUI FK service panel. Engineering-grade FK denoising, velocity fan
+  polish, F-J, MASW, and dispersion picking remain deferred.
 - Next work can enter Phase 2E real sample validation if local data paths are
-  provided, or Phase 4C GUI FK panel smoke path.
+  provided, or Phase 4D FK polish / mask limits / safer defaults.
 
 ## Phase 5: Documentation, packaging, and release
 

@@ -5,12 +5,16 @@ from __future__ import annotations
 from pathlib import Path
 
 from das_view.analysis.service import (
+    FKFilterServiceResult,
+    FKServiceResult,
     SpectrumServiceResult,
+    compute_fk_filter_for_file,
+    compute_fk_for_file,
     compute_psd_for_file,
     compute_spectrogram_for_file,
     compute_spectrum_for_file,
 )
-from das_view.gui.models import SpectrumAnalysisRequest
+from das_view.gui.models import FKAnalysisRequest, SpectrumAnalysisRequest
 from das_view.io.data_service import SelectionResult, read_trace
 from das_view.io.preview import PreviewResult, create_preview
 
@@ -127,6 +131,42 @@ class SpectrumWorker:
                 noverlap=request.noverlap,
             )
         raise ValueError(f"unsupported spectrum analysis type: {request.analysis_type!r}")
+
+
+class FKWorker:
+    """Thin callable wrapper around file-level FK analysis services."""
+
+    def __init__(
+        self,
+        path: str | Path,
+        *,
+        request: FKAnalysisRequest,
+    ) -> None:
+        self.path = Path(path)
+        self.request = request
+
+    def run(self) -> FKServiceResult | FKFilterServiceResult:
+        request = self.request
+        if request.mode == "transform":
+            return compute_fk_for_file(
+                self.path,
+                time_slice=request.bounded_time_slice(),
+                channel_slice=request.bounded_channel_slice(),
+                downsample=request.downsample,
+                output=request.output,
+            )
+        if request.mode == "velocity_filter":
+            return compute_fk_filter_for_file(
+                self.path,
+                time_slice=request.bounded_time_slice(),
+                channel_slice=request.bounded_channel_slice(),
+                downsample=request.downsample,
+                vmin_mps=request.vmin_mps,
+                vmax_mps=request.vmax_mps,
+                pass_inside=request.pass_inside,
+                return_fk=False,
+            )
+        raise ValueError(f"unsupported FK mode: {request.mode!r}")
 
 
 if QtCore is not None:
@@ -265,6 +305,39 @@ if QtCore is not None:
                 return
             self.finished.emit(result)
 
+
+    class QtFKWorker(_BaseQtWorker):
+        """QObject worker that runs FK analysis services in a QThread."""
+
+        finished = QtCore.pyqtSignal(object)
+
+        def __init__(
+            self,
+            path: str | Path,
+            *,
+            request: FKAnalysisRequest,
+        ) -> None:
+            super().__init__()
+            self.worker = FKWorker(path, request=request)
+
+        @QtCore.pyqtSlot()
+        def run(self) -> None:
+            self.started.emit()
+            self.progress.emit("Computing FK", 25)
+            if self._emit_cancelled_if_requested():
+                return
+            try:
+                result = self.worker.run()
+            except Exception as exc:  # noqa: BLE001 - worker boundary reports all errors.
+                if self._emit_cancelled_if_requested():
+                    return
+                self.failed.emit(_format_worker_error(exc))
+                return
+            self.progress.emit("FK task computed", 100)
+            if self._emit_cancelled_if_requested():
+                return
+            self.finished.emit(result)
+
 else:
 
     class QtPreviewWorker:  # type: ignore[no-redef]
@@ -286,6 +359,13 @@ else:
 
         def __init__(self, *args, **kwargs) -> None:  # noqa: ANN002, ANN003
             raise ImportError("PyQt5 is required to use QtSpectrumWorker")
+
+
+    class QtFKWorker:  # type: ignore[no-redef]
+        """Placeholder that fails only when Qt worker construction is requested."""
+
+        def __init__(self, *args, **kwargs) -> None:  # noqa: ANN002, ANN003
+            raise ImportError("PyQt5 is required to use QtFKWorker")
 
 
 def _format_worker_error(error: BaseException) -> str:

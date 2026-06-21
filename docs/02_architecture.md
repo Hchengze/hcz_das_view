@@ -223,3 +223,16 @@ GUI rules:
 - Spectrum plotting remains in the main GUI thread. MainWindow receives the
   latest non-cancelled service result and calls plot_spectrum, plot_psd, or
   plot_spectrogram on the embedded Matplotlib Qt canvas.
+- Phase 4C adds a minimal FK tab. It parses bounded time/channel selection,
+  output mode, display dB, and velocity fan parameters in PyQt-free GUI model
+  helpers, then starts a QThread-backed FK worker.
+- FK GUI workers call only das_view.analysis.service helpers:
+  compute_fk_for_file for FK transform mode and compute_fk_filter_for_file for
+  velocity-filter mode. They do not inspect HDF5/DAT internal paths and do not
+  implement FK algorithms in the GUI layer.
+- FK plotting remains in the main GUI thread. MainWindow receives the latest
+  non-cancelled service result and calls plot_fk for transform results, or
+  plot_waterfall plus plot_fk_mask for the minimal velocity-filter display.
+- FK tab cancellation reuses the Phase 2D soft-cancel behavior. It cannot
+  interrupt synchronous reader/FK service calls already in progress, but stale
+  or cancelled results are not applied.

@@ -13,6 +13,8 @@ SpectrumAnalysisType = Literal[
     "psd_welch",
     "spectrogram",
 ]
+FKMode = Literal["transform", "velocity_filter"]
+FKOutputMode = Literal["amplitude", "power"]
 
 
 @dataclass(frozen=True, slots=True)
@@ -68,6 +70,7 @@ class TaskControlState:
     preview_controls_enabled: bool
     waveform_controls_enabled: bool
     spectrum_controls_enabled: bool
+    fk_controls_enabled: bool
     cancel_enabled: bool
     progress_visible: bool
     progress_minimum: int
@@ -91,6 +94,33 @@ class SpectrumAnalysisRequest:
         return spectrum_analysis_label(self.analysis_type)
 
 
+@dataclass(frozen=True, slots=True)
+class FKAnalysisRequest:
+    """Validated GUI request for a bounded FK task."""
+
+    mode: FKMode
+    output: FKOutputMode = "amplitude"
+    time_slice: slice | None = None
+    channel_slice: slice | None = None
+    downsample: tuple[int, int] = (1, 1)
+    vmin_mps: float | None = None
+    vmax_mps: float | None = None
+    pass_inside: bool = True
+    db: bool = False
+    max_samples: int = 4096
+    max_channels: int = 512
+
+    @property
+    def label(self) -> str:
+        return fk_mode_label(self.mode)
+
+    def bounded_time_slice(self) -> slice:
+        return _bounded_slice(self.time_slice, self.max_samples)
+
+    def bounded_channel_slice(self) -> slice:
+        return _bounded_slice(self.channel_slice, self.max_channels)
+
+
 def task_control_state(is_running: bool) -> TaskControlState:
     """Return the control state for idle or running background tasks."""
 
@@ -100,6 +130,7 @@ def task_control_state(is_running: bool) -> TaskControlState:
             preview_controls_enabled=False,
             waveform_controls_enabled=False,
             spectrum_controls_enabled=False,
+            fk_controls_enabled=False,
             cancel_enabled=True,
             progress_visible=True,
             progress_minimum=0,
@@ -110,6 +141,7 @@ def task_control_state(is_running: bool) -> TaskControlState:
         preview_controls_enabled=True,
         waveform_controls_enabled=True,
         spectrum_controls_enabled=True,
+        fk_controls_enabled=True,
         cancel_enabled=False,
         progress_visible=False,
         progress_minimum=0,
@@ -125,6 +157,7 @@ def format_task_status(task_name: str, state: str, message: str | None = None) -
         "preview": "preview",
         "waveform": "waveform",
         "spectrum": "spectrum",
+        "fk": "FK",
     }
     label = labels.get(normalized_task, normalized_task or "task")
     normalized_state = str(state).strip().lower()
@@ -222,6 +255,165 @@ def parse_optional_nonnegative_int(text: Any, *, name: str) -> int | None:
     if value < 0:
         raise ValueError(f"{name} must be a non-negative integer")
     return value
+
+
+def parse_optional_float(text: Any, *, name: str) -> float | None:
+    """Parse an optional finite float from a GUI text field."""
+
+    if text is None or str(text).strip() == "":
+        return None
+    try:
+        value = float(str(text).strip())
+    except ValueError as exc:
+        raise ValueError(f"{name} must be a number") from exc
+    if not value == value or value in {float("inf"), float("-inf")}:
+        raise ValueError(f"{name} must be finite")
+    return value
+
+
+def parse_optional_int(text: Any, *, name: str) -> int | None:
+    """Parse an optional integer from a GUI text field."""
+
+    if text is None or str(text).strip() == "":
+        return None
+    try:
+        return int(str(text).strip())
+    except ValueError as exc:
+        raise ValueError(f"{name} must be an integer") from exc
+
+
+def parse_fk_request(
+    *,
+    mode: str,
+    output: str,
+    time_start_text: Any = "",
+    time_stop_text: Any = "",
+    time_step: Any = 1,
+    channel_start_text: Any = "",
+    channel_stop_text: Any = "",
+    channel_step: Any = 1,
+    vmin_text: Any = "",
+    vmax_text: Any = "",
+    pass_inside: bool = True,
+    db: bool = False,
+    max_samples: Any = 4096,
+    max_channels: Any = 512,
+) -> FKAnalysisRequest:
+    """Validate FK tab controls before starting a background task."""
+
+    parsed_mode = normalize_fk_mode(mode)
+    parsed_output = normalize_fk_output_mode(output)
+    time_start = parse_optional_int(time_start_text, name="time_start")
+    time_stop = parse_optional_int(time_stop_text, name="time_stop")
+    channel_start = parse_optional_int(channel_start_text, name="channel_start")
+    channel_stop = parse_optional_int(channel_stop_text, name="channel_stop")
+    parsed_time_step = _positive_int(time_step, name="time_step")
+    parsed_channel_step = _positive_int(channel_step, name="channel_step")
+    vmin = parse_optional_float(vmin_text, name="vmin_mps")
+    vmax = parse_optional_float(vmax_text, name="vmax_mps")
+    if vmin is not None and vmin <= 0:
+        raise ValueError("vmin_mps must be positive")
+    if vmax is not None and vmax <= 0:
+        raise ValueError("vmax_mps must be positive")
+    if vmin is not None and vmax is not None and vmin >= vmax:
+        raise ValueError("vmin_mps must be smaller than vmax_mps")
+
+    parsed_max_samples = _positive_int(max_samples, name="max_samples")
+    parsed_max_channels = _positive_int(max_channels, name="max_channels")
+
+    return FKAnalysisRequest(
+        mode=parsed_mode,
+        output=parsed_output,
+        time_slice=_optional_slice(time_start, time_stop, name="time"),
+        channel_slice=_optional_slice(channel_start, channel_stop, name="channel"),
+        downsample=(parsed_time_step, parsed_channel_step),
+        vmin_mps=vmin,
+        vmax_mps=vmax,
+        pass_inside=bool(pass_inside),
+        db=bool(db),
+        max_samples=parsed_max_samples,
+        max_channels=parsed_max_channels,
+    )
+
+
+def normalize_fk_mode(value: str) -> FKMode:
+    """Normalize a GUI label or stable key to an FK mode."""
+
+    normalized = str(value).strip().lower().replace("-", " ").replace("_", " ")
+    normalized = " ".join(normalized.split())
+    mapping: dict[str, FKMode] = {
+        "fk transform": "transform",
+        "transform": "transform",
+        "fk": "transform",
+        "fk velocity filter": "velocity_filter",
+        "velocity filter": "velocity_filter",
+        "filter": "velocity_filter",
+    }
+    try:
+        return mapping[normalized]
+    except KeyError as exc:
+        raise ValueError(f"unsupported FK mode: {value!r}") from exc
+
+
+def normalize_fk_output_mode(value: str) -> FKOutputMode:
+    """Normalize an FK output mode label or key."""
+
+    normalized = str(value).strip().lower()
+    if normalized in {"amplitude", "amp"}:
+        return "amplitude"
+    if normalized in {"power", "pow"}:
+        return "power"
+    raise ValueError(f"unsupported FK output mode: {value!r}")
+
+
+def fk_mode_label(mode: str) -> str:
+    """Return a user-facing label for a normalized FK mode."""
+
+    labels = {
+        "transform": "FK transform",
+        "velocity_filter": "FK velocity filter",
+    }
+    return labels.get(str(mode), str(mode))
+
+
+def format_fk_status(result: Any, request: FKAnalysisRequest) -> list[str]:
+    """Return display-ready FK tab summary lines for a service result."""
+
+    selection = getattr(result, "selection", None)
+    lines = [
+        f"Reader: {result.reader_name}",
+        f"Mode: {request.label}",
+        f"Selection: time={_format_slice(getattr(selection, 'time_slice', None))}, "
+        f"channel={_format_slice(getattr(selection, 'channel_slice', None))}",
+        f"Downsample: {getattr(selection, 'downsample', request.downsample)}",
+    ]
+    if request.mode == "transform":
+        fk_result = result.result
+        lines.extend(
+            [
+                f"Sample rate: {fk_result.sample_rate_hz} Hz",
+                f"dx: {fk_result.dx_m} m",
+                f"Frequency bins: {len(fk_result.frequencies_hz)}",
+                f"Wavenumber bins: {len(fk_result.wavenumbers_cycles_per_m)}",
+                f"Output mode: {fk_result.output}",
+                f"Display: {'dB' if request.db else 'linear'}",
+            ]
+        )
+    else:
+        filter_result = result.result
+        lines.extend(
+            [
+                f"vmin_mps: {filter_result.vmin_mps if filter_result.vmin_mps is not None else 'none'}",
+                f"vmax_mps: {filter_result.vmax_mps if filter_result.vmax_mps is not None else 'none'}",
+                f"Fan mode: {'pass inside' if filter_result.pass_inside else 'reject inside'}",
+                f"Filtered shape: {filter_result.das_data.data.shape}",
+                f"Mask shape: {filter_result.mask.shape}",
+            ]
+        )
+        history = getattr(result, "preprocessing_history", ())
+        if history:
+            lines.append(f"Preprocessing steps: {len(history)}")
+    return lines
 
 
 def parse_spectrum_request(
@@ -326,6 +518,47 @@ def format_spectrum_status(result: Any, request: SpectrumAnalysisRequest) -> lis
     if request.analysis_type in {"psd_periodogram", "psd_welch"}:
         lines.append(f"PSD display: {'dB' if request.db else 'linear'}")
     return lines
+
+
+def _optional_slice(start: int | None, stop: int | None, *, name: str) -> slice | None:
+    if start is None and stop is None:
+        return None
+    if start is not None and start < 0:
+        raise ValueError(f"{name}_start must be non-negative")
+    if stop is not None and stop < 0:
+        raise ValueError(f"{name}_stop must be non-negative")
+    if start is not None and stop is not None and start >= stop:
+        raise ValueError(f"{name}_start must be smaller than {name}_stop")
+    return slice(start, stop)
+
+
+def _bounded_slice(value: slice | None, limit: int) -> slice:
+    limit = _positive_int(limit, name="limit")
+    if value is None:
+        return slice(0, limit)
+    start = 0 if value.start is None else int(value.start)
+    stop = value.stop
+    if stop is None:
+        stop = start + limit
+    return slice(start, int(stop), value.step)
+
+
+def _positive_int(value: Any, *, name: str) -> int:
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"{name} must be a positive integer") from exc
+    if parsed <= 0:
+        raise ValueError(f"{name} must be a positive integer")
+    return parsed
+
+
+def _format_slice(value: Any) -> str:
+    if isinstance(value, slice):
+        return f"{value.start}:{value.stop}:{value.step}"
+    if value is None:
+        return "None"
+    return str(value)
 
 
 def format_error_message(error: BaseException) -> str:

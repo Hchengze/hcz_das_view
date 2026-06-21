@@ -33,6 +33,11 @@ Current coverage:
   plotting, spectrum status formatting, SpectrumWorker parameter storage,
   QtSpectrumWorker construction/cancellation flags when PyQt5 is available, and
   Spectrum tab widget/control smoke checks without real DAS data.
+- Phase 4C GUI FK tests cover PyQt-free FK parameter parsing, FK mode/output
+  mapping, bounded time/channel slice construction, vmin/vmax validation, dB
+  display flag preservation, FK status formatting, FKWorker parameter storage,
+  QtFKWorker construction/cancellation flags when PyQt5 is available, and FK tab
+  widget/control smoke checks without real DAS data.
 - Data service coverage for synthetic ZD HDF5 and Puniu DAT selections, trace reads,
   slicing, downsampling, invalid channels, empty selections, and unsupported formats.
 - Phase 2B extends data service trace coverage to contiguous multi-channel reads,
@@ -133,8 +138,12 @@ For cache-free runs during agent work:
 - GUI spectrum tests also avoid real file dialogs and real DAS data. They check
   parser/model helpers and construction/state transitions for the minimal
   Spectrum tab; they do not automate a real asynchronous spectrum computation.
+- GUI FK tests also avoid real file dialogs and real DAS data. They check
+  parser/model helpers, FK worker construction/cancellation flags, and
+  construction/state transitions for the minimal FK tab; they do not automate a
+  real asynchronous FK service computation.
 - GUI automation is deferred; GUI-independent state and worker logic should still
-  be testable. Phase 2D/3E tests exercise QThread worker construction and soft
+  be testable. Phase 2D/3E/4C tests exercise QThread worker construction and soft
   cancellation flags, but do not automate real asynchronous file loading through
   a file dialog.
 - Real or quasi-real file validation should use examples/validate_file.py and

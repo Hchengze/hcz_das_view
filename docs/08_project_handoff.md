@@ -1,7 +1,7 @@
 ﻿# Project handoff summary
 
 This document is the handoff point for starting a new Codex conversation on
-hcz_das_view. It records the current repository state after Phase 4B and the
+hcz_das_view. It records the current repository state after Phase 4C and the
 rules that should be preserved before any further development.
 
 ## 1. Project identity
@@ -20,10 +20,11 @@ rules that should be preserved before any further development.
 - Latest GUI spectrum commit: current HEAD after Phase 3E,
   Add minimal GUI spectrum panel.
 - Latest FK smoke-path commit: 8fc76fc Add FK transform smoke path.
-- Latest FK filter smoke-path commit: current HEAD after Phase 4B,
-  Add FK velocity filter smoke path.
-- Current phase: Phase 4B, FK velocity filter smoke path.
-- Current test result after Phase 4B: 216 passed.
+- Latest FK filter smoke-path commit: cd88cfa Add FK velocity filter smoke path.
+- Latest GUI FK commit: current HEAD after Phase 4C,
+  Add minimal GUI FK panel.
+- Current phase: Phase 4C, GUI FK panel smoke path.
+- Current test result after Phase 4C: 227 passed.
 
 ## 2. Repository and environment
 
@@ -117,12 +118,12 @@ Key modules:
   - spectra.py: spectrum, spectrogram, and PSD plotting.
   - fk.py: FK plotting.
 - GUI:
-  - main_window.py: minimal GUI with metadata, waterfall, waveform, and
-    spectrum tabs.
+  - main_window.py: minimal GUI with metadata, waterfall, waveform, spectrum,
+    and FK tabs.
   - app.py: GUI application entry point.
   - models.py: GUI-independent parsing and small models.
   - workers.py: no-Qt callable service wrappers plus QThread QObject workers for
-    preview, waveform, and spectrum background loading.
+    preview, waveform, spectrum, and FK background loading.
 
 ## 5. Completed phase history
 
@@ -274,6 +275,17 @@ Key modules:
   dispersion picking, real large-file FK filter performance validation, and
   full export.
 
+### Phase 4C: GUI FK panel smoke path
+
+- Goal: connect existing FK transform and FK velocity filter services to the
+  GUI without adding new FK algorithms.
+- Key modules: FK tab in MainWindow, FKWorker / QtFKWorker, FK request
+  parser/status helpers, and GUI smoke tests.
+- Test result: 227 passed.
+- Not completed: engineering-grade FK filter, velocity fan polish, F-J/MASW,
+  dispersion picking, real large-file FK GUI performance validation, and full
+  export.
+
 ## 6. Current supported capabilities
 
 ### Readers
@@ -311,9 +323,10 @@ Key modules:
 - Show waveform tab.
 - Show Spectrum tab for single-channel amplitude spectrum, power spectrum,
   PSD periodogram, PSD Welch, and spectrogram tasks.
+- Show FK tab for bounded FK transform and FK velocity filter service tasks.
 - Configure max_samples and max_channels.
 - Parse single or comma-separated channel input.
-- Preview, waveform, and spectrum tasks run in QThread-backed background
+- Preview, waveform, spectrum, and FK tasks run in QThread-backed background
   workers with busy progress feedback and soft cancellation.
 - Current limitation: cancellation cannot forcibly interrupt synchronous reader
   IO or analysis calls already in progress; cancelled results are ignored when
@@ -419,6 +432,8 @@ Current coverage includes:
 - GUI smoke tests that cleanly skip when optional PyQt5 is unavailable.
 - GUI spectrum smoke tests for parser/model helpers, Spectrum tab controls,
   worker construction, and soft cancellation state.
+- GUI FK smoke tests for parser/model helpers, FK tab controls, worker
+  construction, and soft cancellation state.
 - Data service tests for read_selection, read_trace, and channel boundary
   behavior.
 - Validation script tests for path-list parsing and no-real-data workflows.
@@ -440,7 +455,7 @@ Current full test command and result:
 
       D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider
 
-      216 passed
+      227 passed
 
 ## 9. Old code migration status
 
@@ -475,14 +490,15 @@ No old_code files are imported by the new runtime package.
    production large-file responsiveness has not been validated.
 3. GUI cancellation is soft and cannot forcibly interrupt synchronous reader IO
    or analysis calls already in progress.
-4. There is no GUI preprocessing, filter, or FK panel.
-5. FK filter support is currently a simple smoke path, not engineering-grade
+4. There is no GUI preprocessing or filter panel.
+5. The GUI FK tab is a minimal smoke path, not an engineering-grade FK workflow.
+6. FK filter support is currently a simple smoke path, not engineering-grade
    denoising.
-6. F-J / MASW analysis is not implemented.
-7. A complete STFT workflow is not implemented.
-8. Full processing/analysis result export is not implemented.
-9. SEGY, SAC, and TDMS are not implemented.
-10. Real large-data performance has not been validated.
+7. F-J / MASW analysis is not implemented.
+8. A complete STFT workflow is not implemented.
+9. Full processing/analysis result export is not implemented.
+10. SEGY, SAC, and TDMS are not implemented.
+11. Real large-data performance has not been validated.
 
 ## 11. Recommended next phases
 
@@ -494,13 +510,13 @@ Goal:
 
 If real sample paths are provided, prioritize this before expanding analysis features.
 
-### Option B: Phase 4C GUI FK panel smoke path
+### Option B: Phase 4D FK polish / mask limits / safer defaults
 
 Goal:
 
-      Add a minimal GUI entry point for existing FK transform/filter services.
+      Refine FK smoke-path defaults, mask limits, and user-facing guardrails.
 
-Keep this to a smoke path first; do not add F-J/MASW or surface-wave analysis in the same round.
+Keep this bounded; do not add F-J/MASW or surface-wave analysis in the same round.
 
 ## 12. Suggested first prompt for the new Codex chat
 

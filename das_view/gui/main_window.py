@@ -9,15 +9,18 @@ from das_view.core.metadata_format import format_metadata
 from das_view.gui.models import (
     PreviewDisplayInfo,
     format_error_message,
+    format_fk_status,
     format_spectrum_status,
     format_task_status,
     parse_channel_indices,
+    parse_fk_request,
     parse_preview_limits,
     parse_spectrum_request,
     should_apply_task_result,
     task_control_state,
 )
-from das_view.gui.workers import QtPreviewWorker, QtSpectrumWorker, QtWaveformWorker
+from das_view.gui.workers import QtFKWorker, QtPreviewWorker, QtSpectrumWorker, QtWaveformWorker
+from das_view.plotting.fk import plot_fk, plot_fk_mask
 from das_view.plotting.spectra import plot_psd, plot_spectrogram, plot_spectrum
 from das_view.plotting.waterfall import plot_waterfall
 from das_view.plotting.waveform import plot_waveform
@@ -99,6 +102,7 @@ class MainWindow(_qt_widgets().QMainWindow):
         self.spectrum_figure, self.spectrum_canvas, self.spectrum_toolbar = (
             _create_matplotlib_widgets(self)
         )
+        self.fk_figure, self.fk_canvas, self.fk_toolbar = _create_matplotlib_widgets(self)
 
         self.waveform_channel_input = QtWidgets.QLineEdit("0")
         self.waveform_channel_input.setToolTip("Zero-based channel index, e.g. 10 or 10,20,30")
@@ -134,6 +138,40 @@ class MainWindow(_qt_widgets().QMainWindow):
         self.spectrum_info.setReadOnly(True)
         self.spectrum_info.setMaximumHeight(140)
         self.spectrum_info.setPlainText("Load a file, then run a single-channel spectrum analysis.")
+
+        self.fk_time_start_input = QtWidgets.QLineEdit("")
+        self.fk_time_start_input.setToolTip("Optional zero-based start sample; blank means 0")
+        self.fk_time_stop_input = QtWidgets.QLineEdit("")
+        self.fk_time_stop_input.setToolTip("Optional stop sample; blank means start + max samples")
+        self.fk_time_step_input = QtWidgets.QSpinBox()
+        self.fk_time_step_input.setRange(1, 10_000_000)
+        self.fk_time_step_input.setValue(1)
+        self.fk_channel_start_input = QtWidgets.QLineEdit("")
+        self.fk_channel_start_input.setToolTip("Optional zero-based start channel; blank means 0")
+        self.fk_channel_stop_input = QtWidgets.QLineEdit("")
+        self.fk_channel_stop_input.setToolTip("Optional stop channel; blank means start + max channels")
+        self.fk_channel_step_input = QtWidgets.QSpinBox()
+        self.fk_channel_step_input.setRange(1, 1_000_000)
+        self.fk_channel_step_input.setValue(1)
+        self.fk_mode_combo = QtWidgets.QComboBox()
+        self.fk_mode_combo.addItem("FK transform", "transform")
+        self.fk_mode_combo.addItem("FK velocity filter", "velocity_filter")
+        self.fk_output_combo = QtWidgets.QComboBox()
+        self.fk_output_combo.addItem("Amplitude", "amplitude")
+        self.fk_output_combo.addItem("Power", "power")
+        self.fk_db_checkbox = QtWidgets.QCheckBox("Display in dB")
+        self.fk_vmin_input = QtWidgets.QLineEdit("")
+        self.fk_vmin_input.setToolTip("Optional minimum apparent velocity in m/s")
+        self.fk_vmax_input = QtWidgets.QLineEdit("")
+        self.fk_vmax_input.setToolTip("Optional maximum apparent velocity in m/s")
+        self.fk_pass_inside_checkbox = QtWidgets.QCheckBox("Pass inside velocity fan")
+        self.fk_pass_inside_checkbox.setChecked(True)
+        self.fk_button = QtWidgets.QPushButton("Run FK")
+        self.fk_button.clicked.connect(self.load_fk)
+        self.fk_info = QtWidgets.QPlainTextEdit()
+        self.fk_info.setReadOnly(True)
+        self.fk_info.setMaximumHeight(150)
+        self.fk_info.setPlainText("Load a file, then run a bounded FK task.")
 
         self.progress_bar = QtWidgets.QProgressBar()
         self.progress_bar.setRange(0, 100)
@@ -191,10 +229,32 @@ class MainWindow(_qt_widgets().QMainWindow):
         spectrum_layout.addWidget(self.spectrum_toolbar)
         spectrum_layout.addWidget(self.spectrum_canvas)
 
+        fk_panel = QtWidgets.QWidget()
+        fk_layout = QtWidgets.QVBoxLayout(fk_panel)
+        fk_controls = QtWidgets.QFormLayout()
+        fk_controls.addRow("Time start", self.fk_time_start_input)
+        fk_controls.addRow("Time stop", self.fk_time_stop_input)
+        fk_controls.addRow("Time step", self.fk_time_step_input)
+        fk_controls.addRow("Channel start", self.fk_channel_start_input)
+        fk_controls.addRow("Channel stop", self.fk_channel_stop_input)
+        fk_controls.addRow("Channel step", self.fk_channel_step_input)
+        fk_controls.addRow("FK mode", self.fk_mode_combo)
+        fk_controls.addRow("Output mode", self.fk_output_combo)
+        fk_controls.addRow("", self.fk_db_checkbox)
+        fk_controls.addRow("vmin m/s", self.fk_vmin_input)
+        fk_controls.addRow("vmax m/s", self.fk_vmax_input)
+        fk_controls.addRow("", self.fk_pass_inside_checkbox)
+        fk_layout.addLayout(fk_controls)
+        fk_layout.addWidget(self.fk_button)
+        fk_layout.addWidget(self.fk_info)
+        fk_layout.addWidget(self.fk_toolbar)
+        fk_layout.addWidget(self.fk_canvas)
+
         self.plot_tabs = QtWidgets.QTabWidget()
         self.plot_tabs.addTab(waterfall_panel, "Waterfall")
         self.plot_tabs.addTab(waveform_panel, "Waveform")
         self.plot_tabs.addTab(spectrum_panel, "Spectrum")
+        self.plot_tabs.addTab(fk_panel, "FK")
 
         splitter.addWidget(left_panel)
         splitter.addWidget(self.plot_tabs)
@@ -206,6 +266,7 @@ class MainWindow(_qt_widgets().QMainWindow):
         self._clear_waterfall_figure()
         self._clear_waveform_figure()
         self._clear_spectrum_figure()
+        self._clear_fk_figure()
         self._apply_task_control_state(is_running=False)
         self.statusBar().showMessage("Ready")
 
@@ -231,9 +292,11 @@ class MainWindow(_qt_widgets().QMainWindow):
         self.metadata_text.setPlainText("Loading preview...")
         self.waveform_info.setPlainText("Load a file, then plot one or more channels.")
         self.spectrum_info.setPlainText("Load a file, then run a single-channel spectrum analysis.")
+        self.fk_info.setPlainText("Load a file, then run a bounded FK task.")
         self._clear_waterfall_figure()
         self._clear_waveform_figure()
         self._clear_spectrum_figure()
+        self._clear_fk_figure()
         try:
             limits = parse_preview_limits(
                 self.max_samples_input.value(),
@@ -245,9 +308,11 @@ class MainWindow(_qt_widgets().QMainWindow):
             self.metadata_text.setPlainText(f"Failed to load preview.\n\n{message}")
             self.waveform_info.setPlainText(f"Waveform unavailable.\n\n{message}")
             self.spectrum_info.setPlainText(f"Spectrum unavailable.\n\n{message}")
+            self.fk_info.setPlainText(f"FK unavailable.\n\n{message}")
             self._clear_waterfall_figure()
             self._clear_waveform_figure()
             self._clear_spectrum_figure()
+            self._clear_fk_figure()
             self.statusBar().showMessage(f"Error: {message}")
             _qt_widgets().QMessageBox.critical(self, "DAS View error", message)
             return
@@ -351,6 +416,57 @@ class MainWindow(_qt_widgets().QMainWindow):
             ),
         )
 
+    def load_fk(self) -> None:
+        """Run a bounded FK task in the background and draw the result."""
+
+        if self._active_task_id is not None:
+            self.statusBar().showMessage("A background task is already running")
+            return
+        if self.current_path is None:
+            message = "Open a supported DAS file before running FK analysis."
+            self.fk_info.setPlainText(message)
+            self.statusBar().showMessage(f"Error: {message}")
+            _qt_widgets().QMessageBox.warning(self, "DAS View FK", message)
+            return
+
+        try:
+            request = parse_fk_request(
+                mode=self.fk_mode_combo.currentData() or self.fk_mode_combo.currentText(),
+                output=self.fk_output_combo.currentData() or self.fk_output_combo.currentText(),
+                time_start_text=self.fk_time_start_input.text(),
+                time_stop_text=self.fk_time_stop_input.text(),
+                time_step=self.fk_time_step_input.value(),
+                channel_start_text=self.fk_channel_start_input.text(),
+                channel_stop_text=self.fk_channel_stop_input.text(),
+                channel_step=self.fk_channel_step_input.value(),
+                vmin_text=self.fk_vmin_input.text(),
+                vmax_text=self.fk_vmax_input.text(),
+                pass_inside=self.fk_pass_inside_checkbox.isChecked(),
+                db=self.fk_db_checkbox.isChecked(),
+                max_samples=self.max_samples_input.value(),
+                max_channels=self.max_channels_input.value(),
+            )
+        except Exception as exc:  # noqa: BLE001 - GUI boundary should catch and display all errors.
+            message = format_error_message(exc)
+            self.fk_info.setPlainText(f"Failed to run FK task.\n\n{message}")
+            self._clear_fk_figure()
+            self.statusBar().showMessage(f"Error: {message}")
+            _qt_widgets().QMessageBox.critical(self, "DAS View FK error", message)
+            return
+
+        self.fk_info.setPlainText(f"Loading FK...\n\nMode: {request.label}")
+        self.statusBar().showMessage(format_task_status("fk", "loading"))
+        worker = QtFKWorker(self.current_path, request=request)
+        self._start_background_task(
+            "fk",
+            worker,
+            on_finished=lambda result, task_id: self._handle_fk_finished(
+                result,
+                task_id=task_id,
+                request=request,
+            ),
+        )
+
     def _build_menu(self) -> None:
         file_menu = self.menuBar().addMenu("&File")
         self.open_action = file_menu.addAction("&Open File")
@@ -385,6 +501,12 @@ class MainWindow(_qt_widgets().QMainWindow):
             self.spectrum_info.setPlainText(
                 "Cancelling spectrum analysis...\n\n"
                 "Soft cancellation cannot interrupt a reader or analysis call already in progress, "
+                "but cancelled results will not be applied."
+            )
+        elif task == "fk":
+            self.fk_info.setPlainText(
+                "Cancelling FK task...\n\n"
+                "Soft cancellation cannot interrupt a reader or FK calculation already in progress, "
                 "but cancelled results will not be applied."
             )
 
@@ -509,6 +631,25 @@ class MainWindow(_qt_widgets().QMainWindow):
             f"frequency bins={len(frequencies)}{extra}"
         )
 
+    def _handle_fk_finished(self, result: Any, *, task_id: int, request: Any) -> None:
+        if not should_apply_task_result(
+            task_id=task_id,
+            active_task_id=self._active_task_id,
+            was_cancelled=self._task_cancel_requested,
+        ):
+            return
+        self._draw_fk(result, request)
+        self.fk_info.setPlainText("\n".join(format_fk_status(result, request)))
+        if request.mode == "transform":
+            self.statusBar().showMessage(
+                f"Loaded FK: {request.output} | shape={result.result.values.shape}"
+            )
+        else:
+            self.statusBar().showMessage(
+                f"Loaded FK filter: shape={result.result.das_data.data.shape} | "
+                f"vmin={request.vmin_mps} | vmax={request.vmax_mps}"
+            )
+
     def _handle_task_failed(self, task_kind: str, message: str, *, task_id: int) -> None:
         if not should_apply_task_result(
             task_id=task_id,
@@ -521,19 +662,25 @@ class MainWindow(_qt_widgets().QMainWindow):
             self.metadata_text.setPlainText(f"Failed to load preview.\n\n{message}")
             self.waveform_info.setPlainText(f"Waveform unavailable.\n\n{message}")
             self.spectrum_info.setPlainText(f"Spectrum unavailable.\n\n{message}")
+            self.fk_info.setPlainText(f"FK unavailable.\n\n{message}")
             self.current_path = None
             self._clear_waterfall_figure()
             self._clear_waveform_figure()
             self._clear_spectrum_figure()
+            self._clear_fk_figure()
             title = "DAS View error"
         elif task_kind == "waveform":
             self.waveform_info.setPlainText(f"Failed to load waveform.\n\n{message}")
             self._clear_waveform_figure()
             title = "DAS View waveform error"
-        else:
+        elif task_kind == "spectrum":
             self.spectrum_info.setPlainText(f"Failed to run spectrum analysis.\n\n{message}")
             self._clear_spectrum_figure()
             title = "DAS View spectrum error"
+        else:
+            self.fk_info.setPlainText(f"Failed to run FK task.\n\n{message}")
+            self._clear_fk_figure()
+            title = "DAS View FK error"
         self.statusBar().showMessage(format_task_status(task_kind, "error", message))
         _qt_widgets().QMessageBox.critical(self, title, message)
 
@@ -554,6 +701,9 @@ class MainWindow(_qt_widgets().QMainWindow):
         elif task_kind == "spectrum":
             self.spectrum_info.setPlainText("Spectrum analysis cancelled.")
             self._clear_spectrum_figure()
+        elif task_kind == "fk":
+            self.fk_info.setPlainText("FK task cancelled.")
+            self._clear_fk_figure()
 
     def _cleanup_task(self, *, task_id: int) -> None:
         if self._active_task_id != task_id:
@@ -581,6 +731,19 @@ class MainWindow(_qt_widgets().QMainWindow):
         self.spectrum_noverlap_input.setEnabled(state.spectrum_controls_enabled)
         self.spectrum_db_checkbox.setEnabled(state.spectrum_controls_enabled)
         self.spectrum_button.setEnabled(state.spectrum_controls_enabled)
+        self.fk_time_start_input.setEnabled(state.fk_controls_enabled)
+        self.fk_time_stop_input.setEnabled(state.fk_controls_enabled)
+        self.fk_time_step_input.setEnabled(state.fk_controls_enabled)
+        self.fk_channel_start_input.setEnabled(state.fk_controls_enabled)
+        self.fk_channel_stop_input.setEnabled(state.fk_controls_enabled)
+        self.fk_channel_step_input.setEnabled(state.fk_controls_enabled)
+        self.fk_mode_combo.setEnabled(state.fk_controls_enabled)
+        self.fk_output_combo.setEnabled(state.fk_controls_enabled)
+        self.fk_db_checkbox.setEnabled(state.fk_controls_enabled)
+        self.fk_vmin_input.setEnabled(state.fk_controls_enabled)
+        self.fk_vmax_input.setEnabled(state.fk_controls_enabled)
+        self.fk_pass_inside_checkbox.setEnabled(state.fk_controls_enabled)
+        self.fk_button.setEnabled(state.fk_controls_enabled)
         self.cancel_button.setEnabled(state.cancel_enabled)
         self.progress_bar.setVisible(state.progress_visible)
         self.progress_bar.setRange(state.progress_minimum, state.progress_maximum)
@@ -610,6 +773,14 @@ class MainWindow(_qt_widgets().QMainWindow):
         ax.set_xticks([])
         ax.set_yticks([])
         self.spectrum_canvas.draw_idle()
+
+    def _clear_fk_figure(self) -> None:
+        self.fk_figure.clear()
+        ax = self.fk_figure.add_subplot(111)
+        ax.set_title("No FK result loaded")
+        ax.set_xticks([])
+        ax.set_yticks([])
+        self.fk_canvas.draw_idle()
 
     def _draw_preview(self, preview_data) -> None:
         self.figure.clear()
@@ -644,3 +815,31 @@ class MainWindow(_qt_widgets().QMainWindow):
             raise ValueError(f"unsupported spectrum analysis type: {request.analysis_type!r}")
         self.spectrum_figure.tight_layout()
         self.spectrum_canvas.draw_idle()
+
+    def _draw_fk(self, service_result, request) -> None:
+        self.fk_figure.clear()
+        if request.mode == "transform":
+            ax = self.fk_figure.add_subplot(111)
+            title = f"{request.label} - {request.output}"
+            plot_fk(service_result.result, ax=ax, title=title, db=request.db)
+        elif request.mode == "velocity_filter":
+            waterfall_ax = self.fk_figure.add_subplot(121)
+            mask_ax = self.fk_figure.add_subplot(122)
+            plot_waterfall(
+                service_result.result.das_data,
+                ax=waterfall_ax,
+                title="Filtered waterfall",
+                show_colorbar=False,
+            )
+            plot_fk_mask(
+                service_result.result.frequencies_hz,
+                service_result.result.wavenumbers_cycles_per_m,
+                service_result.result.mask,
+                ax=mask_ax,
+                title="Velocity fan mask",
+                show_colorbar=False,
+            )
+        else:
+            raise ValueError(f"unsupported FK mode: {request.mode!r}")
+        self.fk_figure.tight_layout()
+        self.fk_canvas.draw_idle()

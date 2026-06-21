@@ -1037,3 +1037,67 @@ were copied, imported, or modified.
 Phase 2E: real sample validation if local_validation_paths.txt with
 real/quasi-real DAS sample paths is provided; otherwise Phase 4C: GUI FK panel
 smoke path.
+
+## 2026-06-21: Phase 4C GUI FK panel smoke path
+
+### Goal
+
+Add the smallest GUI entry point for existing FK transform and FK velocity
+filter services. Keep FK reading/calculation in QThread workers, keep
+Matplotlib drawing in the main GUI thread, and do not add new FK algorithms.
+
+### Modified files
+
+- das_view/gui/main_window.py
+- das_view/gui/workers.py
+- das_view/gui/models.py
+- tests/test_gui_smoke.py
+- docs/02_architecture.md
+- docs/05_development_log.md
+- docs/06_testing.md
+- docs/07_roadmap.md
+- docs/08_project_handoff.md
+
+### Design decisions
+
+- Added a minimal FK tab with time/channel selection controls, FK mode, output
+  mode, dB display flag, vmin/vmax velocity parameters, pass-inside/reject
+  behavior, Run FK button, status text, and Matplotlib canvas.
+- Added FKAnalysisRequest and PyQt-free parser/status helpers in
+  das_view/gui/models.py. Empty start/stop fields remain None in the request,
+  while bounded_time_slice and bounded_channel_slice apply safe default limits
+  before service calls.
+- Added FKWorker and QtFKWorker in das_view/gui/workers.py. The callable worker
+  calls only compute_fk_for_file or compute_fk_filter_for_file. The Qt worker
+  emits started/progress/finished/failed/cancelled and supports the same soft
+  cancellation model as preview, waveform, and spectrum workers.
+- MainWindow applies FK transform results by calling plot_fk in the main thread.
+  FK velocity-filter results are displayed as a filtered waterfall plus the
+  velocity fan mask using plot_waterfall and plot_fk_mask in the main thread.
+- Opening a new file clears the old FK panel. Cancelled or stale FK results are
+  not applied.
+- The GUI still does not inspect concrete HDF5/DAT paths and does not implement
+  FK transform or FK filter algorithms.
+
+### Test result
+
+- D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider tests\test_gui_smoke.py
+- Result: 42 passed.
+- D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider tests\test_fk_service.py tests\test_fk_filter_service.py tests\test_fk_plotting.py tests\test_gui_smoke.py
+- Result: 52 passed.
+- D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider
+- Result: 227 passed.
+
+### Not completed
+
+- Engineering-grade FK filter is not implemented.
+- Velocity fan polish, mask limits, and safer defaults remain future work.
+- F-J / MASW and dispersion picking are not implemented.
+- Real large-file FK GUI performance has not been validated.
+- Full processing/analysis export is not implemented.
+
+### Suggested next round
+
+Phase 2E: real sample validation if local_validation_paths.txt with
+real/quasi-real DAS sample paths is provided; otherwise Phase 4D: FK polish /
+mask limits / safer defaults.
