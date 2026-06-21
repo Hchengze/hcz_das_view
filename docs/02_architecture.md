@@ -22,11 +22,13 @@
       - service.py
     - analysis/
       - spectrum.py
+      - fk.py
       - service.py
     - plotting/
       - waterfall.py
       - waveform.py
       - spectra.py
+      - fk.py
     - gui/
       - app.py
       - main_window.py
@@ -46,9 +48,10 @@
 - analysis: GUI-independent scientific analysis. Phase 3D includes basic
   amplitude spectrum, power spectrum, periodogram PSD, Welch PSD,
   single-channel spectrogram smoke-path helpers, and file-level spectrum
-  services. Full STFT/FK workflows remain deferred.
+  services. Phase 4A adds a basic FK transform smoke path. Full STFT, FK
+  filtering, F-J, and MASW workflows remain deferred.
 - plotting: Matplotlib plotting helpers independent from GUI widgets, including
-  waterfall, waveform, spectrum, and spectrogram views.
+  waterfall, waveform, spectrum, spectrogram, and FK views.
 - gui: optional PyQt5 layer that calls preview, formatting, and plotting services.
 - utils: validation, slicing, logging, and shared small helpers.
 
@@ -110,6 +113,8 @@ Reader responsibilities:
   and offsets. It is pure Matplotlib and does not depend on PyQt5.
 - plot_spectrum and plot_spectrogram draw results from the analysis layer. They
   do not compute spectra and do not depend on PyQt5.
+- plot_fk draws FKResult amplitude or power matrices from the analysis layer.
+  It does not compute FK values and does not depend on PyQt5.
 - Plotting helpers assume the internal data convention (n_samples, n_channels).
 
 ## Analysis services
@@ -130,6 +135,16 @@ Reader responsibilities:
   oriented. CLI/GUI integration should call analysis service and plotting
   helpers instead of implementing FFT/STFT/PSD logic in examples or
   das_view/gui/.
+- das_view/analysis/fk.py provides FKResult and fk_transform. The default input
+  convention is (n_samples, n_channels), axis=0 is time, and axis=1 is the
+  channel/space axis. It uses a one-sided real FFT along time and a full FFT
+  along space, returning values shaped as (n_frequencies, n_wavenumbers).
+- das_view/analysis/service.py also provides compute_fk_for_file. It reads
+  bounded 2-D selections through das_view/io/data_service.py::read_selection,
+  optionally applies das_view/processing/service.py::apply_preprocess, then
+  calls fk_transform. It does not inspect HDF5/DAT internal paths.
+- Phase 4A FK is a smoke path only. FK filter, velocity fan filtering, F-J,
+  MASW, dispersion picking, and GUI FK panels are deferred.
 
 ## Processing services
 

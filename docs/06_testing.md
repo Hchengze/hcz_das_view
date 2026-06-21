@@ -80,11 +80,22 @@ Current coverage:
 - Spectrum example tests cover CLI processing-step construction, analysis mode
   selection, conflict handling, and PSD argument parsing without requiring real
   DAS input files.
+- FK analysis tests cover synthetic plane-wave peak frequency/wavenumber
+  detection, amplitude/power shapes, DASData metadata sample-rate/dx handling,
+  invalid sample_rate_hz/dx/nfft/dimensionality/NaN/Inf/too-short inputs, and
+  no in-place modification.
+- FK plotting tests cover Matplotlib Agg image saving, dB plotting with zero
+  values, and clear errors for invalid or malformed FKResult objects.
+- FK service tests cover compute_fk_for_file on synthetic ZD HDF5 selections
+  and optional bandpass preprocessing history.
+- FK example tests cover bounded time/channel slice construction and bandpass
+  processing-step construction without requiring real DAS input files.
 
 Future coverage:
 
 - Filter functions.
-- Full STFT/FK numerical smoke tests.
+- Full STFT workflows.
+- FK filter and advanced FK workflow tests.
 - Real large-file PSD/Welch performance validation.
 - Reader edge cases with real small sample files.
 - Additional plot types beyond waterfall and waveform.

@@ -862,3 +862,87 @@ das_view.plotting.spectra APIs.
 
 Phase 2E: real sample validation if local real data paths are provided; or
 Phase 4A: FK transform smoke path.
+
+## 2026-06-21: Phase 4A FK transform smoke path
+
+### Added files
+
+- das_view/analysis/fk.py
+- das_view/plotting/fk.py
+- examples/fk_file.py
+- tests/test_fk_analysis.py
+- tests/test_fk_plotting.py
+- tests/test_fk_service.py
+- tests/test_fk_example.py
+
+### Modified files
+
+- das_view/analysis/service.py
+- das_view/analysis/__init__.py
+- das_view/plotting/__init__.py
+- README.md
+- docs/02_architecture.md
+- docs/03_old_code_review.md
+- docs/05_development_log.md
+- docs/06_testing.md
+- docs/07_roadmap.md
+- docs/08_project_handoff.md
+
+### Design decisions
+
+- Added FKResult and fk_transform as GUI-independent analysis primitives.
+- fk_transform accepts numpy arrays or DASData. DASData input can supply
+  metadata.sample_rate_hz and metadata.dx_m.
+- The default axes follow the project convention: data.shape ==
+  (n_samples, n_channels), axis=0 is time, and axis=1 is the spatial/channel
+  axis.
+- The FK transform uses a one-sided real FFT along time and a full complex FFT
+  along space, with optional wavenumber fftshift. Output values are shaped as
+  (n_frequencies, n_wavenumbers).
+- Supported FK outputs are amplitude and power. Invalid sample rate, dx, nfft,
+  axis, dimensionality, NaN/Inf input, and too-short selections raise clear
+  ValueError messages.
+- Added compute_fk_for_file to the analysis service. It reads bounded 2-D
+  selections through read_selection, optionally applies apply_preprocess, and
+  then calls fk_transform. It does not inspect concrete reader internals.
+- Added plot_fk as a Matplotlib-only helper. Plotting remains outside the
+  analysis worker/service layer and does not depend on PyQt5.
+- Added examples/fk_file.py for bounded FK image generation. It defaults to a
+  4096 sample by 512 channel selection, supports amplitude/power and dB display,
+  and can reuse the existing bandpass processing step.
+
+### Old-code migration judgment
+
+Reviewed read-only:
+
+- old_code/old_code1/tools/analysis_tools.py
+- old_code/old_code4/hcz_signal_analyse.py
+
+old_code/old_code1/tools/analysis_tools.py contains useful FK transform ideas
+using rfft2/rfftfreq/fftfreq/fftshift, but it transposes data internally, uses
+older (channel, time) assumptions, and is coupled to FK filtering/fan-mask
+workflows. Phase 4A reimplemented only the basic transform smoke path for the
+new (n_samples, n_channels) interface. FK filter, velocity fan filter, inverse
+FK filtering, F-J, MASW, and dispersion picking remain deferred. No old_code
+files were copied, imported, or modified.
+
+### Test result
+
+- D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider tests\test_fk_analysis.py tests\test_fk_plotting.py tests\test_fk_service.py tests\test_fk_example.py
+- Result: 24 passed.
+- D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider
+- Result: 190 passed.
+
+### Not completed
+
+- FK filter is not implemented.
+- Velocity fan filtering is not implemented.
+- F-J / MASW and dispersion picking are not implemented.
+- GUI FK panel is not implemented.
+- Real large-file FK performance has not been validated.
+- Full processing/analysis export is not implemented.
+
+### Suggested next round
+
+Phase 4B: add an FK filter smoke path; or Phase 2E: real sample validation if
+local_validation_paths.txt with real/quasi-real DAS sample paths is provided.

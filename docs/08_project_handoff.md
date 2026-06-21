@@ -19,8 +19,10 @@ rules that should be preserved before any further development.
   Add GUI background loading with cancel and progress.
 - Latest GUI spectrum commit: current HEAD after Phase 3E,
   Add minimal GUI spectrum panel.
-- Current phase: Phase 3E, minimal GUI spectrum panel.
-- Current test result after Phase 3E: 166 passed.
+- Latest FK smoke-path commit: pending this Phase 4A commit,
+  Add FK transform smoke path.
+- Current phase: Phase 4A, FK transform smoke path.
+- Current test result after Phase 4A: 190 passed.
 
 ## 2. Repository and environment
 
@@ -73,7 +75,7 @@ rules that should be preserved before any further development.
   selection services.
 - das_view/processing/: pure preprocessing functions, scipy-based filters, and
   DASData-level processing service.
-- das_view/analysis/: spectrum, spectrogram, PSD/Welch functions, and
+- das_view/analysis/: spectrum, spectrogram, PSD/Welch, FK functions, and
   file-level analysis service.
 - das_view/plotting/: Matplotlib plotting helpers independent of PyQt5.
 - das_view/gui/: optional PyQt5 application, main window, models, and worker
@@ -104,11 +106,13 @@ Key modules:
   - spectrum.py: amplitude spectrum, power spectrum, spectrogram, periodogram
     PSD, and Welch PSD.
   - service.py: file-level spectrum/PSD/spectrogram workflows for CLI and
-    future GUI reuse.
+    future GUI reuse, plus a bounded FK service.
+  - fk.py: FKResult and basic FK transform.
 - Plotting:
   - waterfall.py: waterfall preview plotting.
   - waveform.py: waveform trace plotting.
   - spectra.py: spectrum, spectrogram, and PSD plotting.
+  - fk.py: FK plotting.
 - GUI:
   - main_window.py: minimal GUI with metadata, waterfall, waveform, and
     spectrum tabs.
@@ -244,6 +248,16 @@ Key modules:
 - Not completed: GUI preprocessing/filter panels, FK/F-J/MASW, complete STFT,
   full export, and real large-file spectrum performance validation.
 
+### Phase 4A: FK transform smoke path
+
+- Goal: add a minimal FK transform, FK result object, FK plotting helper, file
+  service, CLI example, and synthetic tests.
+- Key modules: das_view/analysis/fk.py, compute_fk_for_file in
+  analysis/service.py, das_view/plotting/fk.py, examples/fk_file.py.
+- Test result: 190 passed.
+- Not completed: FK filter, velocity fan filter, F-J/MASW, dispersion picking,
+  GUI FK panel, and real large-file FK performance validation.
+
 ## 6. Current supported capabilities
 
 ### Readers
@@ -270,6 +284,7 @@ Key modules:
 - Spectrum plots.
 - Spectrogram plots.
 - PSD plots, including optional dB display.
+- FK amplitude/power plots.
 
 ### GUI
 
@@ -309,9 +324,11 @@ Key modules:
 - single_channel_spectrogram.
 - periodogram_psd.
 - welch_psd.
+- fk_transform.
 - compute_spectrum_for_file.
 - compute_psd_for_file.
 - compute_spectrogram_for_file.
+- compute_fk_for_file.
 
 ## 7. Current examples and how to use them
 
@@ -354,6 +371,12 @@ Key modules:
 
       python examples/spectrum_file.py input.h5 --channel 10 --psd welch --nperseg 512 --output welch.png
 
+- examples/fk_file.py: compute bounded FK amplitude or power plots, optionally
+  after a filter step.
+
+      python examples/fk_file.py input.h5 --output fk.png
+      python examples/fk_file.py input.h5 --output fk_power.png --output-mode power
+
 - examples/run_gui.py: launch the optional PyQt5 GUI.
 
       python examples/run_gui.py
@@ -379,12 +402,14 @@ Current coverage includes:
   parsing, and DASData metadata handling.
 - PSD/Welch service tests for periodogram, Welch, channel selection/averaging,
   plotting, file-level service calls, and example integration.
+- FK tests for synthetic plane waves, plotting, file-level service calls, and
+  example argument helpers.
 
 Current full test command and result:
 
       D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider
 
-      166 passed
+      190 passed
 
 ## 9. Old code migration status
 
@@ -395,9 +420,10 @@ Current full test command and result:
   audited; the new Puniu reader reimplements the necessary behavior with clear
   validation and the (n_samples, n_channels) convention.
 - old_code/old_code1/tools/analysis_tools.py: preprocessing, filtering,
-  spectrum, and PSD/Welch ideas were audited; selected simple numerical logic
-  was reimplemented with explicit numpy/scipy interfaces. Advanced FK/F-J/MASW
-  sections remain deferred.
+  spectrum, PSD/Welch, and basic FK ideas were audited; selected simple
+  numerical logic was reimplemented with explicit numpy/scipy interfaces.
+  Advanced FK filter, fan mask, inverse filtering, F-J, and MASW sections remain
+  deferred.
 - old_code/old_code4/hcz_signal_preprocess.py: basic preprocessing and filter
   workflow ideas were audited; clean, dimension-explicit replacements now live
   under das_view/processing/. Old workflow style and unclear parameter coupling
@@ -418,8 +444,8 @@ No old_code files are imported by the new runtime package.
    production large-file responsiveness has not been validated.
 3. GUI cancellation is soft and cannot forcibly interrupt synchronous reader IO
    or analysis calls already in progress.
-4. There is no GUI preprocessing or filter panel.
-5. FK analysis is not implemented.
+4. There is no GUI preprocessing, filter, or FK panel.
+5. FK filter and velocity fan filter are not implemented.
 6. F-J / MASW analysis is not implemented.
 7. A complete STFT workflow is not implemented.
 8. Full processing/analysis result export is not implemented.
@@ -436,13 +462,13 @@ Goal:
 
 If real sample paths are provided, prioritize this before expanding analysis features.
 
-### Option B: Phase 4A FK transform smoke path
+### Option B: Phase 4B FK filter smoke path
 
 Goal:
 
-      Add a minimal FK transform + FK plot + synthetic tests.
+      Add a minimal FK filter smoke path building on Phase 4A.
 
-Keep this to a smoke path first; do not add complex FK filters or surface-wave analysis in the same round.
+Keep this to a smoke path first; do not add F-J/MASW or surface-wave analysis in the same round.
 
 ## 12. Suggested first prompt for the new Codex chat
 

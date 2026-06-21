@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal
 
+from das_view.analysis.fk import FKResult, fk_transform
 from das_view.analysis.spectrum import (
     PSDResult,
     SpectrogramResult,
@@ -18,7 +19,7 @@ from das_view.analysis.spectrum import (
     welch_psd,
 )
 from das_view.core.data_model import DASData, DASMetadata
-from das_view.io.data_service import SelectionResult, read_trace
+from das_view.io.data_service import SelectionResult, read_selection, read_trace
 from das_view.processing.service import PreprocessStep, apply_preprocess
 
 AnalysisKind = Literal["amplitude", "power", "periodogram", "welch", "spectrogram"]
@@ -41,6 +42,18 @@ class SpectrumServiceResult:
     """Result from a file-level spectrum analysis service call."""
 
     result: AnalysisResult
+    das_data: DASData
+    reader_name: str
+    metadata: DASMetadata
+    selection: SelectionResult
+    preprocessing_history: tuple[dict[str, Any], ...]
+
+
+@dataclass(frozen=True, slots=True)
+class FKServiceResult:
+    """Result from a file-level FK analysis service call."""
+
+    result: FKResult
     das_data: DASData
     reader_name: str
     metadata: DASMetadata
@@ -149,6 +162,41 @@ def compute_spectrogram_for_file(
     return _service_result(result=result, das_data=das_data, selection=selection)
 
 
+def compute_fk_for_file(
+    path: str | Path,
+    *,
+    channel_slice=None,
+    time_slice=None,
+    downsample: int | tuple[int, int] | None = None,
+    nfft_time: int | None = None,
+    nfft_space: int | None = None,
+    output: Literal["amplitude", "power"] = "amplitude",
+    window_time=None,
+    window_space=None,
+    preprocessing_steps: Sequence[StepLike] | None = None,
+) -> FKServiceResult:
+    """Read a bounded 2-D selection and compute a basic FK transform."""
+
+    selection = read_selection(
+        path,
+        time_slice=time_slice,
+        channel_slice=channel_slice,
+        downsample=downsample,
+    )
+    das_data = selection.das_data
+    if preprocessing_steps:
+        das_data = apply_preprocess(das_data, preprocessing_steps)
+    result = fk_transform(
+        das_data,
+        nfft_time=nfft_time,
+        nfft_space=nfft_space,
+        window_time=window_time,
+        window_space=window_space,
+        output=output,
+    )
+    return _fk_service_result(result=result, das_data=das_data, selection=selection)
+
+
 def _read_and_maybe_preprocess(
     path: str | Path,
     *,
@@ -180,6 +228,29 @@ def _service_result(
     else:
         normalized_history = ()
     return SpectrumServiceResult(
+        result=result,
+        das_data=das_data,
+        reader_name=selection.reader_name,
+        metadata=das_data.metadata,
+        selection=selection,
+        preprocessing_history=normalized_history,
+    )
+
+
+def _fk_service_result(
+    *,
+    result: FKResult,
+    das_data: DASData,
+    selection: SelectionResult,
+) -> FKServiceResult:
+    history = das_data.metadata.extra_attrs.get("preprocessing_history", [])
+    if isinstance(history, list):
+        normalized_history = tuple(entry for entry in history if isinstance(entry, dict))
+    elif isinstance(history, dict):
+        normalized_history = (history,)
+    else:
+        normalized_history = ()
+    return FKServiceResult(
         result=result,
         das_data=das_data,
         reader_name=selection.reader_name,

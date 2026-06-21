@@ -5,7 +5,8 @@ current focus is a small, testable workflow for reading DAS files, displaying
 metadata, creating bounded preview data, and showing a waterfall image.
 Phase 2A also adds bounded data selection helpers and waveform plotting. Phase
 3A adds small preview-level preprocessing helpers. Phase 3D adds basic spectrum,
-PSD/Welch, and single-channel spectrogram smoke paths.
+PSD/Welch, and single-channel spectrogram smoke paths. Phase 4A adds a
+minimal FK transform and FK plotting smoke path.
 
 ## Current status
 
@@ -27,12 +28,15 @@ Implemented so far:
 - Basic amplitude spectrum, power spectrum, periodogram PSD, Welch PSD, and
   single-channel spectrogram analysis helpers with Matplotlib plotting.
 - File-level spectrum analysis service for CLI and future GUI reuse.
+- Basic FK transform, file-level FK service, and Matplotlib FK plotting smoke
+  path.
 - Synthetic tests for core readers and preview workflows.
 
 Still intentionally deferred:
 
 - Full analysis platform.
-- Full STFT/FK and advanced processing.
+- Full STFT and advanced processing.
+- FK filter, velocity fan filter, F-J, and MASW workflows.
 - Full-file preprocessing export.
 - GUI filter parameter panel.
 - SEGY/SAC/TDMS support.
@@ -99,6 +103,18 @@ Compute a basic single-channel spectrum, PSD/Welch estimate, or spectrogram:
     python examples/spectrum_file.py input.h5 --channel 10 --spectrogram --output spectrogram.png
     python examples/spectrum_file.py input.h5 --channel 10 --bandpass 1 50 --psd welch --output filtered_welch.png
 
+Compute a bounded FK transform and save an FK image:
+
+    python examples/fk_file.py input.h5 --output fk.png
+    python examples/fk_file.py input.dat --output fk.png --time-start 0 --time-stop 5000 --channel-start 0 --channel-stop 512
+    python examples/fk_file.py input.h5 --output fk_db.png --db
+    python examples/fk_file.py input.h5 --output fk_power.png --output-mode power
+    python examples/fk_file.py input.h5 --output fk_filtered.png --bandpass 1 50
+
+The FK example reads a bounded time/channel selection by default. It supports
+basic FK amplitude or power plots only; FK filter, velocity fan filter, F-J,
+MASW, and dispersion picking are not implemented.
+
 Run the minimal GUI:
 
     python examples/run_gui.py
@@ -116,10 +132,10 @@ If installed with the console script, the GUI can also be started with:
 
 Do not commit real DAS data or generated preview images. Large files should be
 opened through slicing/downsampling preview workflows. The preprocessing,
-filter, and spectrum examples work on bounded preview/trace data only; they do
+filter, spectrum, and FK examples work on bounded preview/trace data only; they do
 not export processed full-size DAS arrays. Filtering and spectrogram analysis
-depend on scipy.signal. Spectrum examples cover bounded traces/previews only:
-they do not implement FK, F-J, MASW, or export full processed arrays. The
+depend on scipy.signal. Spectrum and FK examples cover bounded traces/previews only:
+they do not implement FK filtering, F-J, MASW, or export full processed arrays. The
 internal array convention is always:
 
     data.shape == (n_samples, n_channels)
