@@ -9,6 +9,7 @@ from typing import Any
 import numpy as np
 
 from das_view.core.data_model import DASData
+from das_view.processing import filters
 from das_view.processing import preprocess
 
 
@@ -110,4 +111,9 @@ _STEP_FUNCTIONS = {
     "normalize": preprocess.normalize,
     "standardize": preprocess.standardize,
     "clip": preprocess.clip,
+    "lowpass": filters.lowpass,
+    "highpass": filters.highpass,
+    "bandpass": filters.bandpass,
+    "bandstop": filters.bandstop,
+    "notch": filters.notch,
 }

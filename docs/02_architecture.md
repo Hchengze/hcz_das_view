@@ -18,6 +18,7 @@
       - puniu_dat.py
     - processing/
       - preprocess.py
+      - filters.py
       - service.py
     - analysis/
     - plotting/
@@ -107,13 +108,19 @@ Reader responsibilities:
 - das_view/processing/preprocess.py provides pure numpy array functions. The
   default axis=0 follows the DAS convention and processes each channel along
   time.
+- das_view/processing/filters.py provides scipy.signal based lowpass, highpass,
+  bandpass, bandstop, and notch filters. The default axis=0 filters each
+  channel independently along time.
 - das_view/processing/service.py applies named preprocessing steps to DASData,
   returns a new DASData, preserves metadata, and appends preprocessing_history
   in metadata.extra_attrs.
 - The service accepts simple step definitions such as ("demean", {"axis": 0})
   and is the intended integration point for future GUI or CLI workflows.
-- Phase 3A preprocessing is preview-level and in-memory only. It does not export
-  processed full-size DAS files and does not implement filters/STFT/FK/PSD.
+- Phase 3A/3B processing examples are preview-level and in-memory only. They do
+  not export processed full-size DAS files and do not implement STFT/FK/PSD.
+- Filtering is part of the processing layer and depends on scipy. Future GUI
+  filter controls should call apply_preprocess instead of implementing filter
+  design or scipy.signal calls in das_view/gui/.
 
 ## GUI design direction
 

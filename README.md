@@ -21,6 +21,7 @@ Implemented so far:
 - Minimal optional PyQt5 GUI with waterfall preview and waveform tab.
 - Basic preprocessing functions: demean, linear detrend, taper, normalize,
   standardize, and clipping.
+- Basic scipy-based filters: lowpass, highpass, bandpass, bandstop, and notch.
 - DASData preprocessing service that records processing history in metadata.
 - Synthetic tests for core readers and preview workflows.
 
@@ -29,6 +30,7 @@ Still intentionally deferred:
 - Full analysis platform.
 - STFT/FK/PSD and advanced processing.
 - Full-file preprocessing export.
+- GUI filter parameter panel.
 - SEGY/SAC/TDMS support.
 - Real DAS data committed to the repository.
 
@@ -77,6 +79,12 @@ Apply basic preprocessing to a bounded preview and save a processed waterfall:
     python examples/preprocess_file.py input.h5 --output preview_processed.png --demean --taper 0.05 --normalize
     python examples/preprocess_file.py input.dat --output preview_processed.png --demean --normalize
 
+Apply a basic filter to a bounded preview and save a filtered waterfall:
+
+    python examples/filter_file.py input.h5 --output preview_filtered.png --bandpass 1 50
+    python examples/filter_file.py input.dat --output preview_filtered.png --lowpass 80
+    python examples/filter_file.py input.h5 --output preview_filtered.png --notch 50
+
 Run the minimal GUI:
 
     python examples/run_gui.py
@@ -93,9 +101,9 @@ If installed with the console script, the GUI can also be started with:
 ## Data policy
 
 Do not commit real DAS data or generated preview images. Large files should be
-opened through slicing/downsampling preview workflows. The preprocessing example
-works on bounded preview data only; it does not export processed full-size DAS
-arrays. The internal array
+opened through slicing/downsampling preview workflows. The preprocessing and
+filter examples work on bounded preview data only; they do not export processed
+full-size DAS arrays. Filtering depends on scipy.signal. The internal array
 convention is always:
 
     data.shape == (n_samples, n_channels)

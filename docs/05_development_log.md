@@ -507,3 +507,83 @@ No old_code files were imported, copied directly, or modified.
 Phase 3B: migrate basic filter functions, starting with bandpass, highpass,
 lowpass, and notch; or Phase 2D: add QThread background loading, cancel, and
 progress feedback for the GUI.
+
+## 2026-06-21: Phase 3B basic filtering functions and service integration
+
+### Added files
+
+- examples/filter_file.py
+- tests/test_filters.py
+- tests/test_filter_service.py
+- tests/test_filter_example.py
+
+### Modified files
+
+- pyproject.toml
+- das_view/processing/filters.py
+- das_view/processing/service.py
+- das_view/processing/__init__.py
+- README.md
+- docs/02_architecture.md
+- docs/03_old_code_review.md
+- docs/05_development_log.md
+- docs/06_testing.md
+- docs/07_roadmap.md
+
+### Dependency decision
+
+- scipy was added as a main dependency because lowpass/highpass/bandpass/
+  bandstop/notch are now core processing-layer functions.
+- Tests still use pytest.importorskip("scipy") so an unusual environment without
+  scipy can skip filter-specific tests cleanly, but normal installs should have
+  scipy available.
+
+### Design decisions
+
+- Implemented scipy.signal based lowpass, highpass, bandpass, bandstop, and
+  notch filters in das_view/processing/filters.py.
+- Butterworth filters use scipy.signal.butter(..., output="sos") plus
+  sosfiltfilt for zero_phase=True and sosfilt for zero_phase=False.
+- notch uses scipy.signal.iirnotch followed by tf2sos so it shares the same SOS
+  application path.
+- The default axis=0 follows the DAS convention data.shape ==
+  (n_samples, n_channels), so each channel is filtered independently along time.
+- Filters copy input arrays, reject NaN/Inf inputs, validate frequency/order/
+  quality/axis parameters, and raise a project-level ValueError for too-short
+  zero-phase inputs.
+- apply_preprocess now supports lowpass, highpass, bandpass, bandstop, and
+  notch steps while preserving existing Phase 3A preprocessing behavior.
+- examples/filter_file.py applies filters only to bounded preview data from
+  create_preview and saves a filtered waterfall. It does not export processed
+  full-size DAS arrays.
+
+### Old-code migration judgment
+
+| Old source | Function/topic | Judgment | New location | Tests | Interface or dimension changes |
+|---|---|---|---|---|---|
+| old_code/old_code1/tools/analysis_tools.py; old_code/old_code4/hcz_signal_preprocess.py | lowpass | Reimplemented after refactor | das_view/processing/filters.py::lowpass | tests/test_filters.py | Uses sample_rate_hz/cutoff_hz, default axis=0, SOS, zero_phase option. |
+| old_code/old_code1/tools/analysis_tools.py; old_code/old_code4/hcz_signal_preprocess.py | highpass | Reimplemented after refactor | das_view/processing/filters.py::highpass | tests/test_filters.py | Same conventions as lowpass; validates cutoff < Nyquist. |
+| old_code/old_code1/tools/analysis_tools.py; old_code/old_code4/hcz_signal_preprocess.py | bandpass | Reimplemented after refactor | das_view/processing/filters.py::bandpass | tests/test_filters.py | Uses freqmin_hz/freqmax_hz and explicit DAS axis semantics. |
+| old_code/old_code1/tools/analysis_tools.py | bandstop | Reimplemented after refactor | das_view/processing/filters.py::bandstop | tests/test_filters.py | Rewritten with SOS and validation. |
+| old_code/old_code1/tools/analysis_tools.py; old_code/old_code4/hcz_signal_preprocess.py | notch | Reference only | das_view/processing/filters.py::notch | tests/test_filters.py | Reimplemented with iirnotch + tf2sos; validates notch_hz and quality. |
+| old_code/old_code1/tools/analysis_tools.py | taper_filter | Already covered by Phase 3A | das_view/processing/preprocess.py::taper | tests/test_preprocess.py | Kept as preprocessing, not filtering. |
+
+No old_code files were imported, copied directly, or modified.
+
+### Test result
+
+- python -B -m pytest -p no:cacheprovider
+- Result: 117 passed.
+
+### Not completed
+
+- STFT/FK/PSD are not implemented.
+- GUI filter parameter panel is not implemented.
+- Full-size filtered DAS export is not implemented.
+- Real large-file filtering performance has not been validated.
+
+### Suggested next round
+
+Phase 3C: add basic amplitude spectrum, power spectrum, and spectrogram smoke
+paths; or Phase 2D: add QThread background loading, cancel, and progress
+feedback for the GUI.

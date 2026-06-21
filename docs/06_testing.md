@@ -45,6 +45,15 @@ Current coverage:
   parameters.
 - Preprocessing example tests cover CLI step construction without requiring real
   DAS input files.
+- Filter function tests cover lowpass, highpass, bandpass, bandstop, notch,
+  shape preservation, no in-place modification, axis=0/axis=1, causal and
+  zero-phase paths, invalid frequency/order/quality/axis parameters, NaN/Inf
+  rejection, and too-short data errors.
+- Filter service tests cover lowpass, bandpass, mixed demean -> bandpass ->
+  normalize workflows, preprocessing_history records, and unknown-step
+  regression.
+- Filter example tests cover CLI filter-step construction without requiring real
+  DAS input files.
 
 Future coverage:
 
@@ -66,6 +75,9 @@ For cache-free runs during agent work:
 
 - h5py tests use pytest.importorskip("h5py").
 - matplotlib plotting tests use pytest.importorskip("matplotlib") and the Agg backend.
+- scipy-based filter tests use pytest.importorskip("scipy"). scipy is currently
+  a main project dependency because basic filters are part of the processing
+  layer.
 - Waveform plotting tests also use the Agg backend and write only to pytest tmp_path.
 - GUI smoke tests use pytest.importorskip("PyQt5") and pytest.importorskip("matplotlib"). If PyQt5 is not installed, GUI creation tests skip cleanly while core/io/plotting tests continue to run.
 - GUI waveform tests avoid real file dialogs and real DAS data; they only instantiate

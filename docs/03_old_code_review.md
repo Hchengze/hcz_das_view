@@ -52,3 +52,24 @@ the small, well-understood operations with numpy and explicit
 | standardize | old_code/old_code4/hcz_signal_preprocess.py::standardization | 重构后复写 | das_view/processing/preprocess.py::standardize | tests/test_preprocess.py | Adds axis and eps; constant finite slices become zero. |
 | clip | No focused old helper found in reviewed files | 新实现 | das_view/processing/preprocess.py::clip | tests/test_preprocess.py | Adds explicit min/max and percentile clipping over finite values. |
 | simple preprocessing workflow | old_code/old_code4/hcz_signal_preprocess.py::data_preprocess | 废弃 | das_view/processing/service.py::apply_preprocess | tests/test_preprocessing_service.py | Old workflow is empty/pass; new service applies explicit ordered steps and records metadata history. |
+
+## Phase 3B filter migration decision
+
+The same old files were reviewed read-only for basic filters:
+
+- old_code/old_code1/tools/analysis_tools.py
+- old_code/old_code4/hcz_signal_preprocess.py
+
+The old code uses scipy.signal Butterworth and notch filters, which is the right
+general approach, but parameter names and dimension assumptions are inconsistent
+and error handling is minimal. Phase 3B reimplemented the filter API with
+explicit DAS axis semantics, SOS-based filtering, and validation.
+
+| Function | Old source | Judgment | New location | Tests | Interface / dimension changes |
+|---|---|---|---|---|---|
+| lowpass | analysis_tools.py::filter_butter_lowpass; hcz_signal_preprocess.py::filter_butter_lowpass | 重构后复写 | das_view/processing/filters.py::lowpass | tests/test_filters.py | Uses sample_rate_hz/cutoff_hz, default axis=0, SOS filters, zero_phase option. |
+| highpass | analysis_tools.py::filter_butter_highpass; hcz_signal_preprocess.py::filter_butter_highpass | 重构后复写 | das_view/processing/filters.py::highpass | tests/test_filters.py | Same API conventions as lowpass; validates cutoff < Nyquist. |
+| bandpass | analysis_tools.py::filter_butter_bandpass; hcz_signal_preprocess.py::filter_butter_bandpass | 重构后复写 | das_view/processing/filters.py::bandpass | tests/test_filters.py | Uses freqmin_hz/freqmax_hz and validates freqmin < freqmax < Nyquist. |
+| bandstop | analysis_tools.py::filter_butter_bandstop | 重构后复写 | das_view/processing/filters.py::bandstop | tests/test_filters.py | New explicit DAS-axis API and SOS implementation. |
+| notch | analysis_tools.py::filter_fir_notch; hcz_signal_preprocess.py::filter_iirnotch | 仅参考 | das_view/processing/filters.py::notch | tests/test_filters.py | Reimplemented with scipy.signal.iirnotch plus SOS conversion; validates quality and notch_hz. |
+| taper_filter | analysis_tools.py::taper_filter | 已由 Phase 3A 覆盖 | das_view/processing/preprocess.py::taper | tests/test_preprocess.py | Kept separate from filtering; ratio-based Hann taper. |
