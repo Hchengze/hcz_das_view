@@ -1,0 +1,456 @@
+# Project handoff summary
+
+This document is the handoff point for starting a new Codex conversation on
+hcz_das_view. It records the current repository state after Phase 3D and the
+rules that should be preserved before any further development.
+
+## 1. Project identity
+
+- Project name: hcz_das_view, with the Python package named das_view.
+- Project role: a maintainable DAS data viewing, preview, basic processing,
+  and basic analysis package.
+- Development model: the new das_view/ package is being rebuilt after auditing
+  legacy material under old_code/.
+- New runtime code must not depend on, import, or call old_code.
+- Current latest commit: 818c756 Add PSD Welch analysis and spectrum service.
+- Current phase: Phase 3D, PSD / Welch / spectrum service enhancement.
+- Current test result: 150 passed.
+
+## 2. Repository and environment
+
+- GitHub repository: https://github.com/Hchengze/hcz_das_view
+- Local project path:
+
+      E:\HczDocument\BaiduDisk\BaiduSyncdisk\HCZ_work\CodexProject\HCZ_das_view
+
+- Python environment:
+
+      D:\HczApp\Anaconda\envs\mywork\python.exe
+
+- Common test command:
+
+      D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider
+
+- Development install:
+
+      pip install -e .[dev]
+
+- Optional GUI install:
+
+      pip install -e .[gui]
+
+## 3. Non-negotiable project rules
+
+1. New code must not import old_code.
+2. Do not modify old_code/.
+3. Do not commit real DAS data.
+4. Do not commit generated images, caches, validation outputs, or temporary
+   output directories.
+5. Internal DAS arrays use one convention:
+
+       data.shape == (n_samples, n_channels)
+
+6. axis=0 means the time/sample axis by default.
+7. GUI code must call services; it must not read HDF5/DAT internal paths or
+   implement reader details directly.
+8. core, io, processing, analysis, and plotting must not depend on PyQt5.
+9. PyQt5 should only appear in das_view/gui/ or GUI startup entry points.
+10. Every development round must update docs/05_development_log.md.
+11. Keep docs/ at eight files or fewer unless the project owner approves an
+    expansion.
+
+## 4. Current package architecture
+
+- das_view/core/: core data structures, metadata formatting, and package
+  exceptions.
+- das_view/io/: file readers, reader registry, preview generation, and data
+  selection services.
+- das_view/processing/: pure preprocessing functions, scipy-based filters, and
+  DASData-level processing service.
+- das_view/analysis/: spectrum, spectrogram, PSD/Welch functions, and
+  file-level analysis service.
+- das_view/plotting/: Matplotlib plotting helpers independent of PyQt5.
+- das_view/gui/: optional PyQt5 application, main window, models, and worker
+  scaffolding.
+- das_view/utils/: shared utilities, including slicing helpers.
+- examples/: small CLI and GUI entry points for supported workflows.
+- tests/: synthetic-data tests for readers, services, processing, analysis,
+  plotting, examples, and GUI smoke behavior.
+- docs/: compact project documentation and phase history.
+
+Key modules:
+
+- Core:
+  - data_model.py: DASData / DASMetadata and dimension validation.
+  - metadata_format.py: user-facing metadata formatting.
+  - exceptions.py: explicit project exceptions.
+- IO:
+  - hdf5_zd.py: ZD HDF5 reader.
+  - puniu_dat.py: Puniu DAT reader.
+  - registry.py: reader registration and auto-detection.
+  - preview.py: bounded preview service.
+  - data_service.py: read_selection and read_trace.
+- Processing:
+  - preprocess.py: demean, detrend, taper, normalize, standardize, clipping.
+  - filters.py: lowpass, highpass, bandpass, bandstop, notch.
+  - service.py: ordered preprocessing/filter steps on DASData with history.
+- Analysis:
+  - spectrum.py: amplitude spectrum, power spectrum, spectrogram, periodogram
+    PSD, and Welch PSD.
+  - service.py: file-level spectrum/PSD/spectrogram workflows for CLI and
+    future GUI reuse.
+- Plotting:
+  - waterfall.py: waterfall preview plotting.
+  - waveform.py: waveform trace plotting.
+  - spectra.py: spectrum, spectrogram, and PSD plotting.
+- GUI:
+  - main_window.py: minimal GUI with metadata, waterfall, and waveform tabs.
+  - app.py: GUI application entry point.
+  - models.py: GUI-independent parsing and small models.
+  - workers.py: worker scaffold; full QThread workflow is not implemented yet.
+
+## 5. Completed phase history
+
+### Phase 0: development baseline
+
+- Goal: establish package layout, core data model, docs, old-code rules, and
+  initial tests.
+- Key modules: das_view/core/, docs/01_project_baseline.md, initial tests.
+- Test result: initial baseline tests passed.
+- Not completed: real readers, plotting, GUI, processing, and analysis.
+
+### Phase 1A: reader workflow + non-GUI waterfall plotting
+
+- Goal: implement the first supported reader path and a non-GUI waterfall smoke
+  workflow.
+- Key modules: ZD HDF5 reader, reader registry, waterfall plotting,
+  examples/read_and_plot_zd_h5.py.
+- Test result: 19 passed.
+- Not completed: metadata display service, preview API, GUI, Puniu DAT.
+
+### Phase 1B: metadata formatting + preview API
+
+- Goal: add formatted metadata output and a bounded preview service independent
+  of GUI code.
+- Key modules: metadata_format.py, preview.py, examples/preview_file.py.
+- Test result: 28 passed.
+- Not completed: GUI and broader reader validation.
+
+### Phase 1C: minimal PyQt5 preview GUI
+
+- Goal: create the smallest GUI that opens a supported file, displays metadata,
+  and draws a bounded waterfall preview.
+- Key modules: das_view/gui/main_window.py, app.py, examples/run_gui.py.
+- Test result: 30 passed.
+- Not completed: background loading, waveform, analysis panels.
+
+### Phase 1D: GUI stabilization + README + validation entry
+
+- Goal: stabilize preview GUI basics, improve user entry points, and document
+  the workflow.
+- Key modules: README updates, GUI robustness, validation entry path.
+- Test result: 34 passed.
+- Not completed: waveform plotting, QThread loading, real systematic data
+  validation.
+
+### Phase 2A: waveform plotting + data selection service
+
+- Goal: add bounded data selection helpers and waveform plotting outside the
+  GUI.
+- Key modules: data_service.py, waveform.py, examples/plot_waveform.py.
+- Test result: 46 passed.
+- Not completed: GUI waveform integration and full reader edge-case hardening.
+
+### Phase 2B: GUI waveform tab
+
+- Goal: integrate waveform plotting into the minimal GUI and add channel input
+  parsing.
+- Key modules: GUI waveform tab, models.py channel parser, expanded
+  data-service tests.
+- Test result: 61 passed.
+- Not completed: real sample validation and background GUI loading.
+
+### Phase 2C: local sample validation + reader edge-case checks
+
+- Goal: prepare local real/quasi-real validation tooling and harden ZD HDF5 /
+  Puniu DAT reader boundaries.
+- Key modules: examples/validate_file.py, examples/validate_local_samples.py,
+  reader edge-case tests.
+- Test result: 72 passed.
+- Not completed: systematic real sample validation and GUI responsiveness.
+
+### Phase 3A: basic preprocessing
+
+- Goal: migrate small preprocessing operations into pure numpy functions and a
+  reusable service.
+- Key modules: preprocess.py, processing/service.py,
+  examples/preprocess_file.py.
+- Test result: 97 passed.
+- Not completed: filters, spectrum analysis, GUI processing panel.
+
+### Phase 3B: basic filters
+
+- Goal: add lowpass, highpass, bandpass, bandstop, and notch filters and connect
+  them to the processing service.
+- Key modules: filters.py, filter steps in processing/service.py,
+  examples/filter_file.py.
+- Test result: 117 passed.
+- Not completed: spectrum analysis, GUI filter panel, full-data export.
+
+### Phase 3C: basic spectrum + spectrogram smoke path
+
+- Goal: add amplitude spectrum, power spectrum, and a single-channel
+  spectrogram smoke path.
+- Key modules: analysis/spectrum.py, plotting/spectra.py,
+  examples/spectrum_file.py.
+- Test result: 134 passed.
+- Not completed: PSD/Welch service, FK, GUI spectrum panel.
+
+### Phase 3D: PSD / Welch + spectrum service
+
+- Goal: add periodogram PSD, Welch PSD, PSD plotting, and reusable file-level
+  analysis service helpers.
+- Key modules: periodogram_psd, welch_psd, plot_psd, analysis/service.py,
+  enhanced examples/spectrum_file.py.
+- Test result: 150 passed.
+- Not completed: FK, F-J/MASW, GUI spectrum panel, QThread responsiveness, real
+  large-data performance validation.
+
+## 6. Current supported capabilities
+
+### Readers
+
+- ZD HDF5 reader.
+- Puniu DAT reader.
+- Reader registry and auto-detection.
+- Metadata-only reads.
+- Bounded reads.
+- Time/channel slice and downsample handling.
+- Local validation scripts for real or quasi-real samples without committing
+  data.
+
+### Data services
+
+- Preview service via create_preview.
+- General bounded selection via read_selection.
+- Trace/channel selection via read_trace.
+
+### Plotting
+
+- Waterfall preview plots.
+- Waveform trace plots.
+- Spectrum plots.
+- Spectrogram plots.
+- PSD plots, including optional dB display.
+
+### GUI
+
+- Open supported files.
+- Display formatted metadata.
+- Show bounded waterfall preview tab.
+- Show waveform tab.
+- Configure max_samples and max_channels.
+- Parse single or comma-separated channel input.
+- Current limitation: loading is still synchronous and may block on large files.
+
+### Processing
+
+- demean.
+- detrend_linear.
+- taper.
+- normalize.
+- standardize.
+- clip.
+- lowpass.
+- highpass.
+- bandpass.
+- bandstop.
+- notch.
+- apply_preprocess with preprocessing/filter history in metadata.extra_attrs.
+
+### Analysis
+
+- amplitude_spectrum.
+- power_spectrum.
+- single_channel_spectrogram.
+- periodogram_psd.
+- welch_psd.
+- compute_spectrum_for_file.
+- compute_psd_for_file.
+- compute_spectrogram_for_file.
+
+## 7. Current examples and how to use them
+
+- examples/read_and_plot_zd_h5.py: read a ZD HDF5 file and save a waterfall
+  smoke plot.
+
+      python examples/read_and_plot_zd_h5.py input.h5 --output preview.png
+
+- examples/preview_file.py: create a bounded preview from any registered
+  reader.
+
+      python examples/preview_file.py input.h5 --output preview.png
+
+- examples/validate_file.py: validate one HDF5/DAT file, print metadata and
+  preview information, and optionally save preview/waveform images.
+
+      python examples/validate_file.py input.h5 --waveform-output trace.png --channel 10
+
+- examples/validate_local_samples.py: batch-validate paths listed in ignored
+  local_validation_paths.txt.
+
+      python examples/validate_local_samples.py
+
+- examples/plot_waveform.py: plot one or more bounded waveform traces.
+
+      python examples/plot_waveform.py input.dat --channels 10 20 30 --output traces.png
+
+- examples/preprocess_file.py: apply preview-level preprocessing and save a
+  processed waterfall image.
+
+      python examples/preprocess_file.py input.h5 --output preview_processed.png --demean --taper 0.05 --normalize
+
+- examples/filter_file.py: apply preview-level filtering and save a filtered
+  waterfall image.
+
+      python examples/filter_file.py input.h5 --output preview_filtered.png --bandpass 1 50
+
+- examples/spectrum_file.py: compute bounded amplitude, power, PSD/Welch, or
+  spectrogram plots, optionally after a filter step.
+
+      python examples/spectrum_file.py input.h5 --channel 10 --psd welch --nperseg 512 --output welch.png
+
+- examples/run_gui.py: launch the optional PyQt5 GUI.
+
+      python examples/run_gui.py
+
+## 8. Current tests
+
+Current coverage includes:
+
+- Reader tests for ZD HDF5, Puniu DAT, and reader registry behavior.
+- Preview API tests for bounded preview shape, downsampling, and metadata.
+- Plotting tests for waterfall, waveform, spectrum, spectrogram, and PSD output.
+- GUI smoke tests that cleanly skip when optional PyQt5 is unavailable.
+- Data service tests for read_selection, read_trace, and channel boundary
+  behavior.
+- Validation script tests for path-list parsing and no-real-data workflows.
+- Preprocessing tests for demean, detrend, taper, normalize, standardize, clip,
+  service history, and no in-place mutation.
+- Filter tests for lowpass, highpass, bandpass, bandstop, notch, validation,
+  scipy behavior, and service integration.
+- Spectrum tests for amplitude/power spectrum, spectrogram, plotting, example
+  parsing, and DASData metadata handling.
+- PSD/Welch service tests for periodogram, Welch, channel selection/averaging,
+  plotting, file-level service calls, and example integration.
+
+Current full test command and result:
+
+      D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider
+
+      150 passed
+
+## 9. Old code migration status
+
+- old_code/old_code1/tools/data_tools.py: reader and metadata ideas were
+  audited; useful ZD HDF5 concepts were reimplemented through the new reader,
+  metadata, and preview interfaces.
+- old_code/old_code3/dy_view.py: Puniu DAT header and payload concepts were
+  audited; the new Puniu reader reimplements the necessary behavior with clear
+  validation and the (n_samples, n_channels) convention.
+- old_code/old_code1/tools/analysis_tools.py: preprocessing, filtering,
+  spectrum, and PSD/Welch ideas were audited; selected simple numerical logic
+  was reimplemented with explicit numpy/scipy interfaces. Advanced FK/F-J/MASW
+  sections remain deferred.
+- old_code/old_code4/hcz_signal_preprocess.py: basic preprocessing and filter
+  workflow ideas were audited; clean, dimension-explicit replacements now live
+  under das_view/processing/. Old workflow style and unclear parameter coupling
+  were not copied.
+- old_code/old_code4/hcz_signal_analyse.py: spectrum/spectrogram/PSD ideas were
+  audited; the new analysis layer implements bounded, service-friendly
+  functions. GUI-coupled plotting and broad analysis workflows were not copied.
+- old_code/old_code1/tools/ui_tools.py: old GUI patterns were used only as
+  design reference. Large old GUI files were not migrated.
+
+No old_code files are imported by the new runtime package.
+
+## 10. Known limitations and risks
+
+1. ZD HDF5 and Puniu DAT have not been systematically validated with real
+   production samples.
+2. GUI loading still uses synchronous calls and may freeze on large preview,
+   waveform, or future spectrum operations.
+3. There is no complete QThread, cancel, or progress workflow yet.
+4. There is no GUI preprocessing, filter, or spectrum panel.
+5. FK analysis is not implemented.
+6. F-J / MASW analysis is not implemented.
+7. A complete STFT workflow is not implemented.
+8. Full processing/analysis result export is not implemented.
+9. SEGY, SAC, and TDMS are not implemented.
+10. Real large-data performance has not been validated.
+
+## 11. Recommended next phases
+
+### Option A: Phase 2D GUI responsiveness
+
+Goal:
+
+      QThread 后台加载、取消、进度提示，避免大文件 preview / waveform / spectrum 卡 GUI。
+
+This is the highest-priority technical debt before adding more GUI analysis
+panels.
+
+### Option B: Phase 3E minimal GUI spectrum panel
+
+Goal:
+
+      把 amplitude / PSD / spectrogram 接入 GUI，但只做最小界面。
+
+This is useful, but it is safer after Phase 2D background loading is in place.
+
+### Option C: Phase 4A FK transform smoke path
+
+Goal:
+
+      实现最基础 FK transform + FK plot + synthetic tests。
+
+Keep this to a smoke path first; do not add complex FK filters or surface-wave
+analysis in the same round.
+
+### Option D: Phase 2E real sample validation
+
+Goal:
+
+      用 local_validation_paths.txt 对真实/准真实 ZD HDF5 / Puniu DAT 做只读验证，修正 reader 边界。
+
+If real sample paths are provided, prioritize this before expanding analysis
+features.
+
+## 12. Suggested first prompt for the new Codex chat
+
+Copy this into the next Codex conversation:
+
+    请先不要开发新功能。请先阅读：
+
+    - AGENTS.md
+    - README.md
+    - docs/08_project_handoff.md
+    - docs/05_development_log.md
+    - docs/07_roadmap.md
+
+    然后执行：
+
+    git status --short
+    git branch -vv
+    git log --oneline -8
+    D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider
+
+    请先返回当前仓库状态、最新 HEAD、测试结果和你对下一步的建议，不要直接修改代码。
+
+    默认下一步建议进入：
+
+    Phase 2D：GUI QThread 后台加载、取消与进度提示
+
+    但如果我明确提供真实数据路径，则优先进入：
+
+    Phase 2E：real sample validation
