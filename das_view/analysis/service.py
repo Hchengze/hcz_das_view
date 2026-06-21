@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 from das_view.analysis.fk import FKResult, fk_transform
+from das_view.analysis.fk_filter import FKFilterResult, fk_velocity_filter
 from das_view.analysis.spectrum import (
     PSDResult,
     SpectrogramResult,
@@ -59,6 +60,19 @@ class FKServiceResult:
     metadata: DASMetadata
     selection: SelectionResult
     preprocessing_history: tuple[dict[str, Any], ...]
+
+
+@dataclass(frozen=True, slots=True)
+class FKFilterServiceResult:
+    """Result from a file-level FK velocity-filter service call."""
+
+    result: FKFilterResult
+    das_data: DASData
+    reader_name: str
+    metadata: DASMetadata
+    selection: SelectionResult
+    preprocessing_history: tuple[dict[str, Any], ...]
+    filter_parameters: dict[str, Any]
 
 
 def compute_spectrum_for_file(
@@ -197,6 +211,61 @@ def compute_fk_for_file(
     return _fk_service_result(result=result, das_data=das_data, selection=selection)
 
 
+def compute_fk_filter_for_file(
+    path: str | Path,
+    *,
+    channel_slice=None,
+    time_slice=None,
+    downsample: int | tuple[int, int] | None = None,
+    vmin_mps: float | None = None,
+    vmax_mps: float | None = None,
+    pass_inside: bool = True,
+    include_zero_wavenumber: bool = True,
+    nfft_time: int | None = None,
+    nfft_space: int | None = None,
+    window_time=None,
+    window_space=None,
+    preprocessing_steps: Sequence[StepLike] | None = None,
+    return_fk: bool = False,
+) -> FKFilterServiceResult:
+    """Read a bounded 2-D selection and apply a minimal FK velocity filter."""
+
+    selection = read_selection(
+        path,
+        time_slice=time_slice,
+        channel_slice=channel_slice,
+        downsample=downsample,
+    )
+    das_data = selection.das_data
+    if preprocessing_steps:
+        das_data = apply_preprocess(das_data, preprocessing_steps)
+    result = fk_velocity_filter(
+        das_data,
+        vmin_mps=vmin_mps,
+        vmax_mps=vmax_mps,
+        pass_inside=pass_inside,
+        include_zero_wavenumber=include_zero_wavenumber,
+        nfft_time=nfft_time,
+        nfft_space=nfft_space,
+        window_time=window_time,
+        window_space=window_space,
+        return_fk=return_fk,
+    )
+    return _fk_filter_service_result(
+        result=result,
+        das_data=result.das_data,
+        selection=selection,
+        filter_parameters={
+            "vmin_mps": result.vmin_mps,
+            "vmax_mps": result.vmax_mps,
+            "pass_inside": result.pass_inside,
+            "include_zero_wavenumber": bool(include_zero_wavenumber),
+            "nfft_time": result.nfft_time,
+            "nfft_space": result.nfft_space,
+        },
+    )
+
+
 def _read_and_maybe_preprocess(
     path: str | Path,
     *,
@@ -257,6 +326,31 @@ def _fk_service_result(
         metadata=das_data.metadata,
         selection=selection,
         preprocessing_history=normalized_history,
+    )
+
+
+def _fk_filter_service_result(
+    *,
+    result: FKFilterResult,
+    das_data: DASData,
+    selection: SelectionResult,
+    filter_parameters: dict[str, Any],
+) -> FKFilterServiceResult:
+    history = das_data.metadata.extra_attrs.get("preprocessing_history", [])
+    if isinstance(history, list):
+        normalized_history = tuple(entry for entry in history if isinstance(entry, dict))
+    elif isinstance(history, dict):
+        normalized_history = (history,)
+    else:
+        normalized_history = ()
+    return FKFilterServiceResult(
+        result=result,
+        das_data=das_data,
+        reader_name=selection.reader_name,
+        metadata=das_data.metadata,
+        selection=selection,
+        preprocessing_history=normalized_history,
+        filter_parameters=dict(filter_parameters),
     )
 
 

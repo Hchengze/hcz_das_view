@@ -6,7 +6,8 @@ metadata, creating bounded preview data, and showing a waterfall image.
 Phase 2A also adds bounded data selection helpers and waveform plotting. Phase
 3A adds small preview-level preprocessing helpers. Phase 3D adds basic spectrum,
 PSD/Welch, and single-channel spectrogram smoke paths. Phase 4A adds a
-minimal FK transform and FK plotting smoke path.
+minimal FK transform and FK plotting smoke path. Phase 4B adds a minimal FK
+velocity fan filter smoke path.
 
 ## Current status
 
@@ -28,15 +29,15 @@ Implemented so far:
 - Basic amplitude spectrum, power spectrum, periodogram PSD, Welch PSD, and
   single-channel spectrogram analysis helpers with Matplotlib plotting.
 - File-level spectrum analysis service for CLI and future GUI reuse.
-- Basic FK transform, file-level FK service, and Matplotlib FK plotting smoke
-  path.
+- Basic FK transform, simple velocity fan FK filter, file-level FK services,
+  and Matplotlib FK plotting smoke paths.
 - Synthetic tests for core readers and preview workflows.
 
 Still intentionally deferred:
 
 - Full analysis platform.
 - Full STFT and advanced processing.
-- FK filter, velocity fan filter, F-J, and MASW workflows.
+- Engineering-grade FK filter, F-J, and MASW workflows.
 - Full-file preprocessing export.
 - GUI filter parameter panel.
 - SEGY/SAC/TDMS support.
@@ -112,8 +113,20 @@ Compute a bounded FK transform and save an FK image:
     python examples/fk_file.py input.h5 --output fk_filtered.png --bandpass 1 50
 
 The FK example reads a bounded time/channel selection by default. It supports
-basic FK amplitude or power plots only; FK filter, velocity fan filter, F-J,
-MASW, and dispersion picking are not implemented.
+basic FK amplitude or power plots only.
+
+Apply a minimal FK velocity fan filter to a bounded selection:
+
+    python examples/fk_filter_file.py input.h5 --output filtered_waterfall.png --vmin 300 --vmax 3000
+    python examples/fk_filter_file.py input.dat --output filtered_waterfall.png --time-start 0 --time-stop 5000 --channel-start 0 --channel-stop 512 --vmin 300 --vmax 3000
+    python examples/fk_filter_file.py input.h5 --output filtered_waterfall.png --reject --vmin 300 --vmax 3000
+    python examples/fk_filter_file.py input.h5 --output filtered_waterfall.png --save-fk --vmin 300 --vmax 3000
+
+The FK filter example is a smoke path only. It builds a simple velocity fan
+mask in FK coordinates, applies it to a bounded selection, inverts back to
+time-channel data, and saves a filtered waterfall. It does not implement
+engineering-grade FK denoising, tapered interactive masks, F-J, MASW, or
+dispersion picking.
 
 Run the minimal GUI:
 
@@ -132,11 +145,11 @@ If installed with the console script, the GUI can also be started with:
 
 Do not commit real DAS data or generated preview images. Large files should be
 opened through slicing/downsampling preview workflows. The preprocessing,
-filter, spectrum, and FK examples work on bounded preview/trace data only; they do
-not export processed full-size DAS arrays. Filtering and spectrogram analysis
-depend on scipy.signal. Spectrum and FK examples cover bounded traces/previews only:
-they do not implement FK filtering, F-J, MASW, or export full processed arrays. The
-internal array convention is always:
+filter, spectrum, and FK examples work on bounded preview/trace data only; they
+do not export processed full-size DAS arrays. Filtering and spectrogram
+analysis depend on scipy.signal. Spectrum and FK examples cover bounded
+traces/previews only: they do not implement F-J, MASW, dispersion picking, or
+export full processed arrays. The internal array convention is always:
 
     data.shape == (n_samples, n_channels)
 

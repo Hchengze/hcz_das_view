@@ -64,6 +64,45 @@ def plot_fk(
     return fig, ax
 
 
+def plot_fk_mask(
+    frequencies_hz,
+    wavenumbers_cycles_per_m,
+    mask,
+    *,
+    ax: Any | None = None,
+    title: str | None = None,
+    cmap: str = "gray_r",
+    show_colorbar: bool = True,
+):
+    """Plot an FK boolean/numeric mask and return (fig, ax)."""
+
+    import matplotlib.pyplot as plt
+
+    frequencies = np.asarray(frequencies_hz, dtype=float)
+    wavenumbers = np.asarray(wavenumbers_cycles_per_m, dtype=float)
+    values = np.asarray(mask, dtype=float)
+    if frequencies.ndim != 1 or frequencies.size == 0:
+        raise ValueError("frequencies_hz must be a non-empty 1-D array")
+    if wavenumbers.ndim != 1 or wavenumbers.size == 0:
+        raise ValueError("wavenumbers_cycles_per_m must be a non-empty 1-D array")
+    if values.shape != (frequencies.size, wavenumbers.size):
+        raise ValueError("mask must be shaped as (n_frequencies, n_wavenumbers)")
+    if not np.all(np.isfinite(values)):
+        raise ValueError("mask must contain only finite values")
+
+    if ax is None:
+        fig, ax = plt.subplots()
+    else:
+        fig = ax.figure
+    mesh = ax.pcolormesh(wavenumbers, frequencies, values, shading="auto", cmap=cmap)
+    ax.set_xlabel("Wavenumber (cycles/m)")
+    ax.set_ylabel("Frequency (Hz)")
+    ax.set_title(title if title is not None else "FK mask")
+    if show_colorbar:
+        fig.colorbar(mesh, ax=ax, label="Mask")
+    return fig, ax
+
+
 def _default_title(result: FKResult, *, db: bool) -> str:
     label = "FK amplitude" if result.output == "amplitude" else "FK power"
     return f"{label} (dB)" if db else label

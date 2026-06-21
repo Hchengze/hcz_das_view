@@ -145,3 +145,33 @@ Phase 4A therefore reimplemented only the minimal FK transform smoke path:
 
 old_code/old_code4/hcz_signal_analyse.py did not expose a focused FK transform
 in the reviewed search. No old_code files were copied, imported, or modified.
+
+## Phase 4B FK filter migration decision
+
+The following old files were reviewed read-only for FK filter, velocity fan
+mask, inverse FK, and 2-D FFT filtering ideas:
+
+- old_code/old_code1/tools/analysis_tools.py
+- old_code/old_code4/hcz_signal_analyse.py
+
+old_code/old_code1/tools/analysis_tools.py contains useful conceptual pieces:
+fk_fan_mask builds a fan-style FK-domain mask using frequency, wavenumber, and
+apparent velocity constraints, and fk_filter applies that mask before an inverse
+real 2-D FFT. However, the old implementation transposes data internally,
+works mostly in (channel, time) order, combines padding/tapering/mode behavior
+with filtering, and exposes older parameters that are not aligned with the new
+service boundaries.
+
+Phase 4B therefore reimplemented only the minimal smoke path:
+
+| Function/topic | Old source | Judgment | New location | Tests | Interface / dimension changes |
+|---|---|---|---|---|---|
+| Velocity fan mask | old_code/old_code1/tools/analysis_tools.py::fk_fan_mask | Reimplemented after refactor | das_view/analysis/fk_filter.py::velocity_fan_mask | tests/test_fk_filter_analysis.py | Uses explicit (n_frequencies, n_wavenumbers) mask shape, apparent velocity abs(f / k), clear k=0 handling, and pass_inside True/False behavior. |
+| FK mask application and inverse path | old_code/old_code1/tools/analysis_tools.py::fk_filter | Reimplemented after refactor | das_view/analysis/fk_filter.py::apply_fk_mask and fk_velocity_filter | tests/test_fk_filter_analysis.py | Uses (n_samples, n_channels), axis=0 time, axis=1 space, phase-preserving complex FK multiplication, inverse FFT, and crop back to original shape. |
+| File-level FK filter workflow | Old scripts mixed loading, filtering, and plotting | New implementation | das_view/analysis/service.py::compute_fk_filter_for_file; examples/fk_filter_file.py | tests/test_fk_filter_service.py; tests/test_fk_filter_example.py | Uses read_selection and optional apply_preprocess instead of reader internals. |
+| Tapered fan edges, decomposition modes, velocity sign flags, engineering denoising | old_code/old_code1/tools/analysis_tools.py::fk_filter/fk_fan_mask | Deferred | Not implemented | Not applicable | Out of scope for the Phase 4B smoke path. |
+| F-J/MASW/dispersion workflows | No clean reusable implementation migrated | Deferred | Not implemented | Not applicable | Out of scope. |
+
+old_code/old_code4/hcz_signal_analyse.py did not provide a focused FK filter
+implementation in the reviewed material. No old_code files were copied,
+imported, or modified.

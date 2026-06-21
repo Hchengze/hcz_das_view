@@ -946,3 +946,94 @@ files were copied, imported, or modified.
 
 Phase 4B: add an FK filter smoke path; or Phase 2E: real sample validation if
 local_validation_paths.txt with real/quasi-real DAS sample paths is provided.
+
+## 2026-06-21: Phase 4B FK velocity filter smoke path
+
+### Goal
+
+Implement the smallest end-to-end FK filter workflow: construct an FK-domain
+velocity fan mask, apply it to a phase-preserving complex FK spectrum, invert
+back to the time-channel domain, expose a file-level service and CLI example,
+and keep the implementation independent from GUI code.
+
+### Added files
+
+- das_view/analysis/fk_filter.py
+- examples/fk_filter_file.py
+- tests/test_fk_filter_analysis.py
+- tests/test_fk_filter_service.py
+- tests/test_fk_filter_example.py
+
+### Modified files
+
+- das_view/analysis/service.py
+- das_view/analysis/__init__.py
+- das_view/plotting/fk.py
+- das_view/plotting/__init__.py
+- tests/test_fk_plotting.py
+- README.md
+- docs/02_architecture.md
+- docs/03_old_code_review.md
+- docs/05_development_log.md
+- docs/06_testing.md
+- docs/07_roadmap.md
+- docs/08_project_handoff.md
+
+### Design decisions
+
+- Added FKFilterResult, velocity_fan_mask, apply_fk_mask, and
+  fk_velocity_filter in das_view/analysis/fk_filter.py.
+- velocity_fan_mask returns a mask shaped as (n_frequencies, n_wavenumbers).
+  Apparent velocity is approximated as abs(f / k). k=0 is handled explicitly
+  via include_zero_wavenumber to avoid divide-by-zero failures.
+- apply_fk_mask recomputes the complex FK spectrum, multiplies by the shifted
+  mask while preserving phase, applies inverse space/time FFTs, and crops the
+  result back to the original data shape.
+- fk_velocity_filter accepts numpy arrays or DASData. DASData input can supply
+  metadata.sample_rate_hz and metadata.dx_m.
+- Added compute_fk_filter_for_file to the analysis service. It reads bounded
+  selections through read_selection, optionally applies apply_preprocess, then
+  calls fk_velocity_filter. The service does not inspect concrete reader
+  internals.
+- Added examples/fk_filter_file.py for bounded filtered waterfall output and
+  optional filtered FK image output. It defaults to 4096 samples by 512 channels.
+- Added plot_fk_mask as a small Matplotlib-only helper for smoke validation.
+- The implementation is intentionally not an engineering-grade FK denoising
+  workflow. It has no tapered fan edges, interactive velocity editor,
+  dispersion picking, F-J, MASW, or GUI FK panel.
+
+### Old-code migration judgment
+
+Reviewed read-only:
+
+- old_code/old_code1/tools/analysis_tools.py
+- old_code/old_code4/hcz_signal_analyse.py
+
+old_code/old_code1/tools/analysis_tools.py contains fk_fan_mask and fk_filter
+concepts using fan masks and inverse real FFTs. Phase 4B did not copy that code
+because it transposes data internally, assumes older (channel, time) orientation,
+and combines padding/tapering/decomposition options outside the new service
+boundary. The new implementation reuses only the high-level idea and rewrites
+it for (n_samples, n_channels), axis=0 time, axis=1 space. No old_code files
+were copied, imported, or modified.
+
+### Test result
+
+- D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider tests\test_fk_filter_analysis.py tests\test_fk_filter_service.py tests\test_fk_filter_example.py tests\test_fk_plotting.py
+- Result: 30 passed.
+- D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider
+- Result: 216 passed.
+
+### Not completed
+
+- Engineering-grade FK filter is not implemented.
+- GUI FK panel is not implemented.
+- F-J / MASW and dispersion picking are not implemented.
+- Real large-file FK filter performance has not been validated.
+- Full processing/analysis export is not implemented.
+
+### Suggested next round
+
+Phase 2E: real sample validation if local_validation_paths.txt with
+real/quasi-real DAS sample paths is provided; otherwise Phase 4C: GUI FK panel
+smoke path.

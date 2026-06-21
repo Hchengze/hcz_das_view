@@ -1,7 +1,7 @@
 ﻿# Project handoff summary
 
 This document is the handoff point for starting a new Codex conversation on
-hcz_das_view. It records the current repository state after Phase 3E and the
+hcz_das_view. It records the current repository state after Phase 4B and the
 rules that should be preserved before any further development.
 
 ## 1. Project identity
@@ -19,10 +19,11 @@ rules that should be preserved before any further development.
   Add GUI background loading with cancel and progress.
 - Latest GUI spectrum commit: current HEAD after Phase 3E,
   Add minimal GUI spectrum panel.
-- Latest FK smoke-path commit: pending this Phase 4A commit,
-  Add FK transform smoke path.
-- Current phase: Phase 4A, FK transform smoke path.
-- Current test result after Phase 4A: 190 passed.
+- Latest FK smoke-path commit: 8fc76fc Add FK transform smoke path.
+- Latest FK filter smoke-path commit: current HEAD after Phase 4B,
+  Add FK velocity filter smoke path.
+- Current phase: Phase 4B, FK velocity filter smoke path.
+- Current test result after Phase 4B: 216 passed.
 
 ## 2. Repository and environment
 
@@ -106,8 +107,10 @@ Key modules:
   - spectrum.py: amplitude spectrum, power spectrum, spectrogram, periodogram
     PSD, and Welch PSD.
   - service.py: file-level spectrum/PSD/spectrogram workflows for CLI and
-    future GUI reuse, plus a bounded FK service.
+    future GUI reuse, plus bounded FK/FK-filter services.
   - fk.py: FKResult and basic FK transform.
+  - fk_filter.py: FKFilterResult, simple velocity fan mask, FK-domain mask
+    application, and inverse FK smoke path.
 - Plotting:
   - waterfall.py: waterfall preview plotting.
   - waveform.py: waveform trace plotting.
@@ -258,6 +261,19 @@ Key modules:
 - Not completed: FK filter, velocity fan filter, F-J/MASW, dispersion picking,
   GUI FK panel, and real large-file FK performance validation.
 
+### Phase 4B: FK velocity filter smoke path
+
+- Goal: add a minimal FK-domain velocity fan mask, mask application, inverse FK
+  path back to time-channel data, service integration, CLI example, and
+  synthetic tests.
+- Key modules: das_view/analysis/fk_filter.py,
+  compute_fk_filter_for_file in analysis/service.py, plot_fk_mask in
+  plotting/fk.py, examples/fk_filter_file.py.
+- Test result: 216 passed.
+- Not completed: engineering-grade FK filter, GUI FK panel, F-J/MASW,
+  dispersion picking, real large-file FK filter performance validation, and
+  full export.
+
 ## 6. Current supported capabilities
 
 ### Readers
@@ -285,6 +301,7 @@ Key modules:
 - Spectrogram plots.
 - PSD plots, including optional dB display.
 - FK amplitude/power plots.
+- FK mask plots for smoke-path validation.
 
 ### GUI
 
@@ -325,10 +342,14 @@ Key modules:
 - periodogram_psd.
 - welch_psd.
 - fk_transform.
+- velocity_fan_mask.
+- apply_fk_mask.
+- fk_velocity_filter.
 - compute_spectrum_for_file.
 - compute_psd_for_file.
 - compute_spectrogram_for_file.
 - compute_fk_for_file.
+- compute_fk_filter_for_file.
 
 ## 7. Current examples and how to use them
 
@@ -377,6 +398,13 @@ Key modules:
       python examples/fk_file.py input.h5 --output fk.png
       python examples/fk_file.py input.h5 --output fk_power.png --output-mode power
 
+- examples/fk_filter_file.py: apply a minimal bounded FK velocity fan filter
+  and save a filtered waterfall, optionally saving the filtered FK image.
+
+      python examples/fk_filter_file.py input.h5 --output filtered_waterfall.png --vmin 300 --vmax 3000
+      python examples/fk_filter_file.py input.h5 --output filtered_waterfall.png --reject --vmin 300 --vmax 3000
+      python examples/fk_filter_file.py input.h5 --output filtered_waterfall.png --save-fk --vmin 300 --vmax 3000
+
 - examples/run_gui.py: launch the optional PyQt5 GUI.
 
       python examples/run_gui.py
@@ -404,12 +432,15 @@ Current coverage includes:
   plotting, file-level service calls, and example integration.
 - FK tests for synthetic plane waves, plotting, file-level service calls, and
   example argument helpers.
+- FK filter tests for velocity fan mask shape/k=0 behavior, inverse shape
+  restoration, synthetic plane-wave suppression, service calls, plot_fk_mask,
+  and example argument helpers.
 
 Current full test command and result:
 
       D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider
 
-      190 passed
+      216 passed
 
 ## 9. Old code migration status
 
@@ -420,10 +451,10 @@ Current full test command and result:
   audited; the new Puniu reader reimplements the necessary behavior with clear
   validation and the (n_samples, n_channels) convention.
 - old_code/old_code1/tools/analysis_tools.py: preprocessing, filtering,
-  spectrum, PSD/Welch, and basic FK ideas were audited; selected simple
-  numerical logic was reimplemented with explicit numpy/scipy interfaces.
-  Advanced FK filter, fan mask, inverse filtering, F-J, and MASW sections remain
-  deferred.
+  spectrum, PSD/Welch, basic FK, and FK filter/fan-mask ideas were audited;
+  selected simple numerical logic was reimplemented with explicit numpy/scipy
+  interfaces and the (n_samples, n_channels) convention. Advanced tapered FK
+  filter behavior, F-J, and MASW sections remain deferred.
 - old_code/old_code4/hcz_signal_preprocess.py: basic preprocessing and filter
   workflow ideas were audited; clean, dimension-explicit replacements now live
   under das_view/processing/. Old workflow style and unclear parameter coupling
@@ -445,7 +476,8 @@ No old_code files are imported by the new runtime package.
 3. GUI cancellation is soft and cannot forcibly interrupt synchronous reader IO
    or analysis calls already in progress.
 4. There is no GUI preprocessing, filter, or FK panel.
-5. FK filter and velocity fan filter are not implemented.
+5. FK filter support is currently a simple smoke path, not engineering-grade
+   denoising.
 6. F-J / MASW analysis is not implemented.
 7. A complete STFT workflow is not implemented.
 8. Full processing/analysis result export is not implemented.
@@ -462,11 +494,11 @@ Goal:
 
 If real sample paths are provided, prioritize this before expanding analysis features.
 
-### Option B: Phase 4B FK filter smoke path
+### Option B: Phase 4C GUI FK panel smoke path
 
 Goal:
 
-      Add a minimal FK filter smoke path building on Phase 4A.
+      Add a minimal GUI entry point for existing FK transform/filter services.
 
 Keep this to a smoke path first; do not add F-J/MASW or surface-wave analysis in the same round.
 

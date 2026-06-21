@@ -100,16 +100,20 @@ Goal:
 - Add FK, FK filtering, and optional advanced methods such as surface-wave analysis.
 - Phase 4A added a basic FK transform smoke path with FKResult, FK plotting,
   a bounded FK CLI example, file-level service integration, and synthetic tests.
+- Phase 4B added a simple FK velocity fan filter smoke path with mask
+  construction, FK-domain masking, inverse transform back to time-channel data,
+  file-level service integration, a bounded CLI example, and synthetic tests.
 
 Acceptance:
 
 - Algorithms have synthetic-data smoke tests.
 - Parameters and results are reproducible.
-- Current Phase 4A support is limited to basic FK amplitude/power transform and
-  plotting. FK filter, velocity fan filter, F-J, MASW, dispersion picking, and
-  GUI FK panels remain deferred.
-- Next work can enter Phase 4B FK filter smoke path, or Phase 2E real sample
-  validation if local data paths are provided.
+- Current Phase 4B support is limited to basic FK amplitude/power transform,
+  plotting, simple velocity fan masks, and inverse FK filter smoke paths.
+  Engineering-grade FK denoising, F-J, MASW, dispersion picking, and GUI FK
+  panels remain deferred.
+- Next work can enter Phase 2E real sample validation if local data paths are
+  provided, or Phase 4C GUI FK panel smoke path.
 
 ## Phase 5: Documentation, packaging, and release
 

@@ -23,6 +23,7 @@
     - analysis/
       - spectrum.py
       - fk.py
+      - fk_filter.py
       - service.py
     - plotting/
       - waterfall.py
@@ -48,7 +49,8 @@
 - analysis: GUI-independent scientific analysis. Phase 3D includes basic
   amplitude spectrum, power spectrum, periodogram PSD, Welch PSD,
   single-channel spectrogram smoke-path helpers, and file-level spectrum
-  services. Phase 4A adds a basic FK transform smoke path. Full STFT, FK
+  services. Phase 4A adds a basic FK transform smoke path. Phase 4B adds a
+  simple FK velocity fan filter smoke path. Full STFT, engineering-grade FK
   filtering, F-J, and MASW workflows remain deferred.
 - plotting: Matplotlib plotting helpers independent from GUI widgets, including
   waterfall, waveform, spectrum, spectrogram, and FK views.
@@ -115,6 +117,8 @@ Reader responsibilities:
   do not compute spectra and do not depend on PyQt5.
 - plot_fk draws FKResult amplitude or power matrices from the analysis layer.
   It does not compute FK values and does not depend on PyQt5.
+- plot_fk_mask can display a simple FK mask matrix for smoke-path validation.
+  It does not compute or apply the filter.
 - Plotting helpers assume the internal data convention (n_samples, n_channels).
 
 ## Analysis services
@@ -143,8 +147,20 @@ Reader responsibilities:
   bounded 2-D selections through das_view/io/data_service.py::read_selection,
   optionally applies das_view/processing/service.py::apply_preprocess, then
   calls fk_transform. It does not inspect HDF5/DAT internal paths.
-- Phase 4A FK is a smoke path only. FK filter, velocity fan filtering, F-J,
-  MASW, dispersion picking, and GUI FK panels are deferred.
+- das_view/analysis/fk_filter.py provides FKFilterResult, velocity_fan_mask,
+  apply_fk_mask, and fk_velocity_filter. The mask is shaped as
+  (n_frequencies, n_wavenumbers), uses apparent velocity approximated as
+  abs(f / k), handles k=0 explicitly, applies the mask to the complex FK
+  spectrum, and inverts back to the original time-channel shape.
+- das_view/analysis/service.py also provides compute_fk_filter_for_file. It
+  reads bounded 2-D selections through read_selection, optionally applies
+  apply_preprocess, then calls fk_velocity_filter. The service returns filtered
+  DASData, reader/metadata/selection information, preprocessing history, and
+  filter parameters. It does not inspect HDF5/DAT internal paths.
+- Phase 4B FK filtering is a smoke path only. It is intended to validate
+  coordinates, shape, mask behavior, and inverse-transform plumbing. Tapered
+  interactive masks, engineering-grade denoising, F-J, MASW, dispersion
+  picking, and GUI FK panels remain deferred.
 
 ## Processing services
 

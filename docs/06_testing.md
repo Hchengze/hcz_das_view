@@ -90,13 +90,22 @@ Current coverage:
   and optional bandpass preprocessing history.
 - FK example tests cover bounded time/channel slice construction and bandpass
   processing-step construction without requiring real DAS input files.
+- FK filter analysis tests cover velocity_fan_mask shape and k=0 handling,
+  vmin/vmax validation, pass_inside True/False behavior, apply_fk_mask inverse
+  shape restoration, mask shape validation, no in-place mutation, DASData
+  metadata sample-rate/dx handling, invalid input rejection, and synthetic
+  plane-wave suppression smoke paths.
+- FK filter plotting/service/example tests cover plot_fk_mask Agg image saving,
+  compute_fk_filter_for_file on synthetic ZD HDF5 selections with optional
+  bandpass preprocessing history, and examples/fk_filter_file.py bounded slice,
+  FK output path, and processing-step helpers without requiring real data.
 
 Future coverage:
 
-- Filter functions.
 - Full STFT workflows.
-- FK filter and advanced FK workflow tests.
+- Engineering-grade FK filter and advanced FK workflow tests.
 - Real large-file PSD/Welch performance validation.
+- Real large-file FK/FK-filter performance validation.
 - Reader edge cases with real small sample files.
 - Additional plot types beyond waterfall and waveform.
 - GUI load-file behavior with real small files.
