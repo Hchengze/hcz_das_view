@@ -315,6 +315,8 @@ def parse_fk_request(
         raise ValueError("vmin_mps must be positive")
     if vmax is not None and vmax <= 0:
         raise ValueError("vmax_mps must be positive")
+    if parsed_mode == "velocity_filter" and vmin is None and vmax is None:
+        raise ValueError("FK velocity filter requires at least one of vmin_mps or vmax_mps")
     if vmin is not None and vmax is not None and vmin >= vmax:
         raise ValueError("vmin_mps must be smaller than vmax_mps")
 
@@ -405,7 +407,7 @@ def format_fk_status(result: Any, request: FKAnalysisRequest) -> list[str]:
             [
                 f"vmin_mps: {filter_result.vmin_mps if filter_result.vmin_mps is not None else 'none'}",
                 f"vmax_mps: {filter_result.vmax_mps if filter_result.vmax_mps is not None else 'none'}",
-                f"Fan mode: {'pass inside' if filter_result.pass_inside else 'reject inside'}",
+                f"Fan mode: {'pass velocity range' if filter_result.pass_inside else 'reject velocity range'}",
                 f"Filtered shape: {filter_result.das_data.data.shape}",
                 f"Mask shape: {filter_result.mask.shape}",
             ]

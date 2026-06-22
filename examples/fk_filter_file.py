@@ -40,9 +40,21 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--channel-step", type=int, default=1, help="Channel selection step")
     parser.add_argument("--downsample-time", type=int, default=1, help="Additional reader time downsample")
     parser.add_argument("--downsample-channel", type=int, default=1, help="Additional reader channel downsample")
-    parser.add_argument("--vmin", dest="vmin_mps", type=float, default=None, help="Minimum apparent velocity to keep/reject")
-    parser.add_argument("--vmax", dest="vmax_mps", type=float, default=None, help="Maximum apparent velocity to keep/reject")
-    parser.add_argument("--reject", action="store_true", help="Reject the velocity fan instead of passing it")
+    parser.add_argument(
+        "--vmin",
+        dest="vmin_mps",
+        type=float,
+        default=None,
+        help="Minimum apparent velocity in m/s for the selected range",
+    )
+    parser.add_argument(
+        "--vmax",
+        dest="vmax_mps",
+        type=float,
+        default=None,
+        help="Maximum apparent velocity in m/s for the selected range",
+    )
+    parser.add_argument("--reject", action="store_true", help="Reject selected velocity range instead of passing it")
     parser.add_argument("--exclude-zero-wavenumber", action="store_true", help="Do not force the k=0 column into the pass fan")
     parser.add_argument("--nfft-time", type=int, default=None, help="FK time FFT length")
     parser.add_argument("--nfft-space", type=int, default=None, help="FK space FFT length")
@@ -101,6 +113,27 @@ def build_processing_steps_from_args(
     ]
 
 
+def build_fk_filter_kwargs_from_args(args: argparse.Namespace) -> dict[str, Any]:
+    """Build validated FK velocity-filter keyword arguments from parsed CLI args."""
+
+    vmin = args.vmin_mps
+    vmax = args.vmax_mps
+    if vmin is None and vmax is None:
+        raise ValueError("at least one of --vmin or --vmax must be provided for FK velocity filtering")
+    if vmin is not None and vmin <= 0:
+        raise ValueError("--vmin must be positive")
+    if vmax is not None and vmax <= 0:
+        raise ValueError("--vmax must be positive")
+    if vmin is not None and vmax is not None and vmin >= vmax:
+        raise ValueError("--vmin must be smaller than --vmax")
+    return {
+        "vmin_mps": vmin,
+        "vmax_mps": vmax,
+        "pass_inside": not args.reject,
+        "include_zero_wavenumber": not args.exclude_zero_wavenumber,
+    }
+
+
 def fk_output_path_from_args(args: argparse.Namespace) -> Path:
     """Return the FK image path used when --save-fk is enabled."""
 
@@ -115,6 +148,7 @@ def main(argv: list[str] | None = None) -> int:
         time_slice = build_time_slice_from_args(args)
         channel_slice = build_channel_slice_from_args(args)
         downsample = (args.downsample_time, args.downsample_channel)
+        fk_filter_kwargs = build_fk_filter_kwargs_from_args(args)
 
         # This bounded metadata/sample-rate read keeps optional preprocessing
         # construction outside concrete reader internals.
@@ -134,10 +168,7 @@ def main(argv: list[str] | None = None) -> int:
             time_slice=time_slice,
             channel_slice=channel_slice,
             downsample=downsample,
-            vmin_mps=args.vmin_mps,
-            vmax_mps=args.vmax_mps,
-            pass_inside=not args.reject,
-            include_zero_wavenumber=not args.exclude_zero_wavenumber,
+            **fk_filter_kwargs,
             nfft_time=args.nfft_time,
             nfft_space=args.nfft_space,
             window_time=args.window_time,
@@ -160,6 +191,10 @@ def main(argv: list[str] | None = None) -> int:
         print(f"channel_slice: {service_result.selection.channel_slice}")
         print(f"downsample: {service_result.selection.downsample}")
         print(f"processing_steps: {steps}")
+        print(f"filter_action: {'pass selected velocity range' if fk_filter_kwargs['pass_inside'] else 'reject selected velocity range'}")
+        print(f"vmin_mps: {fk_filter_kwargs['vmin_mps']}")
+        print(f"vmax_mps: {fk_filter_kwargs['vmax_mps']}")
+        print(f"output: {args.output}")
         print(f"fk_filter_parameters: {service_result.filter_parameters}")
         print(f"mask_shape: {service_result.result.mask.shape}")
         print(f"saved_filtered_waterfall: {args.output}")

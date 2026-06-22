@@ -152,6 +152,11 @@ Reader responsibilities:
   (n_frequencies, n_wavenumbers), uses apparent velocity approximated as
   abs(f / k), handles k=0 explicitly, applies the mask to the complex FK
   spectrum, and inverts back to the original time-channel shape.
+- Phase 4D makes FK velocity-filter limits explicit: at least one of vmin_mps
+  or vmax_mps is required, one-sided limits are allowed, and pass_inside=True
+  means pass the selected velocity range while pass_inside=False rejects it.
+  The k=0 column is handled by include_zero_wavenumber instead of dividing by
+  zero; f=0 remains a finite row in the apparent-velocity mask.
 - das_view/analysis/service.py also provides compute_fk_filter_for_file. It
   reads bounded 2-D selections through read_selection, optionally applies
   apply_preprocess, then calls fk_velocity_filter. The service returns filtered

@@ -7,7 +7,8 @@ Phase 2A also adds bounded data selection helpers and waveform plotting. Phase
 3A adds small preview-level preprocessing helpers. Phase 3D adds basic spectrum,
 PSD/Welch, and single-channel spectrogram smoke paths. Phase 4A adds a
 minimal FK transform and FK plotting smoke path. Phase 4B adds a minimal FK
-velocity fan filter smoke path.
+velocity fan filter smoke path, and Phase 4D tightens FK mask-limit defaults
+and user-facing validation.
 
 ## Current status
 
@@ -124,7 +125,11 @@ Apply a minimal FK velocity fan filter to a bounded selection:
 
 The FK filter example is a smoke path only. It builds a simple velocity fan
 mask in FK coordinates, applies it to a bounded selection, inverts back to
-time-channel data, and saves a filtered waterfall. It does not implement
+time-channel data, and saves a filtered waterfall. At least one of `--vmin` or
+`--vmax` is required: `--vmin` means velocities greater than or equal to that
+limit, `--vmax` means velocities less than or equal to that limit, and both
+together select the closed velocity range. By default the selected range is
+passed; `--reject` rejects the selected velocity range. It does not implement
 engineering-grade FK denoising, tapered interactive masks, F-J, MASW, or
 dispersion picking.
 

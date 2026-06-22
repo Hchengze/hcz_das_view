@@ -75,10 +75,7 @@ def velocity_fan_mask(
 
     frequencies = _finite_1d_array(frequencies_hz, name="frequencies_hz")
     wavenumbers = _finite_1d_array(wavenumbers_cycles_per_m, name="wavenumbers_cycles_per_m")
-    vmin = _optional_positive_float(vmin_mps, name="vmin_mps")
-    vmax = _optional_positive_float(vmax_mps, name="vmax_mps")
-    if vmin is not None and vmax is not None and vmin >= vmax:
-        raise ValueError("vmin_mps must be smaller than vmax_mps")
+    vmin, vmax = _validate_velocity_limits(vmin_mps, vmax_mps)
 
     frequency_grid = np.abs(frequencies).reshape(-1, 1)
     wavenumber_grid = np.abs(wavenumbers).reshape(1, -1)
@@ -404,3 +401,16 @@ def _optional_positive_float(value: float | None, *, name: str) -> float | None:
     if value is None:
         return None
     return _positive_float(value, name=name)
+
+
+def _validate_velocity_limits(
+    vmin_mps: float | None,
+    vmax_mps: float | None,
+) -> tuple[float | None, float | None]:
+    vmin = _optional_positive_float(vmin_mps, name="vmin_mps")
+    vmax = _optional_positive_float(vmax_mps, name="vmax_mps")
+    if vmin is None and vmax is None:
+        raise ValueError("at least one of vmin_mps or vmax_mps must be provided for FK velocity filtering")
+    if vmin is not None and vmax is not None and vmin >= vmax:
+        raise ValueError("vmin_mps must be smaller than vmax_mps")
+    return vmin, vmax

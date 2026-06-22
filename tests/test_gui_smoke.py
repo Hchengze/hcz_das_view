@@ -280,6 +280,7 @@ def test_parse_fk_request_maps_filter_and_velocity_parameters():
         ({"channel_step": 0}, "channel_step must be a positive integer"),
         ({"vmin_text": "bad"}, "vmin_mps must be a number"),
         ({"vmin_text": "-1"}, "vmin_mps must be positive"),
+        ({"mode": "FK velocity filter"}, "requires at least one"),
         ({"vmin_text": "3000", "vmax_text": "300"}, "vmin_mps must be smaller"),
         ({"mode": "FJ"}, "unsupported FK mode"),
         ({"output": "phase"}, "unsupported FK output mode"),
@@ -365,7 +366,7 @@ def test_format_fk_status_is_pyqt_free_for_transform_and_filter():
 
     assert "Mode: FK velocity filter" in filter_lines
     assert "vmin_mps: 300.0" in filter_lines
-    assert "Fan mode: pass inside" in filter_lines
+    assert "Fan mode: pass velocity range" in filter_lines
     assert "Filtered shape: (20, 8)" in filter_lines
 
 
@@ -378,7 +379,7 @@ def test_callable_workers_store_service_parameters():
         nfft_text="1024",
     )
     spectrum = SpectrumWorker("sample.h5", request=spectrum_request)
-    fk_request = parse_fk_request(mode="FK velocity filter", output="Amplitude")
+    fk_request = parse_fk_request(mode="FK velocity filter", output="Amplitude", vmin_text="300")
     fk = FKWorker("sample.h5", request=fk_request)
 
     assert preview.path.name == "sample.h5"

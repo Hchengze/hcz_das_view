@@ -63,6 +63,34 @@ def test_velocity_fan_mask_vmin_vmax_and_pass_inside_flag():
     np.testing.assert_array_equal(outside, ~inside)
 
 
+def test_velocity_fan_mask_rejects_missing_velocity_limits():
+    with pytest.raises(ValueError, match="at least one"):
+        velocity_fan_mask([0.0, 10.0], [0.0, 0.1])
+
+
+def test_velocity_fan_mask_supports_only_vmin_or_only_vmax():
+    frequencies = np.array([0.0, 10.0])
+    wavenumbers = np.array([0.0, 0.1])
+
+    only_vmin = velocity_fan_mask(
+        frequencies,
+        wavenumbers,
+        vmin_mps=50.0,
+        include_zero_wavenumber=False,
+    )
+    only_vmax = velocity_fan_mask(
+        frequencies,
+        wavenumbers,
+        vmax_mps=150.0,
+        include_zero_wavenumber=False,
+    )
+
+    assert only_vmin.shape == (2, 2)
+    assert only_vmin.dtype == bool
+    assert only_vmin.tolist() == [[False, False], [False, True]]
+    assert only_vmax.tolist() == [[False, True], [False, True]]
+
+
 @pytest.mark.parametrize(
     "kwargs",
     [
@@ -151,6 +179,13 @@ def test_fk_velocity_filter_reads_dasdata_metadata():
     assert result.sample_rate_hz == sample_rate_hz
     assert result.dx_m == dx_m
     assert result.das_data.metadata.extra_attrs["fk_filter"]["vmax_mps"] == 1000.0
+
+
+def test_fk_velocity_filter_rejects_missing_velocity_limits():
+    data, _, _, sample_rate_hz, dx_m = make_plane_wave(n_samples=32, n_channels=8)
+
+    with pytest.raises(ValueError, match="at least one"):
+        fk_velocity_filter(data, sample_rate_hz=sample_rate_hz, dx_m=dx_m)
 
 
 @pytest.mark.parametrize(

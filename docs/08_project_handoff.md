@@ -1,7 +1,7 @@
 ﻿# Project handoff summary
 
 This document is the handoff point for starting a new Codex conversation on
-hcz_das_view. It records the current repository state after Phase 4C and the
+hcz_das_view. It records the current repository state after Phase 4D and the
 rules that should be preserved before any further development.
 
 ## 1. Project identity
@@ -23,8 +23,10 @@ rules that should be preserved before any further development.
 - Latest FK filter smoke-path commit: cd88cfa Add FK velocity filter smoke path.
 - Latest GUI FK commit: current HEAD after Phase 4C,
   Add minimal GUI FK panel.
-- Current phase: Phase 4C, GUI FK panel smoke path.
-- Current test result after Phase 4C: 227 passed.
+- Latest FK polish commit: current HEAD after Phase 4D,
+  Polish FK mask limits and safer defaults.
+- Current phase: Phase 4D, FK polish / mask limits / safer defaults.
+- Current test result after Phase 4D: 238 passed.
 
 ## 2. Repository and environment
 
@@ -286,6 +288,18 @@ Key modules:
   dispersion picking, real large-file FK GUI performance validation, and full
   export.
 
+### Phase 4D: FK polish / mask limits / safer defaults
+
+- Goal: refine FK/FK-filter parameter boundaries, user-facing validation, and
+  CLI/GUI safety defaults without adding new FK algorithms.
+- Key modules: velocity_fan_mask/fk_velocity_filter validation,
+  parse_fk_request guardrails, examples/fk_filter_file.py argument helpers, and
+  FK-focused tests.
+- Test result: 238 passed.
+- Not completed: engineering-grade FK filter, GUI preprocessing/filter panel,
+  F-J/MASW, dispersion picking, real large-file FK performance validation, and
+  full export.
+
 ## 6. Current supported capabilities
 
 ### Readers
@@ -447,15 +461,15 @@ Current coverage includes:
   plotting, file-level service calls, and example integration.
 - FK tests for synthetic plane waves, plotting, file-level service calls, and
   example argument helpers.
-- FK filter tests for velocity fan mask shape/k=0 behavior, inverse shape
-  restoration, synthetic plane-wave suppression, service calls, plot_fk_mask,
-  and example argument helpers.
+- FK filter tests for velocity fan mask shape/k=0/f=0 behavior, velocity-limit
+  validation, inverse shape restoration, synthetic plane-wave suppression,
+  service calls, plot_fk_mask, and example argument helpers.
 
 Current full test command and result:
 
       D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider
 
-      227 passed
+      238 passed
 
 ## 9. Old code migration status
 
@@ -510,11 +524,11 @@ Goal:
 
 If real sample paths are provided, prioritize this before expanding analysis features.
 
-### Option B: Phase 4D FK polish / mask limits / safer defaults
+### Option B: Phase 4E FK documentation/examples polish
 
 Goal:
 
-      Refine FK smoke-path defaults, mask limits, and user-facing guardrails.
+      Polish FK documentation, examples, and smoke-path explanation.
 
 Keep this bounded; do not add F-J/MASW or surface-wave analysis in the same round.
 

@@ -3,10 +3,12 @@ from pathlib import Path
 
 from examples.fk_filter_file import (
     build_channel_slice_from_args,
+    build_fk_filter_kwargs_from_args,
     build_processing_steps_from_args,
     build_time_slice_from_args,
     fk_output_path_from_args,
 )
+import pytest
 
 
 def make_args(**overrides):
@@ -24,6 +26,10 @@ def make_args(**overrides):
         "causal": False,
         "output": Path("filtered.png"),
         "fk_output": None,
+        "vmin_mps": None,
+        "vmax_mps": None,
+        "reject": False,
+        "exclude_zero_wavenumber": False,
     }
     values.update(overrides)
     return argparse.Namespace(**values)
@@ -73,3 +79,41 @@ def test_fk_filter_example_uses_explicit_fk_output_path():
     args = make_args(output=Path("filtered_waterfall.png"), fk_output=Path("fk.png"))
 
     assert fk_output_path_from_args(args) == Path("fk.png")
+
+
+def test_fk_filter_example_builds_velocity_range_kwargs():
+    args = make_args(vmin_mps=300.0, vmax_mps=3000.0)
+
+    kwargs = build_fk_filter_kwargs_from_args(args)
+
+    assert kwargs == {
+        "vmin_mps": 300.0,
+        "vmax_mps": 3000.0,
+        "pass_inside": True,
+        "include_zero_wavenumber": True,
+    }
+
+
+def test_fk_filter_example_allows_only_vmin_or_only_vmax():
+    assert build_fk_filter_kwargs_from_args(make_args(vmin_mps=300.0))["vmin_mps"] == 300.0
+    assert build_fk_filter_kwargs_from_args(make_args(vmax_mps=3000.0))["vmax_mps"] == 3000.0
+
+
+def test_fk_filter_example_reject_flag_maps_to_pass_inside_false():
+    kwargs = build_fk_filter_kwargs_from_args(make_args(vmin_mps=300.0, reject=True))
+
+    assert kwargs["pass_inside"] is False
+
+
+@pytest.mark.parametrize(
+    ("kwargs", "message"),
+    [
+        ({}, "at least one"),
+        ({"vmin_mps": 0.0}, "--vmin must be positive"),
+        ({"vmax_mps": -1.0}, "--vmax must be positive"),
+        ({"vmin_mps": 3000.0, "vmax_mps": 300.0}, "--vmin must be smaller"),
+    ],
+)
+def test_fk_filter_example_rejects_invalid_velocity_range(kwargs, message):
+    with pytest.raises(ValueError, match=message):
+        build_fk_filter_kwargs_from_args(make_args(**kwargs))

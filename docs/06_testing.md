@@ -100,10 +100,14 @@ Current coverage:
   shape restoration, mask shape validation, no in-place mutation, DASData
   metadata sample-rate/dx handling, invalid input rejection, and synthetic
   plane-wave suppression smoke paths.
+- Phase 4D extends FK filter tests for safer defaults: missing vmin/vmax is an
+  error, one-sided vmin-only and vmax-only ranges are supported, k=0/f=0 cases
+  do not divide by zero, and mask dtype/shape stay stable.
 - FK filter plotting/service/example tests cover plot_fk_mask Agg image saving,
   compute_fk_filter_for_file on synthetic ZD HDF5 selections with optional
   bandpass preprocessing history, and examples/fk_filter_file.py bounded slice,
-  FK output path, and processing-step helpers without requiring real data.
+  FK output path, velocity-limit argument validation, reject mapping, and
+  processing-step helpers without requiring real data.
 
 Future coverage:
 
@@ -142,6 +146,9 @@ For cache-free runs during agent work:
   parser/model helpers, FK worker construction/cancellation flags, and
   construction/state transitions for the minimal FK tab; they do not automate a
   real asynchronous FK service computation.
+- Phase 4D GUI FK parser tests verify that transform mode allows empty
+  velocity limits, velocity-filter mode requires at least one limit, invalid
+  vmin/vmax values fail early, and pass/reject status text is user-facing.
 - GUI automation is deferred; GUI-independent state and worker logic should still
   be testable. Phase 2D/3E/4C tests exercise QThread worker construction and soft
   cancellation flags, but do not automate real asynchronous file loading through

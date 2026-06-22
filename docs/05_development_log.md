@@ -1101,3 +1101,65 @@ Matplotlib drawing in the main GUI thread, and do not add new FK algorithms.
 Phase 2E: real sample validation if local_validation_paths.txt with
 real/quasi-real DAS sample paths is provided; otherwise Phase 4D: FK polish /
 mask limits / safer defaults.
+
+## 2026-06-22: Phase 4D FK polish / mask limits / safer defaults
+
+### Goal
+
+Tighten FK transform / FK velocity-filter smoke-path guardrails without adding
+new FK algorithms. Focus on velocity-limit defaults, pass/reject semantics,
+GUI/CLI error messages, and regression tests.
+
+### Modified files
+
+- README.md
+- das_view/analysis/fk_filter.py
+- das_view/gui/main_window.py
+- das_view/gui/models.py
+- examples/fk_filter_file.py
+- tests/test_fk_filter_analysis.py
+- tests/test_fk_filter_example.py
+- tests/test_gui_smoke.py
+- docs/02_architecture.md
+- docs/05_development_log.md
+- docs/06_testing.md
+- docs/07_roadmap.md
+- docs/08_project_handoff.md
+
+### Design decisions
+
+- FK velocity filtering now requires at least one of vmin_mps or vmax_mps.
+  Silent all-pass behavior is avoided because it can make a filter command look
+  successful while doing no meaningful velocity selection.
+- A vmin-only mask means apparent velocity >= vmin_mps. A vmax-only mask means
+  apparent velocity <= vmax_mps. Providing both requires vmin_mps < vmax_mps.
+- pass_inside=True means pass the selected velocity range; pass_inside=False
+  means reject the selected velocity range.
+- k=0 is still handled explicitly via include_zero_wavenumber and never divides
+  by zero. f=0 remains a finite row in the velocity mask.
+- GUI FK transform mode still allows empty vmin/vmax because velocity limits do
+  not apply to a plain transform. GUI FK velocity-filter mode fails early with
+  a clear user-facing error when both limits are empty.
+- examples/fk_filter_file.py now validates --vmin/--vmax before reading data
+  and prints pass/reject action, selected limits, selection, and output path.
+
+### Test result
+
+- D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider tests\test_fk_filter_analysis.py tests\test_fk_filter_service.py tests\test_fk_filter_example.py tests\test_gui_smoke.py
+- Result: 77 passed.
+- D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider
+- Result: 238 passed.
+
+### Not completed
+
+- Engineering-grade FK filter is not implemented.
+- GUI preprocessing/filter panel is not implemented.
+- F-J / MASW and dispersion picking are not implemented.
+- Real large-file FK performance has not been validated.
+- Full processing/analysis export is not implemented.
+
+### Suggested next round
+
+Phase 2E: real sample validation if local_validation_paths.txt with
+real/quasi-real DAS sample paths is provided; otherwise Phase 4E: FK
+documentation/examples polish.

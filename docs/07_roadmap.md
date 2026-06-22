@@ -106,17 +106,22 @@ Goal:
 - Phase 4C added a minimal GUI FK tab that runs existing FK transform and FK
   velocity-filter services through QThread-backed workers, keeps plotting in the
   main thread, and reuses the existing Cancel/progress task state.
+- Phase 4D tightened FK mask-limit defaults and user-facing guardrails:
+  velocity-filter mode now requires at least one velocity limit, documents
+  pass/reject semantics, and adds GUI/CLI/parser tests for safer parameter
+  handling.
 
 Acceptance:
 
 - Algorithms have synthetic-data smoke tests.
 - Parameters and results are reproducible.
-- Current Phase 4C support is limited to basic FK amplitude/power transform,
+- Current Phase 4D support is limited to basic FK amplitude/power transform,
   plotting, simple velocity fan masks, inverse FK filter smoke paths, and a
-  minimal GUI FK service panel. Engineering-grade FK denoising, velocity fan
-  polish, F-J, MASW, and dispersion picking remain deferred.
+  minimal GUI FK service panel with safer velocity-limit validation.
+  Engineering-grade FK denoising, advanced velocity fan polish, F-J, MASW, and
+  dispersion picking remain deferred.
 - Next work can enter Phase 2E real sample validation if local data paths are
-  provided, or Phase 4D FK polish / mask limits / safer defaults.
+  provided, or Phase 4E FK documentation/examples polish.
 
 ## Phase 5: Documentation, packaging, and release
 
