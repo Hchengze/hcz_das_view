@@ -1601,3 +1601,107 @@ output files are intended for commit.
 ### Suggested next round
 
 Phase 5D: ROI / annotation / export, or Phase 5E: GUI analysis panel.
+
+## 2026-06-22: Phase 5D ROI / annotation / export
+
+### Goal
+
+Add ROI, annotation, export, and ROI summary workflows as DAS data review and
+analysis aids. This phase does not add source location, earthquake location,
+inversion, surface-wave imaging, MASW, F-J, or dispersion-picking workflows.
+
+### Residual work recovery
+
+The previous incomplete Phase 5D turn left an untracked
+das_view/analysis/roi.py file. The useful TimeChannelROI, Annotation, ROISet,
+ROIAnalysisResult, and rois_from_event_candidates structure was retained.
+Small validation fixes were added for required ROI and annotation IDs/labels.
+No reset, checkout, clean, or deletion of user work was performed.
+
+### Added or modified files
+
+- AGENTS.md
+- README.md
+- das_view/analysis/roi.py
+- das_view/analysis/service.py
+- das_view/analysis/__init__.py
+- das_view/io/export.py
+- das_view/plotting/roi.py
+- das_view/plotting/__init__.py
+- examples/roi_export_file.py
+- tests/test_roi_analysis.py
+- tests/test_roi_service.py
+- tests/test_export.py
+- tests/test_roi_plotting.py
+- tests/test_roi_export_example.py
+- tests/test_tutorial_notebook.py
+- docs/09_tutorial_user_manual.ipynb
+- docs/02_architecture.md
+- docs/05_development_log.md
+- docs/06_testing.md
+- docs/07_roadmap.md
+- docs/08_project_handoff.md
+
+### Implemented ROI / annotation / export capabilities
+
+- TimeChannelROI stores half-open sample and channel intervals, label, score,
+  metadata, duration_samples, n_channels, and to_dict/from_dict helpers.
+- Annotation stores label, optional description/category/confidence/creator,
+  metadata, and to_dict/from_dict helpers.
+- ROISet manages multiple ROIs with add/remove/filter/sort/limit helpers.
+- rois_from_event_candidates converts EventCandidate tables to padded ROIs
+  without producing location or interpretation results.
+- compute_roi_statistics_for_file reads each ROI through read_selection,
+  optionally applies apply_preprocess, then calls basic_statistics.
+- compute_roi_spectral_attributes_for_file reads each ROI through
+  read_selection and computes averaged spectral attributes or band energy.
+- das_view/io/export.py provides JSON/CSV export helpers for dataclasses,
+  numpy values, event candidates, ROIs, annotations, and ROI analysis
+  summaries.
+- das_view/plotting/roi.py overlays ROIs or event candidates on Matplotlib
+  waterfall axes without PyQt5 dependencies.
+- examples/roi_export_file.py supports manual ROIs, event-candidate to ROI
+  conversion, event/ROI JSON/CSV export, and ROI statistics summary export.
+
+### Tutorial notebook
+
+- docs/09_tutorial_user_manual.ipynb was updated with ROI, annotation,
+  event-candidate to ROI conversion, ROI statistics/spectral summaries,
+  JSON/CSV export examples, and interpretation boundaries.
+- The notebook remains a user tutorial and operation manual. It does not
+  include development logs, test process, commit history, real data paths, or
+  real data.
+- AGENTS.md now requires future mature user-facing functionality to update the
+  tutorial notebook in the same round.
+
+### Tests
+
+- Focused result:
+  D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider tests\test_tutorial_notebook.py tests\test_roi_analysis.py tests\test_roi_service.py tests\test_export.py tests\test_roi_plotting.py tests\test_roi_export_example.py
+  Result: 33 passed.
+- Full test result:
+  D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider
+  Result: 353 passed.
+
+### Old-code migration judgment
+
+No old_code files were copied, imported, modified, or used for implementation.
+This phase implements ROI/export workflows directly in the new analysis, IO,
+plotting, service, and example layers.
+
+### Data policy confirmation
+
+No real DAS input data, generated images, validation_outputs artifacts,
+local_validation_paths.txt, local absolute paths, JSON/CSV outputs, or local
+output files are intended for commit.
+
+### Not completed
+
+- Larger real-data ROI/export validation is not completed.
+- GUI analysis panel is not implemented.
+- Packaging and release hardening are not completed.
+- The tutorial notebook should continue to be maintained as features mature.
+
+### Suggested next round
+
+Phase 5E: GUI analysis panel, or Phase 6A: Packaging and release hardening.

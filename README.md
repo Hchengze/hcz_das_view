@@ -46,6 +46,9 @@ Implemented so far:
   rolloff.
 - Event candidate analysis, including amplitude envelope, energy envelope,
   STA/LTA ratio, threshold crossing, and event candidate tables.
+- ROI and annotation helpers, event-candidate to ROI conversion, ROI statistics
+  and spectral summaries, JSON/CSV export helpers, and Matplotlib ROI overlay
+  helpers.
 - Tutorial/user manual notebook at docs/09_tutorial_user_manual.ipynb for
   stable user-facing concepts, CLI examples, GUI workflow, and interpretation
   boundaries.
@@ -55,7 +58,7 @@ Still intentionally deferred:
 
 - Broader real/quasi-real sample validation coverage beyond the initial local
   validation set.
-- Broader DAS analysis features such as ROI/annotation and export.
+- GUI integration for ROI/annotation/export workflows.
 - GUI analysis panels for statistics, spectral attributes, envelope, and event
   candidates.
 - Full time-frequency analysis platform beyond the current single-channel
@@ -203,6 +206,18 @@ candidate tables to JSON or CSV. Candidate outputs are screening aids for DAS
 data review; they are not earthquake locations, source locations, or final
 interpretation results.
 
+Create/export DAS ROIs and ROI summaries:
+
+    python examples/roi_export_file.py input.h5 --detect-events --method stalta --sta 50 --lta 500 --trigger-on 3.0 --output-rois rois.json
+    python examples/roi_export_file.py input.h5 --detect-events --method envelope --threshold 0.8 --output-events events.csv --output-rois rois.json
+    python examples/roi_export_file.py input.h5 --roi 0 1000 0 100 --output-summary roi_summary.json
+    python examples/roi_export_file.py input.h5 --roi 0 1000 0 100 --output-summary roi_summary.csv
+
+ROI tools use half-open time/channel windows and bounded reads. Event
+candidates can be converted to ROIs for review, export, and summary analysis.
+ROIs and annotations are data review aids; they are not source locations,
+earthquake locations, inversion outputs, or geologic interpretation results.
+
 Run the minimal GUI:
 
     python examples/run_gui.py
@@ -225,8 +240,8 @@ The user-facing tutorial and operation manual lives at:
 It covers the stable DAS Viewer / DAS Analysis workflow, data shape convention,
 metadata, waterfall/waveform views, preprocessing, filters, spectrum/PSD/
 spectrogram, statistics, spectral attributes, FK inspection, event candidates,
-CLI usage, GUI usage, and interpretation boundaries. It uses synthetic data and
-placeholder paths only.
+ROI/annotation/export workflows, CLI usage, GUI usage, and interpretation
+boundaries. It uses synthetic data and placeholder paths only.
 
 ## Data policy
 

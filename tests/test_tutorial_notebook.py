@@ -23,6 +23,9 @@ def test_tutorial_notebook_contains_user_manual_keywords():
     assert "STA/LTA" in text
     assert "Spectral centroid" in text
     assert "FK apparent velocity" in text
+    assert "ROI" in text
+    assert "Annotation" in text
+    assert "JSON / CSV" in text
 
 
 def test_tutorial_notebook_avoids_local_paths_and_development_content():

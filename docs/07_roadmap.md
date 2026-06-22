@@ -189,6 +189,16 @@ Scope:
 - Keep saved outputs explicit and user-directed; never commit generated output
   directories.
 
+Status:
+
+- Completed in Phase 5D for TimeChannelROI, Annotation, ROISet,
+  event-candidate to ROI conversion, ROI statistics/spectral summaries,
+  JSON/CSV export helpers, ROI overlay plotting, bounded CLI export workflows,
+  and tutorial notebook updates.
+- GUI analysis panel integration remains deferred to Phase 5E.
+
+Recommended next: Phase 5E or Phase 6A.
+
 ### Phase 5E: GUI analysis panel
 
 Goal:
@@ -242,6 +252,8 @@ Scope:
   capabilities.
 - The notebook must not include development logs, test runs, commit history,
   real data paths, generated output artifacts, or private local paths.
+- The notebook should explain method principles, key formulas, CLI examples,
+  GUI workflows, and interpretation boundaries for stable functionality.
 
 ### 1. Basic statistics
 

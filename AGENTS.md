@@ -71,6 +71,14 @@ All internal core arrays must use:
 ## Documentation requirements
 
 - Keep docs/ to eight files or fewer unless the project owner approves expansion.
+- docs/09_tutorial_user_manual.ipynb is the allowed Jupyter tutorial/user manual
+  in addition to the markdown docs.
+- If a development round adds mature, stable user-facing functionality, update
+  docs/09_tutorial_user_manual.ipynb in the same round.
+- The tutorial notebook should explain method principles, key formulas, CLI
+  examples, GUI workflow, and interpretation boundaries. It must not include
+  development process notes, test runs, commit history, real data paths, or
+  private local paths.
 - Update docs/05_development_log.md every development round.
 - Update architecture, format, and testing docs when interfaces or assumptions change.
 

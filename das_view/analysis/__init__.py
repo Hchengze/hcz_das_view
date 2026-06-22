@@ -13,6 +13,13 @@ from das_view.analysis.events import (
 )
 from das_view.analysis.fk import FKResult, fk_transform
 from das_view.analysis.fk_filter import FKFilterResult, apply_fk_mask, fk_velocity_filter, velocity_fan_mask
+from das_view.analysis.roi import (
+    Annotation,
+    ROIAnalysisResult,
+    ROISet,
+    TimeChannelROI,
+    rois_from_event_candidates,
+)
 from das_view.analysis.service import (
     BandEnergyServiceResult,
     EnvelopeServiceResult,
@@ -24,6 +31,7 @@ from das_view.analysis.service import (
     SpectrumRequest,
     SpectrumServiceResult,
     StatisticsServiceResult,
+    ROIAnalysisServiceResult,
     compute_band_energy_for_file,
     compute_envelope_for_file,
     compute_stalta_for_file,
@@ -32,6 +40,8 @@ from das_view.analysis.service import (
     compute_fk_for_file,
     compute_psd_for_file,
     compute_spectral_attributes_for_file,
+    compute_roi_spectral_attributes_for_file,
+    compute_roi_statistics_for_file,
     compute_statistics_for_file,
     compute_spectrogram_for_file,
     compute_spectrum_for_file,
@@ -64,6 +74,7 @@ __all__ = [
     "PSDResult",
     "BandEnergyResult",
     "BandEnergyServiceResult",
+    "Annotation",
     "EnvelopeResult",
     "EnvelopeServiceResult",
     "EventCandidate",
@@ -73,6 +84,10 @@ __all__ = [
     "FKFilterResult",
     "FKFilterServiceResult",
     "FKServiceResult",
+    "ROIAnalysisResult",
+    "ROIAnalysisServiceResult",
+    "ROISet",
+    "TimeChannelROI",
     "STALTARatioResult",
     "STALTAServiceResult",
     "SpectralAttributesResult",
@@ -94,6 +109,8 @@ __all__ = [
     "compute_fk_filter_for_file",
     "compute_fk_for_file",
     "compute_psd_for_file",
+    "compute_roi_spectral_attributes_for_file",
+    "compute_roi_statistics_for_file",
     "compute_spectral_attributes_for_file",
     "compute_stalta_for_file",
     "compute_statistics_for_file",
@@ -106,6 +123,7 @@ __all__ = [
     "finite_summary",
     "periodogram_psd",
     "power_spectrum",
+    "rois_from_event_candidates",
     "single_channel_spectrogram",
     "spectral_attributes",
     "sta_lta_ratio",

@@ -129,6 +129,23 @@ Current coverage:
   is valid JSON, declares nbformat, contains key DAS Viewer / DAS Analysis
   formulas and concepts, avoids local absolute paths, and avoids development
   log, commit, or pytest content.
+- ROI analysis tests cover TimeChannelROI validation, duration_samples,
+  n_channels, to_dict/from_dict, Annotation confidence validation, ROISet
+  add/remove/filter/sort/limit, event-candidate to ROI conversion, padding,
+  max_rois, and invalid ROI errors.
+- ROI service tests cover compute_roi_statistics_for_file and
+  compute_roi_spectral_attributes_for_file on synthetic ZD HDF5 data, bounded
+  ROI time/channel selections, preprocessing history, multiple ROIs, reader
+  name, metadata, selection reporting, and band-energy ROI summaries.
+- Export tests cover dataclass/numpy/Path to_jsonable conversion, JSON output,
+  CSV output, event candidate rows, ROI rows, and annotation rows using pytest
+  tmp_path only.
+- ROI plotting tests cover empty ROI overlays, single ROI image saving with
+  Matplotlib Agg, max_rois limiting, invalid ROI errors, and event-candidate
+  overlay conversion.
+- ROI export example tests cover manual ROI parsing, detect-events argument
+  parsing, bounded default slices, JSON output, CSV output, and no-real-data
+  synthetic file workflows.
 - FK analysis tests cover synthetic plane-wave peak frequency/wavenumber
   detection, amplitude/power shapes, DASData metadata sample-rate/dx handling,
   invalid sample_rate_hz/dx/nfft/dimensionality/NaN/Inf/too-short inputs, and
@@ -155,7 +172,6 @@ Current coverage:
 
 Future coverage:
 
-- ROI / annotation / export service tests.
 - GUI analysis panel smoke tests.
 - Broader time-frequency workflow tests.
 - FK visualization and FK-domain smoke-filter validation with real or

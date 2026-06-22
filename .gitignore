@@ -1,6 +1,7 @@
 # Python caches and bytecode
 __pycache__/
 .pytest_cache/
+.tmp_pytest/
 *.pyc
 *.pyo
 *.pyd

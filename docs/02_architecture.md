@@ -14,6 +14,7 @@
       - registry.py
       - preview.py
       - data_service.py
+      - export.py
       - hdf5_zd.py
       - puniu_dat.py
     - processing/
@@ -25,6 +26,7 @@
       - statistics.py
       - spectral_attributes.py
       - events.py
+      - roi.py
       - fk.py
       - fk_filter.py
       - service.py
@@ -33,6 +35,7 @@
       - waveform.py
       - spectra.py
       - fk.py
+      - roi.py
     - gui/
       - app.py
       - main_window.py
@@ -46,18 +49,18 @@
 ## Layer responsibilities
 
 - core: data model, metadata display formatting, package-wide constants, and exceptions.
-- io: data readers, metadata readers, format registry, GUI-independent preview workflow, and bounded data selection services.
+- io: data readers, metadata readers, format registry, GUI-independent preview
+  workflow, bounded data selection services, and JSON/CSV export helpers.
 - processing: GUI-independent preprocessing operations such as demean, linear
   detrend, taper, normalization, standardization, clipping, and later filtering/resampling.
 - analysis: GUI-independent DAS analysis. Current support includes basic
   statistics, spectral attributes, envelope/STA-LTA event candidates,
   amplitude spectrum, power spectrum, periodogram PSD, Welch PSD,
-  single-channel spectrogram smoke-path helpers, file-level analysis services,
-  FK visualization, and FK-domain smoke filtering for DAS 2D wavefield
-  inspection. Future mainline work should expand toward ROI summaries and
-  exportable analysis results.
+  single-channel spectrogram smoke-path helpers, ROI/annotation helpers,
+  file-level analysis services, FK visualization, and FK-domain smoke filtering
+  for DAS 2D wavefield inspection.
 - plotting: Matplotlib plotting helpers independent from GUI widgets, including
-  waterfall, waveform, spectrum, spectrogram, and FK views.
+  waterfall, waveform, spectrum, spectrogram, FK views, and ROI overlays.
 - gui: optional PyQt5 layer that calls preview, formatting, and plotting services.
 - utils: validation, slicing, logging, and shared small helpers.
 - docs/09_tutorial_user_manual.ipynb: stable user tutorial and operation
@@ -114,6 +117,16 @@ Reader responsibilities:
 - SelectionResult records the selected reader, normalized slices, downsampling, and
   requested channels. Callers should use this service instead of duplicating reader logic.
 
+## Export helpers
+
+- das_view/io/export.py provides to_jsonable, save_json, save_csv_rows,
+  event_candidates_to_rows, rois_to_rows, annotations_to_rows, and
+  analysis_summary_to_rows.
+- Export helpers are GUI-independent and convert dataclasses, numpy scalars,
+  numpy arrays, slices, and Path objects to JSON/CSV-friendly values.
+- Output directories are created explicitly by the export helpers; generated
+  JSON/CSV output files remain user artifacts and must not be committed.
+
 ## Plotting services
 
 - plot_waterfall draws variable-density DAS previews from DASData.
@@ -125,6 +138,9 @@ Reader responsibilities:
   It does not compute FK values and does not depend on PyQt5.
 - plot_fk_mask can display a simple FK mask matrix for smoke-path validation.
   It does not compute or apply the filter.
+- plot_rois_on_waterfall and plot_event_candidates_on_waterfall overlay
+  half-open time/channel ROI boxes on Matplotlib axes or DASData waterfall
+  plots. They do not perform ROI analysis and do not depend on PyQt5.
 - Plotting helpers assume the internal data convention (n_samples, n_channels).
 
 ## Analysis services
@@ -147,6 +163,10 @@ Reader responsibilities:
   detect_stalta_events. These functions accept numpy arrays or DASData, keep
   the DAS axis convention, and return event candidates only. They do not perform
   earthquake location, source location, inversion, or final interpretation.
+- das_view/analysis/roi.py provides TimeChannelROI, Annotation, ROISet,
+  ROIAnalysisResult, and rois_from_event_candidates. ROI sample and channel
+  ranges are half-open intervals. These objects are data review and export aids,
+  not location or interpretation results.
 - das_view/analysis/spectrum.py provides SpectrumResult, PSDResult, and
   SpectrogramResult containers plus amplitude_spectrum, power_spectrum,
   periodogram_psd, welch_psd, and single_channel_spectrogram.
@@ -170,6 +190,11 @@ Reader responsibilities:
   selections through read_selection, optionally apply apply_preprocess, then
   call the events analysis helpers. They do not inspect HDF5/DAT internal paths
   and do not depend on GUI code.
+- das_view/analysis/service.py also provides compute_roi_statistics_for_file
+  and compute_roi_spectral_attributes_for_file. They read each ROI through
+  read_selection, optionally call apply_preprocess, then call existing
+  statistics or spectral attribute helpers. They do not inspect HDF5/DAT
+  internal paths and do not depend on GUI code.
 - The default axis=0 follows the DAS convention and treats each column as an
   independent channel through time.
 - Spectrum helpers accept numpy arrays or DASData. DASData input can provide

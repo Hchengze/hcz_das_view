@@ -18,6 +18,7 @@ from das_view.analysis.events import (
 )
 from das_view.analysis.fk import FKResult, fk_transform
 from das_view.analysis.fk_filter import FKFilterResult, fk_velocity_filter
+from das_view.analysis.roi import ROIAnalysisResult, ROISet, TimeChannelROI
 from das_view.analysis.spectrum import (
     PSDResult,
     SpectrogramResult,
@@ -50,6 +51,7 @@ AnalysisResult = (
     | EnvelopeResult
     | STALTARatioResult
     | EventDetectionResult
+    | ROIAnalysisResult
 )
 StepLike = PreprocessStep | tuple[str, Mapping[str, Any]] | str
 
@@ -171,6 +173,16 @@ class EventDetectionServiceResult:
     metadata: DASMetadata
     selection: SelectionResult
     preprocessing_history: tuple[dict[str, Any], ...]
+
+
+@dataclass(frozen=True, slots=True)
+class ROIAnalysisServiceResult:
+    """Result from file-level analysis over one or more ROIs."""
+
+    results: tuple[ROIAnalysisResult, ...]
+    reader_name: str | None
+    preprocessing_history: tuple[dict[str, Any], ...]
+    analysis_kind: str
 
 
 def compute_spectrum_for_file(
@@ -621,6 +633,104 @@ def detect_events_for_file(
     return _event_detection_service_result(result=result, das_data=das_data, selection=selection)
 
 
+def compute_roi_statistics_for_file(
+    path: str | Path,
+    rois,
+    *,
+    max_channels: int = 512,
+    preprocessing_steps: Sequence[StepLike] | None = None,
+    percentiles=(1, 5, 25, 50, 75, 95, 99),
+    nan_policy: Literal["omit", "raise"] = "omit",
+) -> ROIAnalysisServiceResult:
+    """Compute basic statistics for each bounded ROI."""
+
+    roi_values = _normalize_rois(rois)
+    results: list[ROIAnalysisResult] = []
+    for roi in roi_values:
+        das_data, selection = _read_roi_and_maybe_preprocess(
+            path,
+            roi,
+            max_channels=max_channels,
+            preprocessing_steps=preprocessing_steps,
+            require_sample_rate=False,
+        )
+        result = basic_statistics(
+            das_data,
+            axis=None,
+            percentiles=percentiles,
+            nan_policy=nan_policy,
+        )
+        results.append(
+            ROIAnalysisResult(
+                roi=roi,
+                result=result,
+                reader_name=selection.reader_name,
+                metadata=das_data.metadata,
+                selection=selection,
+                preprocessing_history=_preprocessing_history(das_data),
+            )
+        )
+    return _roi_analysis_service_result(results=results, analysis_kind="statistics")
+
+
+def compute_roi_spectral_attributes_for_file(
+    path: str | Path,
+    rois,
+    *,
+    bands=None,
+    max_channels: int = 512,
+    nfft: int | None = None,
+    frequency_range=None,
+    rolloff: float = 0.95,
+    preprocessing_steps: Sequence[StepLike] | None = None,
+    nan_policy: Literal["omit", "raise"] = "raise",
+) -> ROIAnalysisServiceResult:
+    """Compute band energy or spectral attributes for each bounded ROI."""
+
+    roi_values = _normalize_rois(rois)
+    results: list[ROIAnalysisResult] = []
+    for roi in roi_values:
+        das_data, selection = _read_roi_and_maybe_preprocess(
+            path,
+            roi,
+            max_channels=max_channels,
+            preprocessing_steps=preprocessing_steps,
+            require_sample_rate=True,
+        )
+        if bands is not None:
+            result = band_energy(
+                das_data,
+                bands=bands,
+                axis=0,
+                nfft=nfft,
+                average_channels=True,
+                nan_policy=nan_policy,
+            )
+            kind = "band_energy"
+        else:
+            result = spectral_attributes(
+                das_data,
+                axis=0,
+                nfft=nfft,
+                frequency_range=frequency_range,
+                rolloff=rolloff,
+                average_channels=True,
+                nan_policy=nan_policy,
+            )
+            kind = "spectral_attributes"
+        results.append(
+            ROIAnalysisResult(
+                roi=roi,
+                result=result,
+                reader_name=selection.reader_name,
+                metadata=das_data.metadata,
+                selection=selection,
+                preprocessing_history=_preprocessing_history(das_data),
+            )
+        )
+    return _roi_analysis_service_result(results=results, analysis_kind=kind if roi_values else "spectral_attributes")
+
+
 def _read_and_maybe_preprocess(
     path: str | Path,
     *,
@@ -663,6 +773,39 @@ def _read_selection_and_maybe_preprocess(
     if require_sample_rate and das_data.metadata.sample_rate_hz is None:
         raise ValueError("sample_rate_hz is required for spectral attribute analysis but was not found")
     return das_data, selection
+
+
+def _read_roi_and_maybe_preprocess(
+    path: str | Path,
+    roi: TimeChannelROI,
+    *,
+    max_channels: int,
+    preprocessing_steps: Sequence[StepLike] | None,
+    require_sample_rate: bool,
+) -> tuple[DASData, SelectionResult]:
+    time_slice = slice(roi.start_sample, roi.end_sample)
+    if roi.channel_start is None or roi.channel_end is None:
+        channel_slice = slice(0, _normalize_max_samples(max_channels))
+    else:
+        channel_slice = slice(roi.channel_start, roi.channel_end)
+    selection = read_selection(path, time_slice=time_slice, channel_slice=channel_slice)
+    das_data = selection.das_data
+    if preprocessing_steps:
+        das_data = apply_preprocess(das_data, preprocessing_steps)
+    if require_sample_rate and das_data.metadata.sample_rate_hz is None:
+        raise ValueError("sample_rate_hz is required for ROI spectral analysis but was not found")
+    return das_data, selection
+
+
+def _normalize_rois(rois) -> tuple[TimeChannelROI, ...]:
+    if isinstance(rois, ROISet):
+        values = tuple(rois)
+    else:
+        values = tuple(rois)
+    for roi in values:
+        if not isinstance(roi, TimeChannelROI):
+            raise TypeError("ROI analysis expects TimeChannelROI objects")
+    return values
 
 
 def _service_result(
@@ -810,6 +953,21 @@ def _event_detection_service_result(
         metadata=das_data.metadata,
         selection=selection,
         preprocessing_history=history,
+    )
+
+
+def _roi_analysis_service_result(
+    *,
+    results: list[ROIAnalysisResult],
+    analysis_kind: str,
+) -> ROIAnalysisServiceResult:
+    reader_name = results[0].reader_name if results else None
+    history = results[0].preprocessing_history if results else ()
+    return ROIAnalysisServiceResult(
+        results=tuple(results),
+        reader_name=reader_name,
+        preprocessing_history=history,
+        analysis_kind=analysis_kind,
     )
 
 

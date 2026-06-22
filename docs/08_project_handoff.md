@@ -19,10 +19,10 @@ phases.
 - Development model: the new das_view/ package is being rebuilt after auditing
   legacy material under old_code/.
 - New runtime code must not depend on, import, or call old_code.
-- Latest project state: current HEAD after Phase 5C Envelope / STA-LTA / event
-  candidate detection.
-- Current phase: Phase 5C, DAS event candidate analysis and tutorial notebook.
-- Current expected test result after Phase 5C: 323 passed.
+- Latest project state: current HEAD after Phase 5D ROI / annotation / export.
+- Current phase: Phase 5D, DAS ROI, annotation, export, and ROI summary
+  workflows.
+- Current expected test result after Phase 5D: 353 passed.
 
 ## 2. Repository and environment
 
@@ -66,7 +66,12 @@ phases.
 10. Every development round must update docs/05_development_log.md.
 11. Keep markdown docs at eight files. docs/09_tutorial_user_manual.ipynb is
     the allowed additional Jupyter tutorial/user-manual file.
-12. FK visualization and FK-domain smoke filtering may remain as DAS 2D
+12. If a development round adds mature, stable user-facing functionality,
+    update docs/09_tutorial_user_manual.ipynb in the same round. The notebook
+    must explain method principles, key formulas, CLI examples, GUI workflow,
+    and interpretation boundaries, and must not include development process,
+    test runs, commit history, or real/private data paths.
+13. FK visualization and FK-domain smoke filtering may remain as DAS 2D
     wavefield inspection capabilities, but should not be treated as a mainline
     path toward specialized inversion or picking workflows.
 
@@ -79,8 +84,10 @@ phases.
 - das_view/processing/: pure preprocessing functions, scipy-based filters, and
   DASData-level processing service.
 - das_view/analysis/: spectrum, spectrogram, PSD/Welch, spectral attributes,
-  envelope/STA-LTA event candidates, FK visualization, FK-domain smoke
-  filtering, basic statistics, and file-level analysis services.
+  envelope/STA-LTA event candidates, ROI/annotation helpers, FK visualization,
+  FK-domain smoke filtering, basic statistics, and file-level analysis services.
+- das_view/io/export.py: JSON/CSV export helpers for event candidates, ROIs,
+  annotations, and ROI analysis summaries.
 - das_view/plotting/: Matplotlib plotting helpers independent of PyQt5.
 - das_view/gui/: optional PyQt5 application, main window, models, and worker
   scaffolding.
@@ -116,6 +123,8 @@ Key modules:
   - events.py: EnvelopeResult, STALTARatioResult, EventCandidate,
     EventDetectionResult, amplitude_envelope, energy_envelope, sta_lta_ratio,
     detect_threshold_events, and detect_stalta_events.
+  - roi.py: TimeChannelROI, Annotation, ROISet, ROIAnalysisResult, and
+    rois_from_event_candidates.
   - spectrum.py: amplitude spectrum, power spectrum, spectrogram, periodogram
     PSD, and Welch PSD.
   - service.py: file-level spectrum/PSD/spectrogram workflows for CLI and GUI
@@ -163,6 +172,10 @@ Key modules:
 - Phase 5C: added envelope, energy envelope, STA/LTA, threshold event
   candidates, file-level event services, bounded CLI JSON/CSV example,
   tutorial/user-manual notebook, tests, and documentation.
+- Phase 5D: added ROI and annotation helpers, event-candidate to ROI
+  conversion, ROI statistics and spectral summaries, JSON/CSV export helpers,
+  ROI overlay plotting, bounded ROI export CLI example, tests, and tutorial
+  notebook updates.
 
 ## 6. Current supported capabilities
 
@@ -254,6 +267,12 @@ Key modules:
 - compute_envelope_for_file.
 - compute_stalta_for_file.
 - detect_events_for_file.
+- TimeChannelROI.
+- Annotation.
+- ROISet.
+- rois_from_event_candidates.
+- compute_roi_statistics_for_file.
+- compute_roi_spectral_attributes_for_file.
 
 ## 7. Current examples
 
@@ -278,6 +297,8 @@ Key modules:
   spectral attributes and optionally save JSON/CSV output.
 - examples/event_detection_file.py: compute bounded envelope or STA/LTA event
   candidates and optionally save JSON/CSV candidate tables.
+- examples/roi_export_file.py: create manual ROIs, convert event candidates to
+  ROIs, export events/ROIs as JSON/CSV, and export ROI statistics summaries.
 - examples/fk_file.py: compute bounded FK amplitude or power plots, optionally
   after a filter step.
 - examples/fk_filter_file.py: apply a minimal bounded FK velocity fan filter
@@ -306,6 +327,9 @@ Current coverage includes:
   candidate-table workflows.
 - Tutorial notebook tests for valid ipynb JSON, nbformat, user-manual keywords,
   formulas, and no local path / development-test content.
+- ROI, export, plotting, and example tests for ROI validation, annotation
+  validation, event-candidate to ROI conversion, ROI services, JSON/CSV export,
+  ROI overlays, and bounded CLI outputs.
 - CLI example argument construction and no-real-data smoke behavior.
 - GUI-independent parser/model helpers and optional PyQt5 smoke tests for
   preview, waveform, spectrum, and FK panels.
@@ -314,7 +338,7 @@ Current full test command and expected result:
 
       D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider
 
-      323 passed
+      353 passed
 
 ## 9. Old code migration status
 
@@ -354,13 +378,12 @@ No old_code files are imported by the new runtime package.
    wavefield inspection, not polished production denoising workflows.
 6. A broader time-frequency workflow is not implemented.
 7. Full processing/analysis result export is not implemented.
-8. Event candidate detection is available through analysis/service/CLI, but it
-   is not integrated into the GUI analysis panel.
-9. ROI / annotation / export workflows are not implemented.
-10. GUI analysis panel is not implemented.
-11. Packaging and release hardening are not completed.
-12. SEGY, SAC, and TDMS are not implemented.
-13. The tutorial notebook should be maintained as stable features mature.
+8. Event candidate detection and ROI/export workflows are available through
+   analysis/service/CLI, but are not integrated into the GUI analysis panel.
+9. GUI analysis panel is not implemented.
+10. Packaging and release hardening are not completed.
+11. SEGY, SAC, and TDMS are not implemented.
+12. The tutorial notebook should be maintained as stable features mature.
 
 ## 11. Recommended next phases
 
@@ -373,19 +396,19 @@ Goal:
 Phase 2E is complete for the provided local sample directories. Re-enter this
 phase only when new real sample paths or new format variants are provided.
 
-### Option B: Phase 5D ROI / annotation / export
+### Option B: Phase 5E GUI analysis panel
 
 Goal:
 
-      Add ROI selection, simple annotation, figure export, and CSV/JSON
-      analysis-summary export workflows.
+      Connect statistics, band energy, envelope, event candidate, ROI, and
+      export workflows to the GUI through service-layer APIs.
 
-### Option C: Phase 5E GUI analysis panel
+### Option C: Phase 6A Packaging and release hardening
 
 Goal:
 
-      Connect statistics, band energy, envelope, and event candidate workflows
-      to the GUI through service-layer APIs.
+      Complete packaging metadata, console scripts, versioning, packaging docs,
+      release checklist, and example-data strategy.
 
 ## 12. DAS Analysis capability roadmap
 
