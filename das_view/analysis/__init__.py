@@ -3,17 +3,27 @@
 from das_view.analysis.fk import FKResult, fk_transform
 from das_view.analysis.fk_filter import FKFilterResult, apply_fk_mask, fk_velocity_filter, velocity_fan_mask
 from das_view.analysis.service import (
+    BandEnergyServiceResult,
     FKFilterServiceResult,
     FKServiceResult,
+    SpectralAttributesServiceResult,
     SpectrumRequest,
     SpectrumServiceResult,
     StatisticsServiceResult,
+    compute_band_energy_for_file,
     compute_fk_filter_for_file,
     compute_fk_for_file,
     compute_psd_for_file,
+    compute_spectral_attributes_for_file,
     compute_statistics_for_file,
     compute_spectrogram_for_file,
     compute_spectrum_for_file,
+)
+from das_view.analysis.spectral_attributes import (
+    BandEnergyResult,
+    SpectralAttributesResult,
+    band_energy,
+    spectral_attributes,
 )
 from das_view.analysis.statistics import (
     FiniteSummary,
@@ -35,10 +45,14 @@ from das_view.analysis.spectrum import (
 
 __all__ = [
     "PSDResult",
+    "BandEnergyResult",
+    "BandEnergyServiceResult",
     "FKResult",
     "FKFilterResult",
     "FKFilterServiceResult",
     "FKServiceResult",
+    "SpectralAttributesResult",
+    "SpectralAttributesServiceResult",
     "SpectrumRequest",
     "SpectrogramResult",
     "SpectrumServiceResult",
@@ -48,10 +62,13 @@ __all__ = [
     "StatisticsServiceResult",
     "amplitude_spectrum",
     "apply_fk_mask",
+    "band_energy",
     "basic_statistics",
+    "compute_band_energy_for_file",
     "compute_fk_filter_for_file",
     "compute_fk_for_file",
     "compute_psd_for_file",
+    "compute_spectral_attributes_for_file",
     "compute_statistics_for_file",
     "compute_spectrogram_for_file",
     "compute_spectrum_for_file",
@@ -59,6 +76,7 @@ __all__ = [
     "periodogram_psd",
     "power_spectrum",
     "single_channel_spectrogram",
+    "spectral_attributes",
     "welch_psd",
     "fk_velocity_filter",
     "fk_transform",

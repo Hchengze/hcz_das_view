@@ -58,6 +58,17 @@ dispersion-picking package.
 - Added file-level compute_statistics_for_file service and
   examples/statistics_file.py for bounded CLI use with JSON/global CSV output.
 
+### Phase 5B: Band energy and spectral attributes
+
+- Added frequency-band energy, band power, band energy ratio, dominant
+  frequency, peak power, spectral centroid, spectral bandwidth, spectral
+  rolloff, and total spectral energy analysis.
+- Added per-channel and average-channel support for numpy arrays and DASData.
+- Added file-level compute_band_energy_for_file and
+  compute_spectral_attributes_for_file services plus
+  examples/spectral_attributes_file.py for bounded CLI use with JSON/CSV
+  output.
+
 ## Recommended next phases
 
 ### Phase 2E: Real sample validation
@@ -113,7 +124,14 @@ Scope:
 - Support per-channel and averaged summaries.
 - Keep plotting/export separate from numerical analysis.
 
-Recommended next if no real sample paths are available.
+Status:
+
+- Completed in Phase 5B for bounded per-channel and average-channel spectral
+  attributes.
+- Remaining follow-up belongs to later GUI/ROI/export phases, not core spectral
+  attribute computation.
+
+Recommended next if no real sample paths are available: Phase 5C.
 
 ### Phase 5C: Envelope / STA-LTA / event candidate detection
 

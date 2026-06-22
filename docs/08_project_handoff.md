@@ -19,10 +19,10 @@ phases.
 - Development model: the new das_view/ package is being rebuilt after auditing
   legacy material under old_code/.
 - New runtime code must not depend on, import, or call old_code.
-- Latest project state: current HEAD after Phase 5A Analysis feature
-  statistics.
-- Current phase: Phase 5A, basic DAS statistics analysis.
-- Current expected test result after Phase 5A: 261 passed.
+- Latest project state: current HEAD after Phase 5B Band energy and spectral
+  attributes.
+- Current phase: Phase 5B, DAS spectral attributes analysis.
+- Current expected test result after Phase 5B: 293 passed.
 
 ## 2. Repository and environment
 
@@ -78,9 +78,9 @@ phases.
   selection services.
 - das_view/processing/: pure preprocessing functions, scipy-based filters, and
   DASData-level processing service.
-- das_view/analysis/: spectrum, spectrogram, PSD/Welch, FK visualization,
-  FK-domain smoke filtering, basic statistics, and file-level analysis
-  services.
+- das_view/analysis/: spectrum, spectrogram, PSD/Welch, spectral attributes,
+  FK visualization, FK-domain smoke filtering, basic statistics, and file-level
+  analysis services.
 - das_view/plotting/: Matplotlib plotting helpers independent of PyQt5.
 - das_view/gui/: optional PyQt5 application, main window, models, and worker
   scaffolding.
@@ -109,6 +109,8 @@ Key modules:
 - Analysis:
   - statistics.py: FiniteSummary, StatisticsResult, finite_summary,
     basic_statistics, and window_statistics.
+  - spectral_attributes.py: BandEnergyResult, SpectralAttributesResult,
+    band_energy, and spectral_attributes.
   - spectrum.py: amplitude spectrum, power spectrum, spectrogram, periodogram
     PSD, and Welch PSD.
   - service.py: file-level spectrum/PSD/spectrogram workflows for CLI and GUI
@@ -147,6 +149,8 @@ Key modules:
   redirected next work toward DAS analysis capabilities.
 - Phase 5A: added basic DAS statistics analysis, file-level statistics service,
   bounded CLI example, tests, and documentation.
+- Phase 5B: added band energy and spectral attribute analysis, file-level
+  services, bounded CLI example, tests, and documentation.
 
 ## 6. Current supported capabilities
 
@@ -226,6 +230,10 @@ Key modules:
 - basic_statistics.
 - window_statistics.
 - compute_statistics_for_file.
+- band_energy.
+- spectral_attributes.
+- compute_band_energy_for_file.
+- compute_spectral_attributes_for_file.
 
 ## 7. Current examples
 
@@ -246,6 +254,8 @@ Key modules:
   spectrogram plots, optionally after a filter step.
 - examples/statistics_file.py: compute bounded global, time-wise, or
   channel-wise DAS statistics and optionally save JSON/global CSV output.
+- examples/spectral_attributes_file.py: compute bounded band energy or
+  spectral attributes and optionally save JSON/CSV output.
 - examples/fk_file.py: compute bounded FK amplitude or power plots, optionally
   after a filter step.
 - examples/fk_filter_file.py: apply a minimal bounded FK velocity fan filter
@@ -265,6 +275,9 @@ Current coverage includes:
 - Spectrum, PSD/Welch, spectrogram, FK, and FK filter analysis helpers.
 - Statistics analysis, service, and example tests for global, axis-wise,
   bounded, NaN/Inf-aware, and JSON/CSV-output workflows.
+- Spectral attributes analysis, service, and example tests for band energy,
+  band ratios, dominant frequency, centroid, bandwidth, rolloff, bounded
+  services, and JSON/CSV-output workflows.
 - CLI example argument construction and no-real-data smoke behavior.
 - GUI-independent parser/model helpers and optional PyQt5 smoke tests for
   preview, waveform, spectrum, and FK panels.
@@ -273,7 +286,7 @@ Current full test command and expected result:
 
       D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider
 
-      261 passed
+      293 passed
 
 ## 9. Old code migration status
 
@@ -313,12 +326,11 @@ No old_code files are imported by the new runtime package.
    wavefield inspection, not polished production denoising workflows.
 6. A broader time-frequency workflow is not implemented.
 7. Full processing/analysis result export is not implemented.
-8. Band energy and spectral attributes are not implemented.
-9. Envelope / STA-LTA / event candidate detection is not implemented.
-10. ROI / annotation / export workflows are not implemented.
-11. GUI analysis panel is not implemented.
-12. Packaging and release hardening are not completed.
-13. SEGY, SAC, and TDMS are not implemented.
+8. Envelope / STA-LTA / event candidate detection is not implemented.
+9. ROI / annotation / export workflows are not implemented.
+10. GUI analysis panel is not implemented.
+11. Packaging and release hardening are not completed.
+12. SEGY, SAC, and TDMS are not implemented.
 
 ## 11. Recommended next phases
 
@@ -331,12 +343,12 @@ Goal:
 If real sample paths are provided, prioritize this before expanding analysis
 features.
 
-### Option B: Phase 5B Band energy and spectral attributes
+### Option B: Phase 5C Envelope / STA-LTA / event candidate detection
 
 Goal:
 
-      Add band energy, dominant frequency, spectral centroid, spectral bandwidth,
-      spectral peak frequency, and band energy ratio analysis.
+      Add envelope, energy envelope, STA/LTA, threshold picker, and event
+      candidate table support.
 
 If no real sample paths are available, prioritize this as the next mainline DAS
 analysis feature phase.
@@ -433,4 +445,4 @@ Copy this into the next Codex conversation:
     Phase 2E：real sample validation
 
     如果我没有真实数据路径，则建议进入：
-    Phase 5A：Analysis feature statistics
+    Phase 5C：Envelope / STA-LTA / event candidate detection

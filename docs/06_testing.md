@@ -96,6 +96,20 @@ Current coverage:
 - Statistics example tests cover parser behavior, bounded default slices,
   explicit slices, axis parsing, JSON output to pytest tmp_path, and global CSV
   output to pytest tmp_path without requiring real DAS data.
+- Spectral attributes analysis tests cover dominant frequency on synthetic
+  single-frequency data, band-energy separation, band-energy ratios, spectral
+  centroid, non-negative spectral bandwidth, spectral rolloff bounds,
+  frequency_range behavior, average_channels=True, per-channel output shapes,
+  DASData sample-rate metadata, invalid sample rates, invalid band limits,
+  Nyquist checks, empty-bin bands, invalid rolloff values, NaN/Inf rejection,
+  and no in-place mutation.
+- Spectral attributes service tests cover compute_band_energy_for_file and
+  compute_spectral_attributes_for_file on synthetic ZD HDF5 data, bounded
+  time/channel selections, preprocessing history, average_channels=True,
+  reader name, metadata, and selection reporting.
+- Spectral attributes example tests cover band pair parsing, attributes mode,
+  bounded default slices, JSON output, and CSV output to pytest tmp_path without
+  requiring real DAS data.
 - FK analysis tests cover synthetic plane-wave peak frequency/wavenumber
   detection, amplitude/power shapes, DASData metadata sample-rate/dx handling,
   invalid sample_rate_hz/dx/nfft/dimensionality/NaN/Inf/too-short inputs, and
@@ -122,7 +136,6 @@ Current coverage:
 
 Future coverage:
 
-- Band energy and spectral attribute tests.
 - Envelope / STA-LTA / event candidate detection tests.
 - ROI / annotation / export service tests.
 - GUI analysis panel smoke tests.

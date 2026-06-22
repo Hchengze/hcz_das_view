@@ -19,13 +19,26 @@ from das_view.analysis.spectrum import (
     single_channel_spectrogram,
     welch_psd,
 )
+from das_view.analysis.spectral_attributes import (
+    BandEnergyResult,
+    SpectralAttributesResult,
+    band_energy,
+    spectral_attributes,
+)
 from das_view.analysis.statistics import StatisticsResult, basic_statistics
 from das_view.core.data_model import DASData, DASMetadata
 from das_view.io.data_service import SelectionResult, read_selection, read_trace
 from das_view.processing.service import PreprocessStep, apply_preprocess
 
 AnalysisKind = Literal["amplitude", "power", "periodogram", "welch", "spectrogram"]
-AnalysisResult = SpectrumResult | PSDResult | SpectrogramResult | StatisticsResult
+AnalysisResult = (
+    SpectrumResult
+    | PSDResult
+    | SpectrogramResult
+    | StatisticsResult
+    | BandEnergyResult
+    | SpectralAttributesResult
+)
 StepLike = PreprocessStep | tuple[str, Mapping[str, Any]] | str
 
 
@@ -81,6 +94,30 @@ class StatisticsServiceResult:
     """Result from a file-level statistics analysis service call."""
 
     result: StatisticsResult
+    das_data: DASData
+    reader_name: str
+    metadata: DASMetadata
+    selection: SelectionResult
+    preprocessing_history: tuple[dict[str, Any], ...]
+
+
+@dataclass(frozen=True, slots=True)
+class BandEnergyServiceResult:
+    """Result from a file-level band-energy analysis service call."""
+
+    result: BandEnergyResult
+    das_data: DASData
+    reader_name: str
+    metadata: DASMetadata
+    selection: SelectionResult
+    preprocessing_history: tuple[dict[str, Any], ...]
+
+
+@dataclass(frozen=True, slots=True)
+class SpectralAttributesServiceResult:
+    """Result from a file-level spectral-attributes analysis service call."""
+
+    result: SpectralAttributesResult
     das_data: DASData
     reader_name: str
     metadata: DASMetadata
@@ -314,6 +351,82 @@ def compute_statistics_for_file(
     return _statistics_service_result(result=result, das_data=das_data, selection=selection)
 
 
+def compute_band_energy_for_file(
+    path: str | Path,
+    *,
+    bands,
+    channel_slice=None,
+    time_slice=None,
+    max_samples: int = 4096,
+    max_channels: int = 512,
+    downsample: int | tuple[int, int] | None = None,
+    nfft: int | None = None,
+    average_channels: bool = False,
+    scaling: Literal["power", "density"] = "power",
+    preprocessing_steps: Sequence[StepLike] | None = None,
+    nan_policy: Literal["omit", "raise"] = "raise",
+) -> BandEnergyServiceResult:
+    """Read a bounded 2-D selection and compute frequency-band energy."""
+
+    das_data, selection = _read_selection_and_maybe_preprocess(
+        path,
+        channel_slice=channel_slice,
+        time_slice=time_slice,
+        max_samples=max_samples,
+        max_channels=max_channels,
+        downsample=downsample,
+        preprocessing_steps=preprocessing_steps,
+    )
+    result = band_energy(
+        das_data,
+        bands=bands,
+        axis=0,
+        nfft=nfft,
+        average_channels=average_channels,
+        scaling=scaling,
+        nan_policy=nan_policy,
+    )
+    return _band_energy_service_result(result=result, das_data=das_data, selection=selection)
+
+
+def compute_spectral_attributes_for_file(
+    path: str | Path,
+    *,
+    channel_slice=None,
+    time_slice=None,
+    max_samples: int = 4096,
+    max_channels: int = 512,
+    downsample: int | tuple[int, int] | None = None,
+    nfft: int | None = None,
+    frequency_range=None,
+    rolloff: float = 0.95,
+    average_channels: bool = False,
+    preprocessing_steps: Sequence[StepLike] | None = None,
+    nan_policy: Literal["omit", "raise"] = "raise",
+) -> SpectralAttributesServiceResult:
+    """Read a bounded 2-D selection and compute spectral attributes."""
+
+    das_data, selection = _read_selection_and_maybe_preprocess(
+        path,
+        channel_slice=channel_slice,
+        time_slice=time_slice,
+        max_samples=max_samples,
+        max_channels=max_channels,
+        downsample=downsample,
+        preprocessing_steps=preprocessing_steps,
+    )
+    result = spectral_attributes(
+        das_data,
+        axis=0,
+        nfft=nfft,
+        frequency_range=frequency_range,
+        rolloff=rolloff,
+        average_channels=average_channels,
+        nan_policy=nan_policy,
+    )
+    return _spectral_attributes_service_result(result=result, das_data=das_data, selection=selection)
+
+
 def _read_and_maybe_preprocess(
     path: str | Path,
     *,
@@ -328,6 +441,32 @@ def _read_and_maybe_preprocess(
         das_data = apply_preprocess(das_data, preprocessing_steps)
     if das_data.metadata.sample_rate_hz is None:
         raise ValueError("sample_rate_hz is required for spectrum analysis but was not found")
+    return das_data, selection
+
+
+def _read_selection_and_maybe_preprocess(
+    path: str | Path,
+    *,
+    channel_slice,
+    time_slice,
+    max_samples: int,
+    max_channels: int,
+    downsample: int | tuple[int, int] | None,
+    preprocessing_steps: Sequence[StepLike] | None,
+) -> tuple[DASData, SelectionResult]:
+    bounded_time = _bounded_slice(time_slice, max_samples=max_samples, axis_name="time")
+    bounded_channel = _bounded_slice(channel_slice, max_samples=max_channels, axis_name="channel")
+    selection = read_selection(
+        path,
+        time_slice=bounded_time,
+        channel_slice=bounded_channel,
+        downsample=downsample,
+    )
+    das_data = selection.das_data
+    if preprocessing_steps:
+        das_data = apply_preprocess(das_data, preprocessing_steps)
+    if das_data.metadata.sample_rate_hz is None:
+        raise ValueError("sample_rate_hz is required for spectral attribute analysis but was not found")
     return das_data, selection
 
 
@@ -385,6 +524,40 @@ def _statistics_service_result(
 ) -> StatisticsServiceResult:
     history = _preprocessing_history(das_data)
     return StatisticsServiceResult(
+        result=result,
+        das_data=das_data,
+        reader_name=selection.reader_name,
+        metadata=das_data.metadata,
+        selection=selection,
+        preprocessing_history=history,
+    )
+
+
+def _band_energy_service_result(
+    *,
+    result: BandEnergyResult,
+    das_data: DASData,
+    selection: SelectionResult,
+) -> BandEnergyServiceResult:
+    history = _preprocessing_history(das_data)
+    return BandEnergyServiceResult(
+        result=result,
+        das_data=das_data,
+        reader_name=selection.reader_name,
+        metadata=das_data.metadata,
+        selection=selection,
+        preprocessing_history=history,
+    )
+
+
+def _spectral_attributes_service_result(
+    *,
+    result: SpectralAttributesResult,
+    das_data: DASData,
+    selection: SelectionResult,
+) -> SpectralAttributesServiceResult:
+    history = _preprocessing_history(das_data)
+    return SpectralAttributesServiceResult(
         result=result,
         das_data=das_data,
         reader_name=selection.reader_name,

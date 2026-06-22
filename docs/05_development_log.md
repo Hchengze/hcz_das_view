@@ -1308,3 +1308,81 @@ analysis service interfaces.
 
 Phase 2E: real sample validation if real/quasi-real data paths are provided.
 Otherwise, Phase 5B: Band energy and spectral attributes.
+
+## 2026-06-22: Phase 5B Band energy and spectral attributes
+
+### Goal
+
+Add frequency-band energy and spectral attribute analysis for general DAS
+signal/wavefield inspection. Keep the implementation GUI-independent,
+reader-independent through the data service, and bounded by default for
+file-level workflows.
+
+### Added files
+
+- das_view/analysis/spectral_attributes.py
+- examples/spectral_attributes_file.py
+- tests/test_spectral_attributes_analysis.py
+- tests/test_spectral_attributes_service.py
+- tests/test_spectral_attributes_example.py
+
+### Modified files
+
+- README.md
+- das_view/analysis/__init__.py
+- das_view/analysis/service.py
+- docs/02_architecture.md
+- docs/05_development_log.md
+- docs/06_testing.md
+- docs/07_roadmap.md
+- docs/08_project_handoff.md
+
+### Design decisions
+
+- Added BandEnergyResult and SpectralAttributesResult containers.
+- band_energy accepts numpy arrays or DASData, uses DAS axis=0 by default,
+  supports per-channel and average-channel outputs, and reports band_energy,
+  band_power, total_energy, band_energy_ratio, frequencies_hz, sample_rate_hz,
+  axis, nfft, and scaling.
+- spectral_attributes accepts numpy arrays or DASData and reports dominant
+  frequency, peak power, spectral centroid, spectral bandwidth, spectral
+  rolloff, low/high analysis frequencies, and total energy.
+- Frequency bands must satisfy 0 <= fmin < fmax <= Nyquist and include at least
+  one FFT frequency bin. frequency_range and rolloff values are validated
+  explicitly.
+- nan_policy="raise" rejects NaN/Inf inputs. nan_policy="omit" replaces
+  non-finite samples with zero before FFT-based attribute computation.
+- compute_band_energy_for_file and compute_spectral_attributes_for_file read
+  bounded selections through read_selection, optionally call apply_preprocess,
+  then call the spectral attribute analysis helpers. They do not inspect
+  HDF5/DAT internals and do not depend on GUI code.
+- examples/spectral_attributes_file.py provides bounded CLI band-energy or
+  spectral-attribute workflows with JSON and CSV output.
+- No GUI analysis panel, event detection, FK expansion, reader changes, or
+  plotting additions were included in this phase.
+
+### Old-code migration judgment
+
+No old_code files were copied, imported, modified, or used for implementation.
+Phase 5B was implemented directly against the new DASData, data service, and
+analysis service interfaces.
+
+### Test result
+
+- D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider tests\test_spectral_attributes_analysis.py tests\test_spectral_attributes_service.py tests\test_spectral_attributes_example.py
+- Result: 32 passed.
+- D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider
+- Result: 293 passed.
+
+### Not completed
+
+- Real sample validation is not completed.
+- Envelope / STA-LTA / event candidate detection is not implemented.
+- ROI / annotation / export workflows are not implemented.
+- GUI analysis panel is not implemented.
+- Packaging and release hardening are not completed.
+
+### Suggested next round
+
+Phase 2E: real sample validation if real/quasi-real data paths are provided.
+Otherwise, Phase 5C: Envelope / STA-LTA / event candidate detection.

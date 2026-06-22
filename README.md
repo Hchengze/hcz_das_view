@@ -41,13 +41,16 @@ Implemented so far:
   and Matplotlib FK plotting smoke paths.
 - Basic DAS statistics analysis for global, time-wise, channel-wise, and
   bounded time/channel selections, including finite/NaN/Inf summaries.
+- Basic spectral attribute analysis, including band energy, band energy ratio,
+  dominant/peak frequency, spectral centroid, spectral bandwidth, and spectral
+  rolloff.
 - Synthetic tests for core readers and preview workflows.
 
 Still intentionally deferred:
 
 - Real/quasi-real sample validation using local path lists.
-- Broader DAS analysis features such as spectral attributes, envelope/STA-LTA,
-  event candidate tables, ROI/annotation, and export.
+- Broader DAS analysis features such as envelope/STA-LTA, event candidate
+  tables, ROI/annotation, and export.
 - GUI analysis panels for statistics, spectral attributes, envelope, and event
   candidates.
 - Full time-frequency analysis platform beyond the current single-channel
@@ -165,6 +168,22 @@ time` reduces along the time/sample axis and returns one value per channel;
 sample. This is a general DAS analysis feature, not a specialized imaging
 workflow.
 
+Compute bounded DAS band energy or spectral attributes:
+
+    python examples/spectral_attributes_file.py input.h5 --bands 1 5 5 20 20 80
+    python examples/spectral_attributes_file.py input.dat --time-start 0 --time-stop 5000 --channel-start 0 --channel-stop 512 --bands 1 10 10 50
+    python examples/spectral_attributes_file.py input.h5 --attributes
+    python examples/spectral_attributes_file.py input.h5 --attributes --frequency-range 1 80
+    python examples/spectral_attributes_file.py input.h5 --bands 1 5 5 20 --average-channels
+    python examples/spectral_attributes_file.py input.h5 --output attrs.json
+    python examples/spectral_attributes_file.py input.h5 --output band_energy.csv
+
+The spectral attributes example reads a bounded time/channel selection by
+default. It supports frequency-band energy, band power, band energy ratio,
+dominant or peak frequency, peak power, spectral centroid, spectral bandwidth,
+spectral rolloff, and optional channel averaging. This is a general DAS
+analysis feature for signal and wavefield inspection.
+
 Run the minimal GUI:
 
     python examples/run_gui.py
@@ -182,8 +201,8 @@ If installed with the console script, the GUI can also be started with:
 
 Do not commit real DAS data or generated preview images. Large files should be
 opened through slicing/downsampling preview workflows. The preprocessing,
-filter, spectrum, statistics, and FK examples work on bounded preview/trace
-data only; they do not export processed full-size DAS arrays. Filtering and spectrogram
+filter, spectrum, statistics, spectral-attributes, and FK examples work on
+bounded preview/trace data only; they do not export processed full-size DAS arrays. Filtering and spectrogram
 analysis depend on scipy.signal. Spectrum and FK examples cover bounded
 traces/previews only and do not export full processed arrays. Specialized
 inversion or picking workflows are outside the current main roadmap and would

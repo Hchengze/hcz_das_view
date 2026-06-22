@@ -23,6 +23,7 @@
     - analysis/
       - spectrum.py
       - statistics.py
+      - spectral_attributes.py
       - fk.py
       - fk_filter.py
       - service.py
@@ -48,10 +49,10 @@
 - processing: GUI-independent preprocessing operations such as demean, linear
   detrend, taper, normalization, standardization, clipping, and later filtering/resampling.
 - analysis: GUI-independent DAS analysis. Current support includes basic
-  statistics, amplitude spectrum, power spectrum, periodogram PSD, Welch PSD,
-  single-channel spectrogram smoke-path helpers, file-level analysis services,
-  FK visualization, and FK-domain smoke filtering for DAS 2D wavefield
-  inspection. Future mainline work should expand toward spectral attributes,
+  statistics, spectral attributes, amplitude spectrum, power spectrum,
+  periodogram PSD, Welch PSD, single-channel spectrogram smoke-path helpers,
+  file-level analysis services, FK visualization, and FK-domain smoke filtering
+  for DAS 2D wavefield inspection. Future mainline work should expand toward
   envelope/STA-LTA, event candidate detection, ROI summaries, and exportable
   analysis results.
 - plotting: Matplotlib plotting helpers independent from GUI widgets, including
@@ -131,6 +132,12 @@ Reader responsibilities:
   and support global, time-wise, channel-wise, and local window summaries.
   Statistics include count, finite/NaN/Inf counts, mean, standard deviation,
   min, max, median, percentiles, RMS, absolute mean, peak-to-peak, and energy.
+- das_view/analysis/spectral_attributes.py provides BandEnergyResult and
+  SpectralAttributesResult containers plus band_energy and
+  spectral_attributes. These functions accept numpy arrays or DASData, use the
+  DAS axis convention by default, and compute frequency-band energy, band
+  power, band energy ratio, dominant frequency, peak power, spectral centroid,
+  spectral bandwidth, spectral rolloff, and total energy.
 - das_view/analysis/spectrum.py provides SpectrumResult, PSDResult, and
   SpectrogramResult containers plus amplitude_spectrum, power_spectrum,
   periodogram_psd, welch_psd, and single_channel_spectrogram.
@@ -144,6 +151,11 @@ Reader responsibilities:
   optionally applies das_view/processing/service.py::apply_preprocess, then
   calls basic_statistics. It does not inspect HDF5/DAT internal paths and does
   not depend on GUI code.
+- das_view/analysis/service.py also provides compute_band_energy_for_file and
+  compute_spectral_attributes_for_file. They read bounded 2-D selections
+  through read_selection, optionally apply apply_preprocess, then call
+  band_energy or spectral_attributes. They do not inspect HDF5/DAT internal
+  paths and do not depend on GUI code.
 - The default axis=0 follows the DAS convention and treats each column as an
   independent channel through time.
 - Spectrum helpers accept numpy arrays or DASData. DASData input can provide
