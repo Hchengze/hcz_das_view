@@ -113,6 +113,22 @@ Current coverage:
 - Spectral attributes example tests cover band pair parsing, attributes mode,
   bounded default slices, JSON output, and CSV output to pytest tmp_path without
   requiring real DAS data.
+- Event analysis tests cover amplitude envelope shape, synthetic sinusoid
+  envelope behavior, energy envelope non-negativity, sliding-window energy
+  shape, STA/LTA shape and invalid window errors, threshold event detection,
+  min-duration filtering, merge-gap behavior, max-events limiting, DASData
+  input, NaN/Inf rejection, and no in-place mutation.
+- Event service tests cover compute_envelope_for_file, compute_stalta_for_file,
+  and detect_events_for_file on synthetic ZD HDF5 data, bounded time/channel
+  selections, preprocessing history, reader name, metadata, and selection
+  reporting.
+- Event detection example tests cover STA/LTA argument parsing, envelope
+  argument parsing, bounded default slices, JSON output, and CSV candidate-table
+  output to pytest tmp_path without requiring real DAS data.
+- Tutorial notebook tests verify that docs/09_tutorial_user_manual.ipynb exists,
+  is valid JSON, declares nbformat, contains key DAS Viewer / DAS Analysis
+  formulas and concepts, avoids local absolute paths, and avoids development
+  log, commit, or pytest content.
 - FK analysis tests cover synthetic plane-wave peak frequency/wavenumber
   detection, amplitude/power shapes, DASData metadata sample-rate/dx handling,
   invalid sample_rate_hz/dx/nfft/dimensionality/NaN/Inf/too-short inputs, and
@@ -139,7 +155,6 @@ Current coverage:
 
 Future coverage:
 
-- Envelope / STA-LTA / event candidate detection tests.
 - ROI / annotation / export service tests.
 - GUI analysis panel smoke tests.
 - Broader time-frequency workflow tests.

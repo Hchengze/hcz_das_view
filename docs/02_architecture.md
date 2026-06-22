@@ -24,6 +24,7 @@
       - spectrum.py
       - statistics.py
       - spectral_attributes.py
+      - events.py
       - fk.py
       - fk_filter.py
       - service.py
@@ -49,16 +50,18 @@
 - processing: GUI-independent preprocessing operations such as demean, linear
   detrend, taper, normalization, standardization, clipping, and later filtering/resampling.
 - analysis: GUI-independent DAS analysis. Current support includes basic
-  statistics, spectral attributes, amplitude spectrum, power spectrum,
-  periodogram PSD, Welch PSD, single-channel spectrogram smoke-path helpers,
-  file-level analysis services, FK visualization, and FK-domain smoke filtering
-  for DAS 2D wavefield inspection. Future mainline work should expand toward
-  envelope/STA-LTA, event candidate detection, ROI summaries, and exportable
-  analysis results.
+  statistics, spectral attributes, envelope/STA-LTA event candidates,
+  amplitude spectrum, power spectrum, periodogram PSD, Welch PSD,
+  single-channel spectrogram smoke-path helpers, file-level analysis services,
+  FK visualization, and FK-domain smoke filtering for DAS 2D wavefield
+  inspection. Future mainline work should expand toward ROI summaries and
+  exportable analysis results.
 - plotting: Matplotlib plotting helpers independent from GUI widgets, including
   waterfall, waveform, spectrum, spectrogram, and FK views.
 - gui: optional PyQt5 layer that calls preview, formatting, and plotting services.
 - utils: validation, slicing, logging, and shared small helpers.
+- docs/09_tutorial_user_manual.ipynb: stable user tutorial and operation
+  manual. It is not a development log, test report, or commit history.
 
 ## Dependency direction
 
@@ -138,6 +141,12 @@ Reader responsibilities:
   DAS axis convention by default, and compute frequency-band energy, band
   power, band energy ratio, dominant frequency, peak power, spectral centroid,
   spectral bandwidth, spectral rolloff, and total energy.
+- das_view/analysis/events.py provides EnvelopeResult, STALTARatioResult,
+  EventCandidate, and EventDetectionResult containers plus amplitude_envelope,
+  energy_envelope, sta_lta_ratio, detect_threshold_events, and
+  detect_stalta_events. These functions accept numpy arrays or DASData, keep
+  the DAS axis convention, and return event candidates only. They do not perform
+  earthquake location, source location, inversion, or final interpretation.
 - das_view/analysis/spectrum.py provides SpectrumResult, PSDResult, and
   SpectrogramResult containers plus amplitude_spectrum, power_spectrum,
   periodogram_psd, welch_psd, and single_channel_spectrogram.
@@ -156,6 +165,11 @@ Reader responsibilities:
   through read_selection, optionally apply apply_preprocess, then call
   band_energy or spectral_attributes. They do not inspect HDF5/DAT internal
   paths and do not depend on GUI code.
+- das_view/analysis/service.py also provides compute_envelope_for_file,
+  compute_stalta_for_file, and detect_events_for_file. They read bounded 2-D
+  selections through read_selection, optionally apply apply_preprocess, then
+  call the events analysis helpers. They do not inspect HDF5/DAT internal paths
+  and do not depend on GUI code.
 - The default axis=0 follows the DAS convention and treats each column as an
   independent channel through time.
 - Spectrum helpers accept numpy arrays or DASData. DASData input can provide

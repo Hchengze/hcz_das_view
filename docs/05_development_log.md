@@ -1488,3 +1488,116 @@ staged for commit.
 
 Phase 5C: Envelope / STA-LTA / event candidate detection, or Phase 5D:
 ROI / annotation / export.
+
+## 2026-06-22: Phase 5C Envelope / STA-LTA / event candidate detection
+
+### Goal
+
+Add DAS event candidate analysis as a general DAS Viewer / DAS Analysis
+capability. This phase adds envelope, energy envelope, STA/LTA, threshold
+crossing, and event candidate table support. It does not add earthquake
+location, source location, inversion, surface-wave imaging, MASW, F-J, or
+dispersion-picking workflows.
+
+### Added or modified files
+
+- das_view/analysis/events.py
+- das_view/analysis/service.py
+- das_view/analysis/__init__.py
+- examples/event_detection_file.py
+- tests/test_events_analysis.py
+- tests/test_events_service.py
+- tests/test_event_detection_example.py
+- tests/test_tutorial_notebook.py
+- docs/09_tutorial_user_manual.ipynb
+- README.md
+- docs/02_architecture.md
+- docs/05_development_log.md
+- docs/06_testing.md
+- docs/07_roadmap.md
+- docs/08_project_handoff.md
+
+### Implemented analysis
+
+- amplitude_envelope uses scipy.signal.hilbert and returns same-shaped
+  amplitude envelope arrays.
+- energy_envelope returns point energy or same-shaped sliding-window energy.
+- sta_lta_ratio computes classic energy-based STA/LTA ratios from x**2 moving
+  averages.
+- detect_threshold_events builds channel-wise event candidate tables from
+  threshold crossings.
+- detect_stalta_events computes STA/LTA and detects candidates using trigger-on
+  and optional trigger-off thresholds.
+
+EventCandidate records event_id, start_sample, end_sample, duration_samples,
+channel_start, channel_end, peak_sample, peak_channel, peak_value, mean_value,
+max_value, and score. Outputs are event candidates only and do not represent
+locations or interpretation results.
+
+### Implemented services and example
+
+- compute_envelope_for_file reads bounded 2-D selections through read_selection,
+  optionally applies apply_preprocess, then computes amplitude envelope.
+- compute_stalta_for_file reads bounded 2-D selections through read_selection,
+  optionally applies apply_preprocess, then computes STA/LTA ratio.
+- detect_events_for_file supports stalta and envelope modes on bounded
+  selections and returns reader name, metadata, selection, preprocessing
+  history, and detection result.
+- examples/event_detection_file.py supports bounded CLI use with JSON and CSV
+  event-candidate table output.
+
+### Tutorial notebook
+
+- Added docs/09_tutorial_user_manual.ipynb as the stable Jupyter tutorial and
+  operation manual.
+- The notebook covers DAS Viewer / DAS Analysis positioning, time x channel
+  convention, reading/metadata, waterfall/waveform views, preprocessing,
+  filters, spectrum/PSD/spectrogram, statistics, spectral attributes, FK
+  inspection, envelope/STA-LTA/event candidates, CLI usage, GUI usage, and
+  interpretation boundaries.
+- It uses synthetic data and placeholder paths only. It does not contain real
+  data paths, development logs, commit history, or test-run records.
+
+### Tests
+
+- Added event analysis tests for envelope shape, sinusoid envelope behavior,
+  energy envelope, sliding energy, STA/LTA shape and validation, threshold
+  candidates, min duration, merge gap, max events, DASData input, NaN/Inf
+  rejection, and no in-place mutation.
+- Added event service tests for synthetic ZD HDF5 envelope, STA/LTA, event
+  detection, bounded time/channel selection, preprocessing history, and
+  metadata/reader/selection reporting.
+- Added event example tests for STA/LTA and envelope argument parsing plus JSON
+  and CSV output to pytest tmp_path.
+- Added notebook tests for valid ipynb JSON, nbformat, key formulas/keywords,
+  and absence of local paths or development/test content.
+- Focused result:
+  D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider tests\test_events_analysis.py tests\test_events_service.py tests\test_event_detection_example.py tests\test_tutorial_notebook.py
+  Result: 26 passed.
+- Full test result:
+  D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider
+  Result: 323 passed.
+
+### Old-code migration judgment
+
+No old_code files were copied, imported, modified, or used for implementation.
+This phase implements event candidate analysis directly in the new
+GUI-independent analysis/service structure.
+
+### Data policy confirmation
+
+No real DAS input data, generated images, validation_outputs artifacts,
+local_validation_paths.txt, local absolute paths, JSON/CSV outputs, or local
+output files are intended for commit.
+
+### Not completed
+
+- Larger real-data event candidate validation is not completed.
+- ROI / annotation / export workflows are not implemented.
+- GUI analysis panel is not implemented.
+- Packaging and release hardening are not completed.
+- The tutorial notebook should continue to be maintained as features mature.
+
+### Suggested next round
+
+Phase 5D: ROI / annotation / export, or Phase 5E: GUI analysis panel.

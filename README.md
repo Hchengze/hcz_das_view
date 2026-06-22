@@ -44,13 +44,18 @@ Implemented so far:
 - Basic spectral attribute analysis, including band energy, band energy ratio,
   dominant/peak frequency, spectral centroid, spectral bandwidth, and spectral
   rolloff.
+- Event candidate analysis, including amplitude envelope, energy envelope,
+  STA/LTA ratio, threshold crossing, and event candidate tables.
+- Tutorial/user manual notebook at docs/09_tutorial_user_manual.ipynb for
+  stable user-facing concepts, CLI examples, GUI workflow, and interpretation
+  boundaries.
 - Synthetic tests for core readers and preview workflows.
 
 Still intentionally deferred:
 
-- Real/quasi-real sample validation using local path lists.
-- Broader DAS analysis features such as envelope/STA-LTA, event candidate
-  tables, ROI/annotation, and export.
+- Broader real/quasi-real sample validation coverage beyond the initial local
+  validation set.
+- Broader DAS analysis features such as ROI/annotation and export.
 - GUI analysis panels for statistics, spectral attributes, envelope, and event
   candidates.
 - Full time-frequency analysis platform beyond the current single-channel
@@ -184,6 +189,20 @@ dominant or peak frequency, peak power, spectral centroid, spectral bandwidth,
 spectral rolloff, and optional channel averaging. This is a general DAS
 analysis feature for signal and wavefield inspection.
 
+Detect bounded DAS event candidates:
+
+    python examples/event_detection_file.py input.h5 --method stalta --sta 50 --lta 500 --trigger-on 3.0
+    python examples/event_detection_file.py input.dat --time-start 0 --time-stop 5000 --channel-start 0 --channel-stop 512 --method stalta --sta 25 --lta 250 --trigger-on 3.0 --trigger-off 1.5
+    python examples/event_detection_file.py input.h5 --method envelope --threshold 0.8
+    python examples/event_detection_file.py input.h5 --output events.json
+    python examples/event_detection_file.py input.h5 --output events.csv
+
+The event detection example reads a bounded time/channel selection by default.
+It supports STA/LTA and envelope-threshold event candidate workflows, writing
+candidate tables to JSON or CSV. Candidate outputs are screening aids for DAS
+data review; they are not earthquake locations, source locations, or final
+interpretation results.
+
 Run the minimal GUI:
 
     python examples/run_gui.py
@@ -196,6 +215,18 @@ internals directly.
 If installed with the console script, the GUI can also be started with:
 
     das-view-gui
+
+## Tutorial notebook
+
+The user-facing tutorial and operation manual lives at:
+
+    docs/09_tutorial_user_manual.ipynb
+
+It covers the stable DAS Viewer / DAS Analysis workflow, data shape convention,
+metadata, waterfall/waveform views, preprocessing, filters, spectrum/PSD/
+spectrogram, statistics, spectral attributes, FK inspection, event candidates,
+CLI usage, GUI usage, and interpretation boundaries. It uses synthetic data and
+placeholder paths only.
 
 ## Data policy
 

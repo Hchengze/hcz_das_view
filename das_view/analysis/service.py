@@ -7,6 +7,15 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal
 
+from das_view.analysis.events import (
+    EnvelopeResult,
+    EventDetectionResult,
+    STALTARatioResult,
+    amplitude_envelope,
+    detect_stalta_events,
+    detect_threshold_events,
+    sta_lta_ratio,
+)
 from das_view.analysis.fk import FKResult, fk_transform
 from das_view.analysis.fk_filter import FKFilterResult, fk_velocity_filter
 from das_view.analysis.spectrum import (
@@ -38,6 +47,9 @@ AnalysisResult = (
     | StatisticsResult
     | BandEnergyResult
     | SpectralAttributesResult
+    | EnvelopeResult
+    | STALTARatioResult
+    | EventDetectionResult
 )
 StepLike = PreprocessStep | tuple[str, Mapping[str, Any]] | str
 
@@ -118,6 +130,42 @@ class SpectralAttributesServiceResult:
     """Result from a file-level spectral-attributes analysis service call."""
 
     result: SpectralAttributesResult
+    das_data: DASData
+    reader_name: str
+    metadata: DASMetadata
+    selection: SelectionResult
+    preprocessing_history: tuple[dict[str, Any], ...]
+
+
+@dataclass(frozen=True, slots=True)
+class EnvelopeServiceResult:
+    """Result from a file-level envelope analysis service call."""
+
+    result: EnvelopeResult
+    das_data: DASData
+    reader_name: str
+    metadata: DASMetadata
+    selection: SelectionResult
+    preprocessing_history: tuple[dict[str, Any], ...]
+
+
+@dataclass(frozen=True, slots=True)
+class STALTAServiceResult:
+    """Result from a file-level STA/LTA analysis service call."""
+
+    result: STALTARatioResult
+    das_data: DASData
+    reader_name: str
+    metadata: DASMetadata
+    selection: SelectionResult
+    preprocessing_history: tuple[dict[str, Any], ...]
+
+
+@dataclass(frozen=True, slots=True)
+class EventDetectionServiceResult:
+    """Result from a file-level event-candidate detection service call."""
+
+    result: EventDetectionResult
     das_data: DASData
     reader_name: str
     metadata: DASMetadata
@@ -427,6 +475,152 @@ def compute_spectral_attributes_for_file(
     return _spectral_attributes_service_result(result=result, das_data=das_data, selection=selection)
 
 
+def compute_envelope_for_file(
+    path: str | Path,
+    *,
+    channel_slice=None,
+    time_slice=None,
+    max_samples: int = 4096,
+    max_channels: int = 512,
+    downsample: int | tuple[int, int] | None = None,
+    method: Literal["hilbert"] = "hilbert",
+    smooth_samples: int | None = None,
+    preprocessing_steps: Sequence[StepLike] | None = None,
+    nan_policy: Literal["omit", "raise"] = "raise",
+) -> EnvelopeServiceResult:
+    """Read a bounded 2-D selection and compute amplitude envelope."""
+
+    das_data, selection = _read_selection_and_maybe_preprocess(
+        path,
+        channel_slice=channel_slice,
+        time_slice=time_slice,
+        max_samples=max_samples,
+        max_channels=max_channels,
+        downsample=downsample,
+        preprocessing_steps=preprocessing_steps,
+        require_sample_rate=False,
+    )
+    result = amplitude_envelope(
+        das_data,
+        axis=0,
+        method=method,
+        smooth_samples=smooth_samples,
+        nan_policy=nan_policy,
+    )
+    return _envelope_service_result(result=result, das_data=das_data, selection=selection)
+
+
+def compute_stalta_for_file(
+    path: str | Path,
+    *,
+    channel_slice=None,
+    time_slice=None,
+    max_samples: int = 4096,
+    max_channels: int = 512,
+    downsample: int | tuple[int, int] | None = None,
+    sta_samples: int,
+    lta_samples: int,
+    preprocessing_steps: Sequence[StepLike] | None = None,
+    nan_policy: Literal["omit", "raise"] = "raise",
+) -> STALTAServiceResult:
+    """Read a bounded 2-D selection and compute STA/LTA ratio."""
+
+    das_data, selection = _read_selection_and_maybe_preprocess(
+        path,
+        channel_slice=channel_slice,
+        time_slice=time_slice,
+        max_samples=max_samples,
+        max_channels=max_channels,
+        downsample=downsample,
+        preprocessing_steps=preprocessing_steps,
+        require_sample_rate=False,
+    )
+    result = sta_lta_ratio(
+        das_data,
+        axis=0,
+        sta_samples=sta_samples,
+        lta_samples=lta_samples,
+        nan_policy=nan_policy,
+    )
+    return _stalta_service_result(result=result, das_data=das_data, selection=selection)
+
+
+def detect_events_for_file(
+    path: str | Path,
+    *,
+    channel_slice=None,
+    time_slice=None,
+    max_samples: int = 4096,
+    max_channels: int = 512,
+    downsample: int | tuple[int, int] | None = None,
+    method: Literal["stalta", "envelope"] = "stalta",
+    threshold: float | None = None,
+    sta_samples: int | None = None,
+    lta_samples: int | None = None,
+    trigger_on: float | None = None,
+    trigger_off: float | None = None,
+    min_duration_samples: int = 1,
+    merge_gap_samples: int = 0,
+    max_events: int | None = None,
+    preprocessing_steps: Sequence[StepLike] | None = None,
+    nan_policy: Literal["omit", "raise"] = "raise",
+) -> EventDetectionServiceResult:
+    """Read a bounded 2-D selection and detect event candidates."""
+
+    das_data, selection = _read_selection_and_maybe_preprocess(
+        path,
+        channel_slice=channel_slice,
+        time_slice=time_slice,
+        max_samples=max_samples,
+        max_channels=max_channels,
+        downsample=downsample,
+        preprocessing_steps=preprocessing_steps,
+        require_sample_rate=False,
+    )
+    if method == "stalta":
+        if sta_samples is None or lta_samples is None or trigger_on is None:
+            raise ValueError("stalta detection requires sta_samples, lta_samples, and trigger_on")
+        result = detect_stalta_events(
+            das_data,
+            sta_samples=sta_samples,
+            lta_samples=lta_samples,
+            trigger_on=trigger_on,
+            trigger_off=trigger_off,
+            axis=0,
+            min_duration_samples=min_duration_samples,
+            merge_gap_samples=merge_gap_samples,
+            max_events=max_events,
+            nan_policy=nan_policy,
+        )
+    elif method == "envelope":
+        if threshold is None:
+            raise ValueError("envelope detection requires threshold")
+        envelope = amplitude_envelope(das_data, axis=0, nan_policy=nan_policy)
+        threshold_result = detect_threshold_events(
+            envelope,
+            threshold=threshold,
+            axis=0,
+            min_duration_samples=min_duration_samples,
+            merge_gap_samples=merge_gap_samples,
+            max_events=max_events,
+        )
+        result = EventDetectionResult(
+            feature=threshold_result.feature,
+            candidates=threshold_result.candidates,
+            axis=threshold_result.axis,
+            input_shape=threshold_result.input_shape,
+            method="envelope",
+            parameters={
+                **threshold_result.parameters,
+                "feature": "amplitude_envelope",
+                "nan_policy": nan_policy,
+            },
+        )
+    else:
+        raise ValueError("method must be 'stalta' or 'envelope'")
+    return _event_detection_service_result(result=result, das_data=das_data, selection=selection)
+
+
 def _read_and_maybe_preprocess(
     path: str | Path,
     *,
@@ -453,6 +647,7 @@ def _read_selection_and_maybe_preprocess(
     max_channels: int,
     downsample: int | tuple[int, int] | None,
     preprocessing_steps: Sequence[StepLike] | None,
+    require_sample_rate: bool = True,
 ) -> tuple[DASData, SelectionResult]:
     bounded_time = _bounded_slice(time_slice, max_samples=max_samples, axis_name="time")
     bounded_channel = _bounded_slice(channel_slice, max_samples=max_channels, axis_name="channel")
@@ -465,7 +660,7 @@ def _read_selection_and_maybe_preprocess(
     das_data = selection.das_data
     if preprocessing_steps:
         das_data = apply_preprocess(das_data, preprocessing_steps)
-    if das_data.metadata.sample_rate_hz is None:
+    if require_sample_rate and das_data.metadata.sample_rate_hz is None:
         raise ValueError("sample_rate_hz is required for spectral attribute analysis but was not found")
     return das_data, selection
 
@@ -558,6 +753,57 @@ def _spectral_attributes_service_result(
 ) -> SpectralAttributesServiceResult:
     history = _preprocessing_history(das_data)
     return SpectralAttributesServiceResult(
+        result=result,
+        das_data=das_data,
+        reader_name=selection.reader_name,
+        metadata=das_data.metadata,
+        selection=selection,
+        preprocessing_history=history,
+    )
+
+
+def _envelope_service_result(
+    *,
+    result: EnvelopeResult,
+    das_data: DASData,
+    selection: SelectionResult,
+) -> EnvelopeServiceResult:
+    history = _preprocessing_history(das_data)
+    return EnvelopeServiceResult(
+        result=result,
+        das_data=das_data,
+        reader_name=selection.reader_name,
+        metadata=das_data.metadata,
+        selection=selection,
+        preprocessing_history=history,
+    )
+
+
+def _stalta_service_result(
+    *,
+    result: STALTARatioResult,
+    das_data: DASData,
+    selection: SelectionResult,
+) -> STALTAServiceResult:
+    history = _preprocessing_history(das_data)
+    return STALTAServiceResult(
+        result=result,
+        das_data=das_data,
+        reader_name=selection.reader_name,
+        metadata=das_data.metadata,
+        selection=selection,
+        preprocessing_history=history,
+    )
+
+
+def _event_detection_service_result(
+    *,
+    result: EventDetectionResult,
+    das_data: DASData,
+    selection: SelectionResult,
+) -> EventDetectionServiceResult:
+    history = _preprocessing_history(das_data)
+    return EventDetectionServiceResult(
         result=result,
         das_data=das_data,
         reader_name=selection.reader_name,

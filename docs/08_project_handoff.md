@@ -19,10 +19,10 @@ phases.
 - Development model: the new das_view/ package is being rebuilt after auditing
   legacy material under old_code/.
 - New runtime code must not depend on, import, or call old_code.
-- Latest project state: current HEAD after Phase 2E real sample validation.
-- Current phase: Phase 2E, real/quasi-real sample validation and reader/tooling
-  hardening.
-- Current expected test result after Phase 2E: 297 passed.
+- Latest project state: current HEAD after Phase 5C Envelope / STA-LTA / event
+  candidate detection.
+- Current phase: Phase 5C, DAS event candidate analysis and tutorial notebook.
+- Current expected test result after Phase 5C: 323 passed.
 
 ## 2. Repository and environment
 
@@ -64,8 +64,8 @@ phases.
 8. core, io, processing, analysis, and plotting must not depend on PyQt5.
 9. PyQt5 should only appear in das_view/gui/ or GUI startup entry points.
 10. Every development round must update docs/05_development_log.md.
-11. Keep docs/ at eight files or fewer unless the project owner approves an
-    expansion.
+11. Keep markdown docs at eight files. docs/09_tutorial_user_manual.ipynb is
+    the allowed additional Jupyter tutorial/user-manual file.
 12. FK visualization and FK-domain smoke filtering may remain as DAS 2D
     wavefield inspection capabilities, but should not be treated as a mainline
     path toward specialized inversion or picking workflows.
@@ -79,8 +79,8 @@ phases.
 - das_view/processing/: pure preprocessing functions, scipy-based filters, and
   DASData-level processing service.
 - das_view/analysis/: spectrum, spectrogram, PSD/Welch, spectral attributes,
-  FK visualization, FK-domain smoke filtering, basic statistics, and file-level
-  analysis services.
+  envelope/STA-LTA event candidates, FK visualization, FK-domain smoke
+  filtering, basic statistics, and file-level analysis services.
 - das_view/plotting/: Matplotlib plotting helpers independent of PyQt5.
 - das_view/gui/: optional PyQt5 application, main window, models, and worker
   scaffolding.
@@ -89,6 +89,8 @@ phases.
 - tests/: synthetic-data tests for readers, services, processing, analysis,
   plotting, examples, and GUI smoke behavior.
 - docs/: compact project documentation and phase history.
+- docs/09_tutorial_user_manual.ipynb: stable user tutorial and operation
+  manual; not a development log, test report, or commit history.
 
 Key modules:
 
@@ -111,10 +113,14 @@ Key modules:
     basic_statistics, and window_statistics.
   - spectral_attributes.py: BandEnergyResult, SpectralAttributesResult,
     band_energy, and spectral_attributes.
+  - events.py: EnvelopeResult, STALTARatioResult, EventCandidate,
+    EventDetectionResult, amplitude_envelope, energy_envelope, sta_lta_ratio,
+    detect_threshold_events, and detect_stalta_events.
   - spectrum.py: amplitude spectrum, power spectrum, spectrogram, periodogram
     PSD, and Welch PSD.
   - service.py: file-level spectrum/PSD/spectrogram workflows for CLI and GUI
-    reuse, plus bounded FK/FK-filter services.
+    reuse, bounded statistics/spectral/event services, plus bounded
+    FK/FK-filter services.
   - fk.py: FKResult and bounded FK transform.
   - fk_filter.py: FKFilterResult, simple velocity fan mask, FK-domain mask
     application, and inverse FK smoke path.
@@ -154,6 +160,9 @@ Key modules:
   bounded CLI example, tests, and documentation.
 - Phase 5B: added band energy and spectral attribute analysis, file-level
   services, bounded CLI example, tests, and documentation.
+- Phase 5C: added envelope, energy envelope, STA/LTA, threshold event
+  candidates, file-level event services, bounded CLI JSON/CSV example,
+  tutorial/user-manual notebook, tests, and documentation.
 
 ## 6. Current supported capabilities
 
@@ -237,6 +246,14 @@ Key modules:
 - spectral_attributes.
 - compute_band_energy_for_file.
 - compute_spectral_attributes_for_file.
+- amplitude_envelope.
+- energy_envelope.
+- sta_lta_ratio.
+- detect_threshold_events.
+- detect_stalta_events.
+- compute_envelope_for_file.
+- compute_stalta_for_file.
+- detect_events_for_file.
 
 ## 7. Current examples
 
@@ -259,6 +276,8 @@ Key modules:
   channel-wise DAS statistics and optionally save JSON/global CSV output.
 - examples/spectral_attributes_file.py: compute bounded band energy or
   spectral attributes and optionally save JSON/CSV output.
+- examples/event_detection_file.py: compute bounded envelope or STA/LTA event
+  candidates and optionally save JSON/CSV candidate tables.
 - examples/fk_file.py: compute bounded FK amplitude or power plots, optionally
   after a filter step.
 - examples/fk_filter_file.py: apply a minimal bounded FK velocity fan filter
@@ -282,6 +301,11 @@ Current coverage includes:
 - Spectral attributes analysis, service, and example tests for band energy,
   band ratios, dominant frequency, centroid, bandwidth, rolloff, bounded
   services, and JSON/CSV-output workflows.
+- Event analysis, service, and example tests for amplitude envelope, energy
+  envelope, STA/LTA, threshold candidates, bounded services, and JSON/CSV
+  candidate-table workflows.
+- Tutorial notebook tests for valid ipynb JSON, nbformat, user-manual keywords,
+  formulas, and no local path / development-test content.
 - CLI example argument construction and no-real-data smoke behavior.
 - GUI-independent parser/model helpers and optional PyQt5 smoke tests for
   preview, waveform, spectrum, and FK panels.
@@ -290,7 +314,7 @@ Current full test command and expected result:
 
       D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider
 
-      297 passed
+      323 passed
 
 ## 9. Old code migration status
 
@@ -330,11 +354,13 @@ No old_code files are imported by the new runtime package.
    wavefield inspection, not polished production denoising workflows.
 6. A broader time-frequency workflow is not implemented.
 7. Full processing/analysis result export is not implemented.
-8. Envelope / STA-LTA / event candidate detection is not implemented.
+8. Event candidate detection is available through analysis/service/CLI, but it
+   is not integrated into the GUI analysis panel.
 9. ROI / annotation / export workflows are not implemented.
 10. GUI analysis panel is not implemented.
 11. Packaging and release hardening are not completed.
 12. SEGY, SAC, and TDMS are not implemented.
+13. The tutorial notebook should be maintained as stable features mature.
 
 ## 11. Recommended next phases
 
@@ -347,25 +373,19 @@ Goal:
 Phase 2E is complete for the provided local sample directories. Re-enter this
 phase only when new real sample paths or new format variants are provided.
 
-### Option B: Phase 5C Envelope / STA-LTA / event candidate detection
-
-Goal:
-
-      Add envelope, energy envelope, STA/LTA, threshold picker, and event
-      candidate table support.
-
-If no real sample paths are available, prioritize this as the next mainline DAS
-analysis feature phase.
-
-Lower-priority FK documentation or example polish may still be useful later,
-but it should remain below real sample validation and DAS analysis expansion.
-
-### Option C: Phase 5D ROI / annotation / export
+### Option B: Phase 5D ROI / annotation / export
 
 Goal:
 
       Add ROI selection, simple annotation, figure export, and CSV/JSON
       analysis-summary export workflows.
+
+### Option C: Phase 5E GUI analysis panel
+
+Goal:
+
+      Connect statistics, band energy, envelope, and event candidate workflows
+      to the GUI through service-layer APIs.
 
 ## 12. DAS Analysis capability roadmap
 

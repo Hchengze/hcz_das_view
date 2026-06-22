@@ -149,8 +149,6 @@ Status:
 - Remaining follow-up belongs to later GUI/ROI/export phases, not core spectral
   attribute computation.
 
-Recommended next: Phase 5C or Phase 5D.
-
 ### Phase 5C: Envelope / STA-LTA / event candidate detection
 
 Goal:
@@ -165,6 +163,17 @@ Scope:
   algorithms in this phase.
 - Candidate outputs should include time/channel ranges, scores, and summary
   attributes suitable for GUI display and CSV/JSON export.
+
+Status:
+
+- Completed in Phase 5C for amplitude envelope, energy envelope, classic
+  energy-based STA/LTA ratio, threshold crossing, STA/LTA-triggered candidate
+  tables, bounded file-level services, CLI JSON/CSV output, and synthetic tests.
+- Candidate outputs remain event candidates only; they are not location,
+  inversion, or interpretation results.
+- GUI integration remains deferred to Phase 5E.
+
+Recommended next: Phase 5D or Phase 5E.
 
 ### Phase 5D: ROI / annotation / export
 
@@ -222,6 +231,17 @@ Scope:
   maintenance reason.
 
 ## DAS Analysis capability roadmap
+
+## Tutorial notebook maintenance
+
+- docs/09_tutorial_user_manual.ipynb is the stable user tutorial and operation
+  manual.
+- The existing eight markdown docs remain the project documentation set; the
+  notebook is the single allowed additional tutorial file.
+- Future rounds should update the notebook only for mature, user-facing
+  capabilities.
+- The notebook must not include development logs, test runs, commit history,
+  real data paths, generated output artifacts, or private local paths.
 
 ### 1. Basic statistics
 
