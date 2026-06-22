@@ -1,4 +1,4 @@
-# Project handoff summary
+﻿# Project handoff summary
 
 This document is the handoff point for starting a new Codex conversation on
 hcz_das_view after Phase R1 project target realignment. It records the current
@@ -15,33 +15,34 @@ phases.
   documentation, packaging, and long-term maintainability.
 - It is not a dedicated surface-wave inversion, MASW, F-J, or
   dispersion-picking package.
-- 本项目定位为 DAS 数据查看与分析软件包，不是面波成像、MASW、F-J 或频散拾取软件。
+- 本项目定位为 DAS 数据查看与分析软件包，不是面波成像、MASW、F-J
+  或频散拾取软件。
 - Development model: the new das_view/ package is being rebuilt after auditing
   legacy material under old_code/.
 - New runtime code must not depend on, import, or call old_code.
-- Latest project state: current HEAD after Phase 6B plugin / extension
-  architecture.
-- Current phase: Phase 6B, lightweight extension metadata, registry, built-in
-  capability metadata, optional entry point discovery, and extension inspection
-  CLI.
-- Current expected test result after Phase 6B: 418 passed. The count increased
-  from the Phase 6C baseline of 394 because Phase 6B added 24 plugin and
-  extension CLI tests.
+- Latest project state: current HEAD after Phase 7A API stability and
+  documentation cleanup.
+- Current phase: Phase 7A, public API inventory, import-boundary checks,
+  compatibility policy, documentation consistency cleanup, and tutorial
+  notebook maintenance.
+- Current expected test result after Phase 7A: 430 passed. The count increased
+  from the Phase 6B baseline of 418 because Phase 7A added 12 API/import
+  stability tests.
 
 ## 2. Repository and environment
 
 - GitHub repository: https://github.com/Hchengze/hcz_das_view
 - Local project path:
 
-      E:\HczDocument\BaiduDisk\BaiduSyncdisk\HCZ_work\CodexProject\HCZ_das_view
+      <local-checkout>\HCZ_das_view
 
 - Python environment:
 
-      D:\HczApp\Anaconda\envs\mywork\python.exe
+      <python-from-your-environment>
 
 - Common test command:
 
-      D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider
+      python -B -m pytest -p no:cacheprovider
 
 - Development install:
 
@@ -65,7 +66,8 @@ phases.
 6. axis=0 means the time/sample axis by default.
 7. GUI code must call services; it must not read HDF5/DAT internal paths or
    implement reader details directly.
-8. core, io, processing, analysis, and plotting must not depend on PyQt5.
+8. core, io, processing, analysis, plotting, and plugins must not depend on
+   PyQt5.
 9. PyQt5 should only appear in das_view/gui/ or GUI startup entry points.
 10. Every development round must update docs/05_development_log.md.
 11. Keep markdown docs at eight files. docs/09_tutorial_user_manual.ipynb is
@@ -109,6 +111,51 @@ phases.
 - docs/: compact project documentation and phase history.
 - docs/09_tutorial_user_manual.ipynb: stable user tutorial and operation
   manual; not a development log, test report, or commit history.
+
+## 5. Public API inventory
+
+Stable public API:
+
+- `das_view`: `DASData`, `DASMetadata`, and package exceptions such as
+  `DASViewError`, `ReaderError`, and `UnsupportedFormatError`.
+- `das_view.io`: reader-independent preview, selection, trace, and export
+  helpers, including `create_preview`, `read_selection`, `read_trace`,
+  `save_json`, and `save_csv_rows`.
+- `das_view.processing`: documented preprocessing and filter functions plus
+  `apply_preprocess`.
+- `das_view.analysis`: documented numerical helpers and bounded file-level
+  services for statistics, spectral attributes, events, ROI summaries,
+  spectrum/PSD/spectrogram, and FK smoke workflows.
+- `das_view.plotting`: documented Matplotlib helpers for waterfall, waveform,
+  spectrum, PSD, spectrogram, FK, and ROI overlays.
+- `das_view.plugins`: lightweight extension metadata, registry helpers,
+  built-in metadata registration, and explicit entry point discovery.
+- Installed CLI commands such as `hcz-das-validate`, `hcz-das-stats`,
+  `hcz-das-events`, `hcz-das-extensions`, and `hcz-das-view`.
+
+Experimental API:
+
+- Plugin extension wrapper details and third-party entry point conventions are
+  expected to remain lightweight until validated with real external packages.
+- GUI internals, worker classes, parser helpers, and widget implementation
+  details are not guaranteed as stable package API.
+
+Internal helpers:
+
+- Underscore-prefixed functions, concrete reader internals, module-local parser
+  details, and implementation-specific result-formatting helpers may change
+  without notice.
+
+Compatibility policy:
+
+- Public API is kept stable within the current development line when practical.
+- CLI entry points are user-facing and should remain backward compatible where
+  reasonable.
+- Internal helpers may change without notice.
+- The data shape convention is always `(n_samples, n_channels)`.
+- Event candidates, ROIs, and FK views are analysis and review aids, not
+  source-location, earthquake-location, inversion, or geologic interpretation
+  results.
 
 Key modules:
 
@@ -162,7 +209,7 @@ Key modules:
   - models.py: GUI-independent parsing and small models.
   - workers.py: no-Qt callable service wrappers plus QThread QObject workers.
 
-## 5. Completed phase history
+## 6. Completed phase history
 
 - Phase 0: established layout, core data model, old-code rules, and baseline
   tests.
@@ -208,8 +255,13 @@ Key modules:
   wrappers, an isolated/global extension registry, built-in extension metadata,
   on-demand Python entry point discovery, and the hcz-das-extensions inspection
   CLI.
+- Phase 7A: stabilized the public API inventory, exported core exceptions,
+  added import-boundary and public API stability tests, documented compatibility
+  policy, cleaned handoff/roadmap consistency, and updated the tutorial
+  notebook with public API, data-shape, usage-boundary, and troubleshooting
+  guidance.
 
-## 6. Current supported capabilities
+## 7. Current supported capabilities
 
 ### Readers
 
@@ -335,7 +387,7 @@ Key modules:
 - hcz-das-extensions for user-facing inspection of built-in extension
   metadata.
 
-## 7. Current examples
+## 8. Current examples
 
 - examples/read_and_plot_zd_h5.py: read a ZD HDF5 file and save a waterfall
   smoke plot.
@@ -375,7 +427,7 @@ Key modules:
 - packaging/build_windows.ps1 runs the local PyInstaller packaging smoke path.
 - packaging/hcz_das_view.spec is a relative-path spec for the GUI executable.
 
-## 8. Current tests
+## 9. Current tests
 
 Current coverage includes:
 
@@ -415,14 +467,17 @@ Current coverage includes:
   registry register/list/filter/unregister behavior, isolated versus global
   registry behavior, entry point discovery failure summaries, built-in
   extension metadata, and hcz-das-extensions CLI output.
+- API stability and import-boundary tests for public imports, PyQt5 dependency
+  boundaries, explicit plugin discovery, package import behavior, CLI import
+  behavior, and GUI help without a Qt event loop.
 
 Current full test command and expected result:
 
-      D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider
+      python -B -m pytest -p no:cacheprovider
 
-      418 passed
+      430 passed
 
-## 9. Old code migration status
+## 10. Old code migration status
 
 - old_code/old_code1/tools/data_tools.py: reader and metadata ideas were
   audited; useful ZD HDF5 concepts were reimplemented through the new reader,
@@ -447,7 +502,7 @@ Current full test command and expected result:
 
 No old_code files are imported by the new runtime package.
 
-## 10. Known limitations and risks
+## 11. Known limitations and risks
 
 1. ZD HDF5 and Puniu DAT have been validated on a small representative local
    sample set, but broader production coverage is still needed.
@@ -469,7 +524,7 @@ No old_code files are imported by the new runtime package.
 12. SEGY, SAC, and TDMS are not implemented.
 13. The tutorial notebook should be maintained as stable features mature.
 
-## 11. Release checklist
+## 12. Release checklist
 
 - Check version metadata in pyproject.toml.
 - Run the full pytest suite.
@@ -486,44 +541,43 @@ No old_code files are imported by the new runtime package.
   staged.
 - Create the release tag and GitHub release notes.
 
-## 12. Recommended next phases
+## 13. Recommended next phases
 
-### Option A: Phase 2E real sample validation
-
-Goal:
-
-      Use local_validation_paths.txt to validate real/quasi-real ZD HDF5 and Puniu DAT samples.
-
-Phase 2E is complete for the provided local sample directories. Re-enter this
-phase only when new real sample paths or new format variants are provided.
-
-### Option B: Phase 6B Plugin / extension architecture
+### Option A: Phase 6D Release CI planning
 
 Goal:
 
-      Reserve extension boundaries for future readers, processing functions,
-      and analysis workflows without expanding the core package.
+      Add maintainable release CI planning for tests, packaging smoke, and
+      artifact safety checks.
 
 Status:
 
-      Completed for lightweight metadata, registry, builtins, entry point
-      discovery design, and extension inspection CLI. Real third-party plugin
-      package validation remains future work.
+      Not implemented. This is the recommended next release-hardening step.
 
-### Option C: Phase 6C Release polishing and clean-environment install validation
+### Option B: Phase 7B Clean docs and user-facing release candidate polish
 
 Goal:
 
-      Validate wheel/sdist installation and installed entry points in clean
-      environments, then refine release notes and automation.
+      Refine user-facing docs, examples, and release-candidate wording without
+      adding algorithms, readers, or GUI features.
 
 Status:
 
-      Completed for local clean editable-install smoke and entrypoint/example
-      help validation. Broader clean-machine validation, release CI, and signed
-      Windows executables remain future work.
+      Not implemented. This is a documentation/release polish option.
 
-## 13. DAS Analysis capability roadmap
+### Option C: Phase 2E real sample validation refresh
+
+Goal:
+
+      Re-run local real/quasi-real ZD HDF5 and Puniu DAT validation when new
+      sample paths or new format variants are provided.
+
+Status:
+
+      Phase 2E is complete for the previously provided local sample set.
+      Re-enter only when new sample paths are intentionally supplied.
+
+## 14. DAS Analysis capability roadmap
 
 ### Basic statistics
 
@@ -573,7 +627,7 @@ Status:
 Interpretation support means DAS data review and analysis assistance. It does
 not mean geologic inversion or specialized imaging.
 
-## 13. External references for target alignment
+## 15. External references for target alignment
 
 - DASCore / DASDAE: reference direction for DAS data management, analysis,
   visualization, processing conversion, and format IO organization.
@@ -588,7 +642,7 @@ not mean geologic inversion or specialized imaging.
 These are target-alignment references only. No external project code is copied,
 and Phase R1 adds no dependency.
 
-## 14. Suggested first prompt for the new Codex chat
+## 16. Suggested first prompt for the new Codex chat
 
 Copy this into the next Codex conversation:
 
@@ -604,12 +658,14 @@ Copy this into the next Codex conversation:
     git status --short
     git branch -vv
     git log --oneline -8
-    D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider
+    python -B -m pytest -p no:cacheprovider
 
-    请先返回当前仓库状态、最新 HEAD、测试结果和你对下一步的建议，不要直接修改代码。
+    请先返回当前仓库状态、最新 HEAD、测试结果和下一步建议，不要直接修改代码。
 
-    如果我提供真实数据路径，则建议进入：
-    Phase 2E：real sample validation
+    如果我提供新的真实数据路径，则建议进入：
+    Phase 2E: Real sample validation refresh
 
-    如果我没有真实数据路径，则建议进入：
-    Phase 5C：Envelope / STA-LTA / event candidate detection
+本项目定位为 DAS 数据查看与分析软件包，不是面波成像、MASW、F-J
+或频散拾取软件。
+    如果继续发布工程化工作，则建议进入：
+    Phase 6D: Release CI planning

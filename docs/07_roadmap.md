@@ -1,4 +1,4 @@
-# Roadmap
+﻿# Roadmap
 
 ## Project target
 
@@ -12,8 +12,8 @@ packaging, and long-term maintainability.
 It is not a dedicated surface-wave inversion, MASW, F-J, or
 dispersion-picking package.
 
-本项目定位为 DAS 数据查看与分析软件包，不是面波成像、MASW、F-J 或频散拾取软件。
-
+本项目定位为 DAS 数据查看与分析软件包，不是面波成像、MASW、F-J
+或频散拾取软件。
 ## Completed baseline
 
 ### Phase 0: Development baseline
@@ -315,6 +315,35 @@ Status:
   install. Automated release CI and Windows exe signing remain future work.
 
 Recommended next: Phase 6D.
+
+### Phase 7A: API stability and documentation cleanup
+
+Goal:
+
+    Stabilize the public API inventory, import boundaries, compatibility
+    policy, documentation consistency, and tutorial notebook guidance without
+    adding algorithms, readers, GUI features, or plugin capabilities.
+
+Scope:
+
+- Keep public imports stable where practical.
+- Verify that core/io/processing/analysis/plotting/plugins do not depend on
+  PyQt5.
+- Confirm that importing das_view does not trigger plugin discovery, data
+  reads, GUI startup, or heavy computation.
+- Keep event candidates, ROIs, and FK views documented as data-review aids,
+  not location, inversion, or geologic interpretation outputs.
+
+Status:
+
+- Completed in Phase 7A for top-level/core exception exports, public API
+  inventory, API compatibility policy, import-boundary tests, public API
+  stability tests, handoff/roadmap consistency cleanup, and tutorial notebook
+  public API / troubleshooting sections.
+- The plugin API remains lightweight and still needs real third-party package
+  validation before stronger external compatibility promises are made.
+
+Recommended next: Phase 6D or Phase 7B.
 
 ## DAS Analysis capability roadmap
 

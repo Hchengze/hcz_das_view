@@ -137,6 +137,42 @@ Not allowed:
   replace the existing reader registry, IO data service, analysis service,
   plotting helpers, export helpers, or GUI workflows.
 
+## Public API and compatibility
+
+Stable public API:
+
+- Top-level `das_view` exports core data containers and project exceptions.
+- `das_view.io` exports reader-independent preview, selection, and trace
+  services.
+- `das_view.processing` exports documented preprocessing/filter functions and
+  the preprocessing service.
+- `das_view.analysis` exports documented analysis helpers and file-level
+  services.
+- `das_view.plotting` exports documented Matplotlib plotting helpers.
+- `das_view.plugins` exports lightweight extension metadata, registry,
+  builtins, and explicit discovery helpers.
+- Installed CLI entry points are user-facing API.
+
+Experimental API:
+
+- Plugin extension wrappers and discovery are lightweight boundaries for future
+  packages and may evolve after real third-party validation.
+- GUI internals, worker classes, and model implementation details are internal
+  unless explicitly documented otherwise.
+
+Internal helpers:
+
+- Underscore-prefixed functions, private parsing helpers, concrete reader
+  internals, and module-local implementation details may change without notice.
+
+Compatibility policy:
+
+- Public API is kept stable within the current development line when practical.
+- Internal helpers may change without notice.
+- Data arrays keep the `(n_samples, n_channels)` convention.
+- Event candidates, ROIs, and FK views are data-review aids, not location,
+  inversion, or geologic interpretation results.
+
 ## Packaging
 
 - pyproject.toml is the source of package metadata, optional dependencies, and

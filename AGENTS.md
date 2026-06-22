@@ -1,11 +1,11 @@
-# DAS View Agent Guide
+﻿# DAS View Agent Guide
 
 ## Project goal
 
 das_view is the new, maintainable DAS Viewer / DAS Analysis package for this workspace. It should grow from a small, testable baseline into a package that can read DAS data, expose metadata, plot time-channel data, waveform traces, spectra, spectrograms, and FK views, run common preprocessing and DAS analysis, provide an optional GUI, and stay testable, documented, packageable, and maintainable.
 
-本项目定位为 DAS 数据查看与分析软件包，不是面波成像、MASW、F-J 或频散拾取软件。
-
+本项目定位为 DAS 数据查看与分析软件包，不是面波成像、MASW、F-J
+或频散拾取软件。
 FK visualization and FK-domain smoke filtering may remain as DAS 2D wavefield inspection capabilities. They should not be treated as a mainline path toward specialized topic workflows. If those topic-specific methods are ever needed, they should be independent plugins or extensions outside the current core roadmap.
 
 ## Old code usage rules
@@ -56,6 +56,8 @@ All internal core arrays must use:
 - Keep IO, core data structures, processing, analysis, plotting, and GUI separated.
 - Keep algorithm functions pure where practical.
 - Core modules must not import PyQt5.
+- Core, IO, processing, analysis, plotting, and plugins modules must not import
+  PyQt5.
 - GUI must not directly implement complex algorithms.
 - GUI must not depend on concrete HDF5 internal paths; it should call reader/core APIs.
 - Large files must be handled with slicing, downsampling, or lazy-access plans before full visualization.
@@ -82,6 +84,7 @@ All internal core arrays must use:
   private local paths.
 - Update docs/05_development_log.md every development round.
 - Update architecture, format, and testing docs when interfaces or assumptions change.
+- Documentation and notebooks must not include real/private data paths.
 
 ## Packaging and release rules
 

@@ -39,6 +39,11 @@ def test_tutorial_notebook_contains_user_manual_keywords():
     assert "Extensions and plugins" in text
     assert "hcz-das-extensions" in text
     assert "das_view.plugins" in text
+    assert "Public API" in text
+    assert "Data shape convention" in text
+    assert "CLI / GUI / plugin" in text
+    assert "Interpretation boundaries" in text
+    assert "Troubleshooting" in text
 
 
 def test_tutorial_notebook_avoids_local_paths_and_development_content():

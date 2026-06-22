@@ -1,4 +1,4 @@
-# HCZ DAS View
+﻿# HCZ DAS View
 
 HCZ DAS View is a DAS Viewer / DAS Analysis package.
 
@@ -10,8 +10,8 @@ packaging, and long-term maintainability.
 It is not a dedicated surface-wave inversion, MASW, F-J, or
 dispersion-picking package.
 
-本项目定位为 DAS 数据查看与分析软件包，不是面波成像、MASW、F-J 或频散拾取软件。
-
+本项目定位为 DAS 数据查看与分析软件包，不是面波成像、MASW、F-J
+或频散拾取软件。
 The current implementation provides a testable baseline for supported DAS file
 readers, bounded preview and trace loading, metadata display, waterfall and
 waveform plotting, basic preprocessing/filtering, spectrum/PSD/spectrogram
@@ -158,6 +158,42 @@ reader registry or service APIs. Existing workflows continue to call stable
 services directly. Plugin discovery through Python entry points is explicit and
 on-demand; importing `das_view` does not scan external plugins, read data, or
 start GUI code.
+
+## Public API and compatibility
+
+Stable public API:
+
+- `das_view`: core data containers and project exceptions.
+- `das_view.io`: reader-independent preview, selection, and trace services.
+- `das_view.processing`: documented preprocessing/filter functions and
+  `apply_preprocess`.
+- `das_view.analysis`: documented analysis helpers and file-level services.
+- `das_view.plotting`: documented Matplotlib plotting helpers.
+- `das_view.plugins`: lightweight extension metadata, registry, builtins, and
+  explicit entry point discovery helpers.
+- Installed CLI entry points such as `hcz-das-validate`, `hcz-das-stats`,
+  `hcz-das-events`, and `hcz-das-extensions`.
+
+Experimental API:
+
+- The plugin extension API is intentionally lightweight and may be adjusted as
+  real third-party packages are validated.
+- GUI internals, worker classes, and model implementation details are not
+  guaranteed as long-term public API.
+
+Internal helpers:
+
+- Underscore-prefixed functions, private parsing helpers, concrete reader
+  internals, and module-local implementation details may change without notice.
+
+Compatibility policy:
+
+- Public API is kept stable within the current development line when practical.
+- CLI entry points are user-facing and should remain backward compatible where
+  reasonable.
+- The internal data shape convention is always `(n_samples, n_channels)`.
+- Event candidates and ROI are data analysis aids, not source-location,
+  earthquake-location, inversion, or geologic interpretation results.
 
 ## Script examples
 
@@ -388,4 +424,5 @@ generated images are intentionally ignored by git.
 - GUI code calls services such as create_preview, read_trace, analysis
   services, export helpers, format_metadata, plot_waterfall, and plot_waveform;
   it must not implement HDF5/DAT internals directly.
-- Core, IO, processing, analysis, and plotting layers must not depend on PyQt5.
+- Core, IO, processing, analysis, plotting, and plugins layers must not depend
+  on PyQt5.

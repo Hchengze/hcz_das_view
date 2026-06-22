@@ -168,6 +168,11 @@ Current coverage:
   filtering, duplicate and replace behavior, entry point discovery success and
   failure summaries, built-in extension metadata, and the
   hcz-das-extensions CLI.
+- Phase 7A API/import-boundary tests cover package and subpackage imports
+  without PyQt5, top-level import without plugin entry point discovery, package
+  import without real data reads, CLI module imports without GUI startup, GUI
+  app help without a Qt event loop, and stable public API import/callability
+  checks for core, IO, processing, analysis, plotting, and plugins.
 - FK analysis tests cover synthetic plane-wave peak frequency/wavenumber
   detection, amplitude/power shapes, DASData metadata sample-rate/dx handling,
   invalid sample_rate_hz/dx/nfft/dimensionality/NaN/Inf/too-short inputs, and

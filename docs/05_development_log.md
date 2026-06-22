@@ -1,4 +1,4 @@
-# Development Log
+﻿# Development Log
 
 ## 2026-06-20: Development baseline
 
@@ -41,11 +41,11 @@
 
 | Source | Decision | New location | Test status | Interface/dimension changes |
 |---|---|---|---|---|
-| old_code/old_code1/tools/data_tools.py | 重构后复写 | das_view/io/hdf5_zd.py | Synthetic HDF5 test added, skipped if h5py unavailable | Reader returns (n_samples, n_channels) and unified metadata |
-| old_code/old_code3/dy_view.py::read_puniu_dat_file | 重构后复写 | das_view/io/puniu_dat.py | Synthetic DAT test added | Header parsing isolated from GUI; reader returns unified metadata |
-| old_code/old_code1/tools/analysis_tools.py | 暂未复写 | Future processing/ and analysis/ modules | Not yet added | Will require dimension and numerical tests |
-| old_code/old_code1/tools/ui_tools.py | 仅参考 | Future das_view/gui/ | Not applicable | No old GUI code copied |
-| old_code/old_code4/hcz_signal_analyse.py | 仅参考 | Future analysis/ modules | Not yet added | Not migrated in baseline |
+| old_code/old_code1/tools/data_tools.py | 閲嶆瀯鍚庡鍐?| das_view/io/hdf5_zd.py | Synthetic HDF5 test added, skipped if h5py unavailable | Reader returns (n_samples, n_channels) and unified metadata |
+| old_code/old_code3/dy_view.py::read_puniu_dat_file | 閲嶆瀯鍚庡鍐?| das_view/io/puniu_dat.py | Synthetic DAT test added | Header parsing isolated from GUI; reader returns unified metadata |
+| old_code/old_code1/tools/analysis_tools.py | 鏆傛湭澶嶅啓 | Future processing/ and analysis/ modules | Not yet added | Will require dimension and numerical tests |
+| old_code/old_code1/tools/ui_tools.py | 浠呭弬鑰?| Future das_view/gui/ | Not applicable | No old GUI code copied |
+| old_code/old_code4/hcz_signal_analyse.py | 浠呭弬鑰?| Future analysis/ modules | Not yet added | Not migrated in baseline |
 
 ### Not completed
 
@@ -480,13 +480,13 @@ and progress feedback for the GUI.
 
 | Old source | Function/topic | Judgment | New location | Tests | Interface or dimension changes |
 |---|---|---|---|---|---|
-| old_code/old_code1/tools/analysis_tools.py; old_code/old_code4/hcz_signal_preprocess.py | demeaning | 重构后复写 | das_view/processing/preprocess.py::demean | tests/test_preprocess.py | Adds axis; default axis=0 is per-channel time mean. |
-| old_code/old_code1/tools/analysis_tools.py; old_code/old_code4/hcz_signal_preprocess.py | detrending/delineaaar_trend | 仅参考 | das_view/processing/preprocess.py::detrend_linear | tests/test_preprocess.py | Rewritten without scipy and with explicit axis semantics. |
-| old_code/old_code1/tools/analysis_tools.py; old_code/old_code4/hcz_signal_preprocess.py | taper/taper_filter | 重构后复写 | das_view/processing/preprocess.py::taper | tests/test_preprocess.py | Uses ratio instead of taper_point and supports Hann taper along an axis. |
-| old_code/old_code4/hcz_signal_preprocess.py | normalization | 重构后复写 | das_view/processing/preprocess.py::normalize | tests/test_preprocess.py | Adds maxabs/minmax modes, axis, eps, and all-zero safety. |
-| old_code/old_code4/hcz_signal_preprocess.py | standardization | 重构后复写 | das_view/processing/preprocess.py::standardize | tests/test_preprocess.py | Adds axis and eps; constant finite slices become zero. |
-| Reviewed old files | clipping | 新实现 | das_view/processing/preprocess.py::clip | tests/test_preprocess.py | Adds explicit min/max and percentile clipping over finite values. |
-| old_code/old_code4/hcz_signal_preprocess.py | data_preprocess workflow | 废弃 | das_view/processing/service.py::apply_preprocess | tests/test_preprocessing_service.py | Old workflow is pass; new service records ordered processing history. |
+| old_code/old_code1/tools/analysis_tools.py; old_code/old_code4/hcz_signal_preprocess.py | demeaning | 閲嶆瀯鍚庡鍐?| das_view/processing/preprocess.py::demean | tests/test_preprocess.py | Adds axis; default axis=0 is per-channel time mean. |
+| old_code/old_code1/tools/analysis_tools.py; old_code/old_code4/hcz_signal_preprocess.py | detrending/delineaaar_trend | 浠呭弬鑰?| das_view/processing/preprocess.py::detrend_linear | tests/test_preprocess.py | Rewritten without scipy and with explicit axis semantics. |
+| old_code/old_code1/tools/analysis_tools.py; old_code/old_code4/hcz_signal_preprocess.py | taper/taper_filter | 閲嶆瀯鍚庡鍐?| das_view/processing/preprocess.py::taper | tests/test_preprocess.py | Uses ratio instead of taper_point and supports Hann taper along an axis. |
+| old_code/old_code4/hcz_signal_preprocess.py | normalization | 閲嶆瀯鍚庡鍐?| das_view/processing/preprocess.py::normalize | tests/test_preprocess.py | Adds maxabs/minmax modes, axis, eps, and all-zero safety. |
+| old_code/old_code4/hcz_signal_preprocess.py | standardization | 閲嶆瀯鍚庡鍐?| das_view/processing/preprocess.py::standardize | tests/test_preprocess.py | Adds axis and eps; constant finite slices become zero. |
+| Reviewed old files | clipping | 鏂板疄鐜?| das_view/processing/preprocess.py::clip | tests/test_preprocess.py | Adds explicit min/max and percentile clipping over finite values. |
+| old_code/old_code4/hcz_signal_preprocess.py | data_preprocess workflow | 搴熷純 | das_view/processing/service.py::apply_preprocess | tests/test_preprocessing_service.py | Old workflow is pass; new service records ordered processing history. |
 
 No old_code files were imported, copied directly, or modified.
 
@@ -780,9 +780,9 @@ round only changed the new GUI worker/state wiring around existing services.
 
 ### Test result
 
-- D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest tests/test_gui_smoke.py -p no:cacheprovider
+- python -B -m pytest tests/test_gui_smoke.py -p no:cacheprovider
 - Result: 22 passed.
-- D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider
+- python -B -m pytest -p no:cacheprovider
 - Result: 157 passed.
 
 ### Not completed
@@ -845,9 +845,9 @@ das_view.plotting.spectra APIs.
 
 ### Test result
 
-- D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest tests/test_gui_smoke.py -p no:cacheprovider
+- python -B -m pytest tests/test_gui_smoke.py -p no:cacheprovider
 - Result: 31 passed.
-- D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider
+- python -B -m pytest -p no:cacheprovider
 - Result: 166 passed.
 
 ### Not completed
@@ -930,9 +930,9 @@ imported, or modified.
 
 ### Test result
 
-- D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider tests\test_fk_analysis.py tests\test_fk_plotting.py tests\test_fk_service.py tests\test_fk_example.py
+- python -B -m pytest -p no:cacheprovider tests\test_fk_analysis.py tests\test_fk_plotting.py tests\test_fk_service.py tests\test_fk_example.py
 - Result: 24 passed.
-- D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider
+- python -B -m pytest -p no:cacheprovider
 - Result: 190 passed.
 
 ### Not completed
@@ -1023,9 +1023,9 @@ were copied, imported, or modified.
 
 ### Test result
 
-- D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider tests\test_fk_filter_analysis.py tests\test_fk_filter_service.py tests\test_fk_filter_example.py tests\test_fk_plotting.py
+- python -B -m pytest -p no:cacheprovider tests\test_fk_filter_analysis.py tests\test_fk_filter_service.py tests\test_fk_filter_example.py tests\test_fk_plotting.py
 - Result: 30 passed.
-- D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider
+- python -B -m pytest -p no:cacheprovider
 - Result: 216 passed.
 
 ### Not completed
@@ -1086,11 +1086,11 @@ Matplotlib drawing in the main GUI thread, and do not add new FK algorithms.
 
 ### Test result
 
-- D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider tests\test_gui_smoke.py
+- python -B -m pytest -p no:cacheprovider tests\test_gui_smoke.py
 - Result: 42 passed.
-- D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider tests\test_fk_service.py tests\test_fk_filter_service.py tests\test_fk_plotting.py tests\test_gui_smoke.py
+- python -B -m pytest -p no:cacheprovider tests\test_fk_service.py tests\test_fk_filter_service.py tests\test_fk_plotting.py tests\test_gui_smoke.py
 - Result: 52 passed.
-- D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider
+- python -B -m pytest -p no:cacheprovider
 - Result: 227 passed.
 
 ### Not completed
@@ -1151,9 +1151,9 @@ GUI/CLI error messages, and regression tests.
 
 ### Test result
 
-- D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider tests\test_fk_filter_analysis.py tests\test_fk_filter_service.py tests\test_fk_filter_example.py tests\test_gui_smoke.py
+- python -B -m pytest -p no:cacheprovider tests\test_fk_filter_analysis.py tests\test_fk_filter_service.py tests\test_fk_filter_example.py tests\test_gui_smoke.py
 - Result: 77 passed.
-- D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider
+- python -B -m pytest -p no:cacheprovider
 - Result: 238 passed.
 
 ### Not completed
@@ -1216,7 +1216,7 @@ roadmap.
 
 ### Test result
 
-- D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider
+- python -B -m pytest -p no:cacheprovider
 - Result: 238 passed.
 
 ### Not completed
@@ -1290,9 +1290,9 @@ analysis service interfaces.
 
 ### Test result
 
-- D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider tests\test_statistics_analysis.py tests\test_statistics_service.py tests\test_statistics_example.py
+- python -B -m pytest -p no:cacheprovider tests\test_statistics_analysis.py tests\test_statistics_service.py tests\test_statistics_example.py
 - Result: 23 passed.
-- D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider
+- python -B -m pytest -p no:cacheprovider
 - Result: 261 passed.
 
 ### Not completed
@@ -1369,9 +1369,9 @@ analysis service interfaces.
 
 ### Test result
 
-- D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider tests\test_spectral_attributes_analysis.py tests\test_spectral_attributes_service.py tests\test_spectral_attributes_example.py
+- python -B -m pytest -p no:cacheprovider tests\test_spectral_attributes_analysis.py tests\test_spectral_attributes_service.py tests\test_spectral_attributes_example.py
 - Result: 32 passed.
-- D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider
+- python -B -m pytest -p no:cacheprovider
 - Result: 293 passed.
 
 ### Not completed
@@ -1464,9 +1464,9 @@ based on real/quasi-real sample behavior.
 
 ### Test result
 
-- D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider tests\test_puniu_dat_reader.py tests\test_hdf5_zd_reader.py tests\test_validation_scripts.py
+- python -B -m pytest -p no:cacheprovider tests\test_puniu_dat_reader.py tests\test_hdf5_zd_reader.py tests\test_validation_scripts.py
 - Result: 27 passed.
-- D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider
+- python -B -m pytest -p no:cacheprovider
 - Result: 297 passed.
 
 ### Data policy confirmation
@@ -1572,10 +1572,10 @@ locations or interpretation results.
 - Added notebook tests for valid ipynb JSON, nbformat, key formulas/keywords,
   and absence of local paths or development/test content.
 - Focused result:
-  D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider tests\test_events_analysis.py tests\test_events_service.py tests\test_event_detection_example.py tests\test_tutorial_notebook.py
+  python -B -m pytest -p no:cacheprovider tests\test_events_analysis.py tests\test_events_service.py tests\test_event_detection_example.py tests\test_tutorial_notebook.py
   Result: 26 passed.
 - Full test result:
-  D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider
+  python -B -m pytest -p no:cacheprovider
   Result: 323 passed.
 
 ### Old-code migration judgment
@@ -1677,10 +1677,10 @@ No reset, checkout, clean, or deletion of user work was performed.
 ### Tests
 
 - Focused result:
-  D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider tests\test_tutorial_notebook.py tests\test_roi_analysis.py tests\test_roi_service.py tests\test_export.py tests\test_roi_plotting.py tests\test_roi_export_example.py
+  python -B -m pytest -p no:cacheprovider tests\test_tutorial_notebook.py tests\test_roi_analysis.py tests\test_roi_service.py tests\test_export.py tests\test_roi_plotting.py tests\test_roi_export_example.py
   Result: 33 passed.
 - Full test result:
-  D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider
+  python -B -m pytest -p no:cacheprovider
   Result: 353 passed.
 
 ### Old-code migration judgment
@@ -1763,10 +1763,10 @@ interpretation workflows.
 ### Tests
 
 - Focused GUI result:
-  D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider tests\test_gui_smoke.py -q
+  python -B -m pytest -p no:cacheprovider tests\test_gui_smoke.py -q
   Result: 57 passed.
 - Full test result:
-  D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider
+  python -B -m pytest -p no:cacheprovider
   Result: 367 passed. The first full run failed because Windows denied access to the default pytest temp directory; rerunning with TMP/TEMP set to .tmp_pytest passed.
 
 ### Old-code migration judgment
@@ -1861,25 +1861,25 @@ picking, location, or inversion workflows.
 ### Tests
 
 - Focused packaging result:
-  D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider tests\test_packaging.py tests\test_cli_entrypoints.py -q
+  python -B -m pytest -p no:cacheprovider tests\test_packaging.py tests\test_cli_entrypoints.py -q
   Result: 16 passed.
 - Full test result:
-  D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider
+  python -B -m pytest -p no:cacheprovider
   Result: 383 passed. TMP/TEMP were set to .tmp_pytest to avoid the known
   Windows default temp-directory permission issue.
 - Packaging smoke:
-  D:\HczApp\Anaconda\envs\mywork\python.exe -m pip show build
+  python -m pip show build
   Result: build is not installed in the current environment, so wheel/sdist
   build smoke is deferred rather than forcing a network install.
 - Editable install smoke:
-  D:\HczApp\Anaconda\envs\mywork\python.exe -m pip install -e . --no-deps
+  python -m pip install -e . --no-deps
   Result: hcz-das-view 0.1.0.dev0 installed successfully in editable mode.
 - Entrypoint help smoke:
   hcz-das-validate --help, hcz-das-preview --help, hcz-das-stats --help,
   hcz-das-spectrum --help, hcz-das-events --help, and
   python -m das_view.gui.app --help completed successfully.
 - pip check:
-  D:\HczApp\Anaconda\envs\mywork\python.exe -m pip check
+  python -m pip check
   Result: the current Conda environment reports pre-existing platform metadata
   issues for several installed packages; this is not introduced by hcz-das-view.
 
@@ -1953,10 +1953,10 @@ dispersion picking, location, or inversion workflows.
 ### Tests
 
 - Focused release tests:
-  D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider tests\test_packaging.py tests\test_cli_entrypoints.py tests\test_release_validation.py tests\test_tutorial_notebook.py -q
+  python -B -m pytest -p no:cacheprovider tests\test_packaging.py tests\test_cli_entrypoints.py tests\test_release_validation.py tests\test_tutorial_notebook.py -q
   Result: 30 passed.
 - Full test result:
-  D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider
+  python -B -m pytest -p no:cacheprovider
   Result: 394 passed. The first attempt hit the known Windows default
   temp-directory permission issue; TMP/TEMP were set to .tmp_pytest and the
   suite passed. Test count increased from 383 to 394 because Phase 6C added 11
@@ -2051,13 +2051,13 @@ imaging, MASW, F-J, dispersion picking, location, or inversion workflows.
 ### Tests
 
 - Focused plugin tests:
-  D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider tests\test_plugins_base.py tests\test_plugins_registry.py tests\test_plugins_builtins.py tests\test_cli_extensions.py tests\test_cli_entrypoints.py tests\test_packaging.py -q
+  python -B -m pytest -p no:cacheprovider tests\test_plugins_base.py tests\test_plugins_registry.py tests\test_plugins_builtins.py tests\test_cli_extensions.py tests\test_cli_entrypoints.py tests\test_packaging.py -q
   Result: 40 passed.
 - Focused plugin/notebook tests:
-  D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider tests\test_plugins_base.py tests\test_plugins_registry.py tests\test_plugins_builtins.py tests\test_cli_extensions.py tests\test_cli_entrypoints.py tests\test_packaging.py tests\test_tutorial_notebook.py -q
+  python -B -m pytest -p no:cacheprovider tests\test_plugins_base.py tests\test_plugins_registry.py tests\test_plugins_builtins.py tests\test_cli_extensions.py tests\test_cli_entrypoints.py tests\test_packaging.py tests\test_tutorial_notebook.py -q
   Result: 43 passed.
 - Full test result:
-  D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider
+  python -B -m pytest -p no:cacheprovider
   Result: 418 passed. The first attempt hit the known Windows default
   temp-directory permission issue; TMP/TEMP were set to .tmp_pytest and the
   suite passed. Test count increased from 394 to 418 because Phase 6B added 24
@@ -2089,3 +2089,94 @@ intended for commit.
 
 Phase 6D: Release CI planning, or Phase 7A: API stability and documentation
 cleanup.
+
+## 2026-06-22: Phase 7A API stability and documentation cleanup
+
+### Goal
+
+Stabilize public API boundaries, import behavior, compatibility policy,
+documentation consistency, and the tutorial notebook without adding analysis
+algorithms, readers, GUI features, complex plugin capabilities, surface-wave
+imaging, MASW, F-J, dispersion picking, location, or inversion workflows.
+
+### Added or modified files
+
+- README.md
+- AGENTS.md
+- das_view/__init__.py
+- das_view/core/__init__.py
+- tests/test_api_import_boundaries.py
+- tests/test_public_api_stability.py
+- tests/test_tutorial_notebook.py
+- docs/09_tutorial_user_manual.ipynb
+- docs/02_architecture.md
+- docs/05_development_log.md
+- docs/06_testing.md
+- docs/07_roadmap.md
+- docs/08_project_handoff.md
+
+### API stability work
+
+- Added `ReaderError` and `UnsupportedFormatError` to top-level and core
+  public exports so package-level exception imports remain clear and stable.
+- Documented stable public API, experimental API, internal helpers, and
+  compatibility policy in README.md, docs/02_architecture.md, and
+  docs/08_project_handoff.md.
+- Confirmed that importing das_view and non-GUI subpackages should not import
+  PyQt5, scan plugin entry points, read real data, or start GUI code.
+- Kept GUI internals, worker classes, parser helpers, concrete reader internals,
+  and underscore-prefixed helpers documented as internal or experimental rather
+  than broad public API.
+
+### Documentation cleanup
+
+- Updated handoff status from Phase 6B to Phase 7A and removed local absolute
+  path examples from the current handoff section.
+- Updated roadmap with Phase 7A status and next-step options.
+- Added testing documentation for import-boundary and public API stability
+  tests.
+- Reaffirmed that event candidates, ROIs, and FK views are data-review aids,
+  not location, inversion, or geologic interpretation results.
+- Updated the tutorial/user manual notebook with public API, data-shape,
+  CLI/GUI/plugin selection guidance, interpretation boundaries, and
+  troubleshooting notes.
+
+### Tests
+
+- Focused API/notebook tests:
+  python -B -m pytest -p no:cacheprovider tests/test_api_import_boundaries.py tests/test_public_api_stability.py tests/test_tutorial_notebook.py -q
+  Result: 15 passed.
+- Full test result:
+  python -B -m pytest -p no:cacheprovider --basetemp .tmp_pytest/phase7a_basetemp
+  Result: 430 passed. The first two full-suite attempts hit the known Windows
+  temporary-directory permission issue, first in the default user temp
+  directory and then in an existing .tmp_pytest child directory. A fresh
+  explicit basetemp under the ignored .tmp_pytest directory avoided the
+  environment issue and the full suite passed.
+
+### Old-code migration judgment
+
+No old_code files were copied, imported, modified, or used for implementation.
+This phase only stabilizes public exports, import boundaries, and
+documentation.
+
+### Data and artifact policy confirmation
+
+No real DAS data, generated images, validation_outputs artifacts,
+local_validation_paths.txt, local absolute data paths, JSON/CSV outputs,
+build/dist artifacts, wheels, archives, exe files, or local output files are
+intended for commit.
+
+### Not completed
+
+- Larger real-data validation remains future work.
+- Automated release CI is not implemented.
+- Windows exe signing is not implemented.
+- Plugin API still needs validation with real third-party plugin packages.
+- The tutorial notebook should continue to be maintained as stable features
+  mature.
+
+### Suggested next round
+
+Phase 6D: Release CI planning, or Phase 7B: Clean docs and user-facing release
+candidate polish.
