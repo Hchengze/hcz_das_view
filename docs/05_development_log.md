@@ -1790,3 +1790,120 @@ output files are intended for commit.
 ### Suggested next round
 
 Phase 6A: Packaging and release hardening.
+
+## 2026-06-22: Phase 6A Packaging and release hardening
+
+### Goal
+
+Harden HCZ DAS View as an installable, runnable, packageable DAS Viewer /
+DAS Analysis software package. This phase does not add analysis algorithms,
+readers, GUI analysis features, surface-wave imaging, MASW, F-J, dispersion
+picking, location, or inversion workflows.
+
+### Added or modified files
+
+- pyproject.toml
+- .gitignore
+- README.md
+- AGENTS.md
+- das_view/cli/__init__.py
+- das_view/cli/validate.py
+- das_view/cli/preview.py
+- das_view/cli/statistics.py
+- das_view/cli/spectrum.py
+- das_view/cli/events.py
+- das_view/gui/app.py
+- packaging/README_windows_packaging.md
+- packaging/build_windows.ps1
+- packaging/hcz_das_view.spec
+- tests/test_packaging.py
+- tests/test_cli_entrypoints.py
+- docs/09_tutorial_user_manual.ipynb
+- docs/02_architecture.md
+- docs/05_development_log.md
+- docs/06_testing.md
+- docs/07_roadmap.md
+- docs/08_project_handoff.md
+
+### Packaging and entry points
+
+- pyproject.toml now includes build-system metadata, project metadata,
+  optional dependency groups for gui/dev/packaging, package discovery, console
+  scripts, and GUI scripts.
+- Added installed CLI wrappers under das_view/cli for validation, preview,
+  statistics, spectrum/PSD/spectrogram, and event-candidate workflows.
+- Added hcz-das-view and retained das-view-gui as GUI scripts. GUI help can run
+  without starting a Qt event loop.
+- CLI wrappers call existing service-layer APIs and do not treat examples/ as
+  package API.
+
+### Windows packaging and release checklist
+
+- Added packaging/README_windows_packaging.md for Windows Conda setup, GUI
+  launch, PyInstaller packaging, hidden-import/backend notes, artifact policy,
+  exe validation, and limitations.
+- Added packaging/build_windows.ps1 as a local PyInstaller build helper.
+- Added packaging/hcz_das_view.spec using relative paths and no real data.
+- README.md, docs/07_roadmap.md, and docs/08_project_handoff.md now include a
+  release checklist covering version metadata, full pytest, local real-sample
+  smoke validation, CLI/GUI smoke, wheel/sdist build, Windows packaging smoke,
+  notebook/docs freshness, artifact safety, tags, and release notes.
+
+### Tutorial notebook
+
+- docs/09_tutorial_user_manual.ipynb was updated with installation, installed
+  CLI entry points, GUI launch, Windows packaging/exe usage, and release usage
+  notes.
+- The notebook remains a user tutorial and operation manual. It does not
+  include development logs, test process, commit history, real data paths, or
+  real data.
+
+### Tests
+
+- Focused packaging result:
+  D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider tests\test_packaging.py tests\test_cli_entrypoints.py -q
+  Result: 16 passed.
+- Full test result:
+  D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider
+  Result: 383 passed. TMP/TEMP were set to .tmp_pytest to avoid the known
+  Windows default temp-directory permission issue.
+- Packaging smoke:
+  D:\HczApp\Anaconda\envs\mywork\python.exe -m pip show build
+  Result: build is not installed in the current environment, so wheel/sdist
+  build smoke is deferred rather than forcing a network install.
+- Editable install smoke:
+  D:\HczApp\Anaconda\envs\mywork\python.exe -m pip install -e . --no-deps
+  Result: hcz-das-view 0.1.0.dev0 installed successfully in editable mode.
+- Entrypoint help smoke:
+  hcz-das-validate --help, hcz-das-preview --help, hcz-das-stats --help,
+  hcz-das-spectrum --help, hcz-das-events --help, and
+  python -m das_view.gui.app --help completed successfully.
+- pip check:
+  D:\HczApp\Anaconda\envs\mywork\python.exe -m pip check
+  Result: the current Conda environment reports pre-existing platform metadata
+  issues for several installed packages; this is not introduced by hcz-das-view.
+
+### Old-code migration judgment
+
+No old_code files were copied, imported, modified, or used for implementation.
+This phase hardens packaging, installed entry points, and release documentation.
+
+### Data and artifact policy confirmation
+
+No real DAS input data, generated images, validation_outputs artifacts,
+local_validation_paths.txt, local absolute paths, JSON/CSV outputs, build/dist
+artifacts, wheels, archives, exe files, or local output files are intended for
+commit.
+
+### Not completed
+
+- Larger real-data packaging validation is not completed.
+- Automated release CI is not implemented.
+- Windows exe signing is not implemented.
+- Packaging has not yet been validated across multiple clean machines.
+- The tutorial notebook should continue to be maintained as features mature.
+
+### Suggested next round
+
+Phase 6B: Plugin / extension architecture, or Phase 6C: Release polishing and
+clean-environment install validation.

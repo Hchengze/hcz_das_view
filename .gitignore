@@ -21,6 +21,9 @@ venv/
 build/
 dist/
 *.egg-info/
+*.exe
+*.whl
+*.tar.gz
 
 # Local legacy/reference assets
 old_code/

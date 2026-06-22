@@ -153,6 +153,11 @@ Current coverage:
   QtAnalysisWorker construction/cancellation flags when PyQt5 is available,
   Analysis tab widget/control smoke checks, task-control state switching, and
   analysis-result clearing without real DAS data.
+- Phase 6A packaging tests cover pyproject.toml build-system and project
+  metadata, optional dependency groups, console/gui script declarations,
+  das_view.cli module imports, CLI `--help` smoke behavior, GUI app help
+  behavior without starting the Qt event loop, package import without PyQt5,
+  and Windows packaging files without local absolute paths.
 - FK analysis tests cover synthetic plane-wave peak frequency/wavenumber
   detection, amplitude/power shapes, DASData metadata sample-rate/dx handling,
   invalid sample_rate_hz/dx/nfft/dimensionality/NaN/Inf/too-short inputs, and
@@ -219,6 +224,10 @@ For cache-free runs during agent work:
   check parser/model helpers, analysis worker construction/cancellation flags,
   table-row/export mapping, and construction/state transitions for the minimal
   Analysis tab; they do not automate a real asynchronous analysis computation.
+- Packaging smoke should include `python -m build` when the `build` package is
+  available, plus `pip check`, `pip show hcz-das-view` when installed, and CLI
+  `--help` checks for installed entry points. Build artifacts under build/ and
+  dist/ are ignored and must not be committed.
 - Phase 4D GUI FK parser tests verify that transform mode allows empty
   velocity limits, velocity-filter mode requires at least one limit, invalid
   vmin/vmax values fail early, and pass/reject status text is user-facing.

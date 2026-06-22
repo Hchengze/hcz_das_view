@@ -19,10 +19,11 @@ phases.
 - Development model: the new das_view/ package is being rebuilt after auditing
   legacy material under old_code/.
 - New runtime code must not depend on, import, or call old_code.
-- Latest project state: current HEAD after Phase 5E GUI analysis panel.
-- Current phase: Phase 5E, service-backed GUI Analysis tab for DAS analysis
-  summaries and export.
-- Current expected test result after Phase 5E: 367 passed.
+- Latest project state: current HEAD after Phase 6A packaging and release
+  hardening.
+- Current phase: Phase 6A, package metadata, installed entry points, Windows
+  packaging notes, and release checklist.
+- Current expected test result after Phase 6A: 383 passed.
 
 ## 2. Repository and environment
 
@@ -89,10 +90,14 @@ phases.
 - das_view/io/export.py: JSON/CSV export helpers for event candidates, ROIs,
   annotations, and ROI analysis summaries.
 - das_view/plotting/: Matplotlib plotting helpers independent of PyQt5.
+- das_view/cli/: installed command-line wrappers for validation, preview,
+  statistics, spectrum/PSD/spectrogram, and event-candidate workflows.
 - das_view/gui/: optional PyQt5 application, main window, models, and worker
   scaffolding.
 - das_view/utils/: shared utilities, including slicing helpers.
 - examples/: small CLI and GUI entry points for supported workflows.
+- packaging/: Windows packaging notes, a PyInstaller spec, and a PowerShell
+  build helper. Generated build/dist artifacts are not committed.
 - tests/: synthetic-data tests for readers, services, processing, analysis,
   plotting, examples, and GUI smoke behavior.
 - docs/: compact project documentation and phase history.
@@ -138,6 +143,12 @@ Key modules:
   - waveform.py: waveform trace plotting.
   - spectra.py: spectrum, spectrogram, and PSD plotting.
   - fk.py: FK plotting and FK mask plotting.
+- CLI:
+  - validate.py: installed validation smoke workflow.
+  - preview.py: installed metadata/preview workflow.
+  - statistics.py: installed bounded statistics workflow.
+  - spectrum.py: installed spectrum/PSD/spectrogram workflow.
+  - events.py: installed event-candidate workflow.
 - GUI:
   - main_window.py: minimal GUI with metadata, waterfall, waveform, spectrum,
     and FK tabs.
@@ -179,6 +190,9 @@ Key modules:
 - Phase 5E: added a minimal GUI Analysis tab that connects bounded statistics,
   band energy, spectral attributes, event candidates, ROI statistics, and
   JSON/CSV export to existing service-layer APIs through QThread workers.
+- Phase 6A: hardened packaging metadata, added installed CLI/GUI entry points,
+  added Windows PyInstaller packaging notes/spec/script, added packaging and
+  entrypoint tests, and documented the release checklist.
 
 ## 6. Current supported capabilities
 
@@ -198,6 +212,16 @@ Key modules:
 - Preview service via create_preview.
 - General bounded selection via read_selection.
 - Trace/channel selection via read_trace.
+
+### Installed entry points
+
+- hcz-das-validate.
+- hcz-das-preview.
+- hcz-das-stats.
+- hcz-das-spectrum.
+- hcz-das-events.
+- hcz-das-view.
+- das-view-gui remains as a compatibility GUI script.
 
 ### Plotting
 
@@ -310,6 +334,13 @@ Key modules:
 - examples/fk_filter_file.py: apply a minimal bounded FK velocity fan filter
   and save a filtered waterfall, optionally saving the filtered FK image.
 - examples/run_gui.py: launch the optional PyQt5 GUI.
+- Installed entry points in das_view/cli provide package-level CLI wrappers
+  for validation, preview, statistics, spectrum/PSD/spectrogram, and event
+  candidates without treating examples/ as package API.
+- packaging/README_windows_packaging.md documents Windows Conda setup, GUI
+  launch, PyInstaller build, artifact policy, and exe validation.
+- packaging/build_windows.ps1 runs the local PyInstaller packaging smoke path.
+- packaging/hcz_das_view.spec is a relative-path spec for the GUI executable.
 
 ## 8. Current tests
 
@@ -339,12 +370,16 @@ Current coverage includes:
 - CLI example argument construction and no-real-data smoke behavior.
 - GUI-independent parser/model helpers and optional PyQt5 smoke tests for
   preview, waveform, spectrum, FK, and Analysis panels.
+- Packaging and entrypoint tests for pyproject metadata, optional dependency
+  groups, console/gui scripts, das_view.cli imports, CLI help behavior, GUI app
+  help behavior, package import without PyQt5, and packaging files without
+  local absolute paths.
 
 Current full test command and expected result:
 
       D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider
 
-      367 passed
+      383 passed
 
 ## 9. Old code migration status
 
@@ -386,11 +421,29 @@ No old_code files are imported by the new runtime package.
 7. Full processing/analysis result export is not implemented.
 8. The GUI Analysis tab is intentionally minimal and does not yet provide a
    rich interactive annotation workspace.
-9. Packaging and release hardening are not completed.
-10. SEGY, SAC, and TDMS are not implemented.
-11. The tutorial notebook should be maintained as stable features mature.
+9. Automated release CI is not implemented.
+10. Windows exe signing is not implemented.
+11. Clean-environment install validation across multiple machines is not
+    completed.
+12. SEGY, SAC, and TDMS are not implemented.
+13. The tutorial notebook should be maintained as stable features mature.
 
-## 11. Recommended next phases
+## 11. Release checklist
+
+- Check version metadata in pyproject.toml.
+- Run the full pytest suite.
+- Run local real/quasi-real sample smoke validation without committing data.
+- Run installed CLI `--help` smoke.
+- Run GUI launch smoke.
+- Build wheel and sdist smoke artifacts.
+- Run Windows PyInstaller smoke when preparing an exe.
+- Update README and docs/09_tutorial_user_manual.ipynb.
+- Confirm no real data, local paths, validation outputs, generated images,
+  JSON/CSV outputs, build/dist artifacts, wheels, archives, or exe files are
+  staged.
+- Create the release tag and GitHub release notes.
+
+## 12. Recommended next phases
 
 ### Option A: Phase 2E real sample validation
 
@@ -401,14 +454,21 @@ Goal:
 Phase 2E is complete for the provided local sample directories. Re-enter this
 phase only when new real sample paths or new format variants are provided.
 
-### Option B: Phase 6A Packaging and release hardening
+### Option B: Phase 6B Plugin / extension architecture
 
 Goal:
 
-      Complete packaging metadata, console scripts, versioning, packaging docs,
-      release checklist, and example-data strategy.
+      Reserve extension boundaries for future readers, processing functions,
+      and analysis workflows without expanding the core package.
 
-## 12. DAS Analysis capability roadmap
+### Option C: Phase 6C Release polishing and clean-environment install validation
+
+Goal:
+
+      Validate wheel/sdist installation and installed entry points in clean
+      environments, then refine release notes and automation.
+
+## 13. DAS Analysis capability roadmap
 
 ### Basic statistics
 

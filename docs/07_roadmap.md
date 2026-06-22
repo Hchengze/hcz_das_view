@@ -238,6 +238,29 @@ Scope:
 - Document how to validate local samples without committing data.
 - Add release checklist coverage for tests, docs, examples, and ignored outputs.
 
+Status:
+
+- Completed in Phase 6A for package metadata, installed CLI/GUI entry points,
+  Windows PyInstaller packaging notes, packaging smoke tests, and release
+  checklist documentation.
+- Automated release CI, signed Windows executables, and clean-environment
+  install validation remain follow-up work.
+
+Release checklist:
+
+- Check version metadata in pyproject.toml.
+- Run full pytest.
+- Run real/quasi-real sample smoke validation locally without committing data.
+- Run installed CLI `--help` smoke and GUI launch smoke.
+- Build wheel/sdist smoke artifacts.
+- Run Windows PyInstaller smoke when preparing an exe.
+- Update README and docs/09_tutorial_user_manual.ipynb.
+- Confirm no real data, output artifacts, build/dist files, wheels, archives,
+  or exe files are staged.
+- Tag the release and prepare GitHub release notes.
+
+Recommended next: Phase 6B or Phase 6C.
+
 ### Phase 6B: Plugin / extension architecture
 
 Goal:
@@ -252,6 +275,19 @@ Scope:
   boundaries when they are needed.
 - Do not add heavy optional dependencies to the core package without a clear
   maintenance reason.
+
+### Phase 6C: Release polishing and clean-environment install validation
+
+Goal:
+
+    Validate wheel/sdist install in clean environments, refine release notes,
+    and prepare optional automated release checks.
+
+Scope:
+
+- Keep release automation separate from analysis and reader features.
+- Validate installed CLI/GUI entry points without committing build artifacts.
+- Do not add real DAS data or generated outputs to the repository.
 
 ## DAS Analysis capability roadmap
 

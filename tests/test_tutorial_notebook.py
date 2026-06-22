@@ -31,6 +31,11 @@ def test_tutorial_notebook_contains_user_manual_keywords():
     assert "Band energy" in text
     assert "Event candidate" in text
     assert "ROI statistics" in text
+    assert "Installation" in text
+    assert "hcz-das-validate" in text
+    assert "hcz-das-view" in text
+    assert "Windows packaging" in text
+    assert "Release usage notes" in text
 
 
 def test_tutorial_notebook_avoids_local_paths_and_development_content():

@@ -51,6 +51,8 @@ Implemented so far:
   helpers.
 - Minimal GUI Analysis tab for bounded statistics, band energy, spectral
   attributes, event candidates, ROI statistics, and JSON/CSV export.
+- Packaging metadata, installed CLI/GUI entry points, Windows PyInstaller
+  packaging notes, and a release checklist.
 - Tutorial/user manual notebook at docs/09_tutorial_user_manual.ipynb for
   stable user-facing concepts, CLI examples, GUI workflow, and interpretation
   boundaries.
@@ -62,13 +64,18 @@ Still intentionally deferred:
   validation set.
 - Full time-frequency analysis platform beyond the current single-channel
   spectrogram smoke path.
-- Packaging and release hardening.
+- Automated release CI, signed Windows executables, and clean-environment
+  release validation.
 - Full-file preprocessing export.
 - GUI filter parameter panel.
 - SEGY/SAC/TDMS support.
 - Real DAS data committed to the repository.
 
 ## Install
+
+For a standard local install from the repository root:
+
+    pip install .
 
 For development and tests:
 
@@ -77,6 +84,13 @@ For development and tests:
 For the optional GUI:
 
     pip install -e .[gui]
+
+For local packaging smoke work:
+
+    pip install -e .[packaging]
+
+The installed distribution name is `hcz-das-view`; the Python package remains
+`das_view`.
 
 ## Test
 
@@ -87,6 +101,33 @@ For cache-free agent/development runs:
     python -B -m pytest -p no:cacheprovider
 
 ## Examples
+
+## Installed entry points
+
+After installation, the package provides these command names:
+
+    hcz-das-validate --help
+    hcz-das-preview --help
+    hcz-das-stats --help
+    hcz-das-spectrum --help
+    hcz-das-events --help
+    hcz-das-view --help
+
+The command-line tools use bounded service-layer workflows and do not read
+HDF5/DAT internals directly. `hcz-das-view` launches the optional PyQt5 GUI.
+The older `das-view-gui` GUI script is retained for compatibility.
+
+Examples:
+
+    hcz-das-validate input.h5
+    hcz-das-preview input.h5 --output preview.png
+    hcz-das-stats input.h5 --axis global --output stats.json
+    hcz-das-spectrum input.h5 --channel 10 --mode welch --output welch.png
+    hcz-das-events input.h5 --method stalta --sta 50 --lta 500 --trigger-on 3.0 --output events.csv
+
+Generated outputs are local user artifacts and should not be committed.
+
+## Script examples
 
 Create a preview image from a supported file:
 
@@ -235,7 +276,41 @@ they are not source-location or geologic interpretation results.
 
 If installed with the console script, the GUI can also be started with:
 
+    hcz-das-view
     das-view-gui
+
+## Windows packaging
+
+Windows PyInstaller packaging notes live at:
+
+    packaging/README_windows_packaging.md
+
+The helper script is:
+
+    packaging/build_windows.ps1
+
+The PyInstaller spec is:
+
+    packaging/hcz_das_view.spec
+
+Build artifacts under `build/` and `dist/`, wheels, archives, and exe files are
+local artifacts and must not be committed.
+
+## Release checklist
+
+Before tagging or publishing a release:
+
+1. Check version metadata in `pyproject.toml`.
+2. Run the full pytest suite.
+3. Run real/quasi-real sample smoke validation locally without committing data.
+4. Run CLI `--help` smoke for installed entry points.
+5. Run GUI launch smoke.
+6. Build wheel and sdist smoke artifacts.
+7. Run Windows PyInstaller smoke if releasing an exe.
+8. Update README and `docs/09_tutorial_user_manual.ipynb`.
+9. Confirm no real data, output directories, images, JSON/CSV outputs, wheels,
+   archives, or exe files are staged.
+10. Create the release tag and GitHub release notes.
 
 ## Tutorial notebook
 

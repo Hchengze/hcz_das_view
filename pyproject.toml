@@ -1,21 +1,54 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
-name = "das-view"
+name = "hcz-das-view"
 version = "0.1.0.dev0"
 description = "DAS data viewer and analysis package"
+readme = "README.md"
 requires-python = ">=3.10"
+authors = [
+    {name = "HCZ DAS View contributors"},
+]
+keywords = ["DAS", "distributed acoustic sensing", "viewer", "analysis"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Scientific/Engineering",
+]
 dependencies = [
     "numpy",
     "scipy",
 ]
 
 [project.scripts]
-das-view-gui = "das_view.gui.app:run"
+hcz-das-validate = "das_view.cli.validate:main"
+hcz-das-preview = "das_view.cli.preview:main"
+hcz-das-stats = "das_view.cli.statistics:main"
+hcz-das-spectrum = "das_view.cli.spectrum:main"
+hcz-das-events = "das_view.cli.events:main"
+
+[project.gui-scripts]
+hcz-das-view = "das_view.gui.app:main"
+das-view-gui = "das_view.gui.app:main"
 
 [project.optional-dependencies]
 hdf5 = ["h5py"]
 plot = ["matplotlib"]
 gui = ["PyQt5", "matplotlib"]
-dev = ["pytest", "h5py", "matplotlib", "scipy"]
+packaging = ["build", "pyinstaller"]
+dev = ["pytest", "h5py", "matplotlib", "scipy", "build"]
+
+[project.urls]
+Homepage = "https://github.com/Hchengze/hcz_das_view"
+Repository = "https://github.com/Hchengze/hcz_das_view"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.setuptools.packages.find]
+include = ["das_view*"]

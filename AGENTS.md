@@ -83,6 +83,22 @@ All internal core arrays must use:
 - Update docs/05_development_log.md every development round.
 - Update architecture, format, and testing docs when interfaces or assumptions change.
 
+## Packaging and release rules
+
+- Packaging metadata lives in pyproject.toml and should remain compatible with
+  standard pip installation.
+- Installed CLI entry points should live under das_view/cli/ and call stable
+  service-layer APIs instead of depending on examples/ as package API.
+- GUI entry points may import PyQt5 only inside das_view/gui/ or GUI startup
+  paths. Importing das_view or das_view.cli modules must not require PyQt5.
+- Do not commit build/, dist/, wheel files, source archives, exe files, or
+  *.egg-info directories.
+- Do not commit PyInstaller output. packaging/ may contain documentation,
+  scripts, and specs only when they avoid local absolute paths and real data.
+- Release rounds should check version metadata, full pytest, CLI help smoke,
+  GUI launch smoke, wheel/sdist build smoke, Windows packaging smoke where
+  practical, README/notebook freshness, and staged artifact safety.
+
 ## Before and after each development round
 
 Before:

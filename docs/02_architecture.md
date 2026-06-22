@@ -36,6 +36,12 @@
       - spectra.py
       - fk.py
       - roi.py
+    - cli/
+      - validate.py
+      - preview.py
+      - statistics.py
+      - spectrum.py
+      - events.py
     - gui/
       - app.py
       - main_window.py
@@ -61,6 +67,8 @@
   for DAS 2D wavefield inspection.
 - plotting: Matplotlib plotting helpers independent from GUI widgets, including
   waterfall, waveform, spectrum, spectrogram, FK views, and ROI overlays.
+- cli: installed command-line entry points that call stable service-layer APIs
+  and avoid depending on examples/ as package API.
 - gui: optional PyQt5 layer that calls preview, formatting, plotting,
   analysis-service, and export-helper APIs.
 - utils: validation, slicing, logging, and shared small helpers.
@@ -75,6 +83,7 @@ Allowed:
     io -> core/utils
     processing/analysis -> core/utils
     plotting -> core
+    cli -> analysis/processing/io/plotting/core
 
 Not allowed:
 
@@ -82,6 +91,29 @@ Not allowed:
     io -> GUI
     processing/analysis -> GUI
     das_view -> old_code
+
+## CLI and GUI entry points
+
+- pyproject.toml defines installed console scripts for bounded validation,
+  preview, statistics, spectrum/PSD/spectrogram, and event-candidate workflows.
+- pyproject.toml defines GUI scripts for the optional PyQt5 application.
+- das_view/cli modules are lightweight wrappers around service-layer APIs. They
+  do not inspect HDF5/DAT internal paths, do not import old_code, and do not
+  require PyQt5 at import time.
+- das_view/gui/app.py provides the GUI entry point and delays PyQt5/MainWindow
+  imports until the GUI is actually launched. `--help` can run without starting
+  a Qt event loop.
+- examples/ remain user-facing runnable examples, not installed package API.
+
+## Packaging
+
+- pyproject.toml is the source of package metadata, optional dependencies, and
+  entry points.
+- Optional dependency groups separate GUI, development, and packaging needs.
+- packaging/ contains Windows packaging notes, a PowerShell build helper, and
+  a PyInstaller spec without local absolute paths.
+- build/, dist/, wheel/source archives, exe files, and *.egg-info directories
+  are ignored local artifacts and must not be committed.
 
 ## Reader design
 
