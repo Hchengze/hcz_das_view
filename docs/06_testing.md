@@ -111,8 +111,14 @@ Current coverage:
 
 Future coverage:
 
-- Full STFT workflows.
-- Engineering-grade FK filter and advanced FK workflow tests.
+- DAS statistics and attribute analysis tests.
+- Band energy and spectral attribute tests.
+- Envelope / STA-LTA / event candidate detection tests.
+- ROI / annotation / export service tests.
+- GUI analysis panel smoke tests.
+- Broader time-frequency workflow tests.
+- FK visualization and FK-domain smoke-filter validation with real or
+  quasi-real bounded DAS selections.
 - Real large-file PSD/Welch performance validation.
 - Real large-file FK/FK-filter performance validation.
 - Reader edge cases with real small sample files.

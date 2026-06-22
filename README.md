@@ -1,14 +1,21 @@
 # HCZ DAS View
 
-HCZ DAS View is an early-stage DAS data viewing and analysis package. The
-current focus is a small, testable workflow for reading DAS files, displaying
-metadata, creating bounded preview data, and showing a waterfall image.
-Phase 2A also adds bounded data selection helpers and waveform plotting. Phase
-3A adds small preview-level preprocessing helpers. Phase 3D adds basic spectrum,
-PSD/Welch, and single-channel spectrogram smoke paths. Phase 4A adds a
-minimal FK transform and FK plotting smoke path. Phase 4B adds a minimal FK
-velocity fan filter smoke path, and Phase 4D tightens FK mask-limit defaults
-and user-facing validation.
+HCZ DAS View is a DAS Viewer / DAS Analysis package.
+
+It focuses on DAS file reading, metadata display, time-channel visualization,
+waveform analysis, spectrum/spectrogram/FK visualization, preprocessing,
+filtering, feature extraction, GUI interaction, testing, documentation,
+packaging, and long-term maintainability.
+
+It is not a dedicated surface-wave inversion, MASW, F-J, or
+dispersion-picking package.
+
+本项目定位为 DAS 数据查看与分析软件包，不是面波成像、MASW、F-J 或频散拾取软件。
+
+The current implementation provides a testable baseline for supported DAS file
+readers, bounded preview and trace loading, metadata display, waterfall and
+waveform plotting, basic preprocessing/filtering, spectrum/PSD/spectrogram
+analysis, FK visualization, FK-domain smoke filtering, and an optional GUI.
 
 ## Current status
 
@@ -36,9 +43,14 @@ Implemented so far:
 
 Still intentionally deferred:
 
-- Full analysis platform.
-- Full STFT and advanced processing.
-- Engineering-grade FK filter, F-J, and MASW workflows.
+- Real/quasi-real sample validation using local path lists.
+- Broader DAS analysis features such as statistics, spectral attributes,
+  envelope/STA-LTA, event candidate tables, ROI/annotation, and export.
+- GUI analysis panels for statistics, spectral attributes, envelope, and event
+  candidates.
+- Full time-frequency analysis platform beyond the current single-channel
+  spectrogram smoke path.
+- Packaging and release hardening.
 - Full-file preprocessing export.
 - GUI filter parameter panel.
 - SEGY/SAC/TDMS support.
@@ -123,15 +135,15 @@ Apply a minimal FK velocity fan filter to a bounded selection:
     python examples/fk_filter_file.py input.h5 --output filtered_waterfall.png --reject --vmin 300 --vmax 3000
     python examples/fk_filter_file.py input.h5 --output filtered_waterfall.png --save-fk --vmin 300 --vmax 3000
 
-The FK filter example is a smoke path only. It builds a simple velocity fan
-mask in FK coordinates, applies it to a bounded selection, inverts back to
-time-channel data, and saves a filtered waterfall. At least one of `--vmin` or
-`--vmax` is required: `--vmin` means velocities greater than or equal to that
-limit, `--vmax` means velocities less than or equal to that limit, and both
-together select the closed velocity range. By default the selected range is
-passed; `--reject` rejects the selected velocity range. It does not implement
-engineering-grade FK denoising, tapered interactive masks, F-J, MASW, or
-dispersion picking.
+The FK filter example is a smoke path only for DAS 2D wavefield inspection. It
+builds a simple velocity fan mask in FK coordinates, applies it to a bounded
+selection, inverts back to time-channel data, and saves a filtered waterfall.
+At least one of `--vmin` or `--vmax` is required: `--vmin` means velocities
+greater than or equal to that limit, `--vmax` means velocities less than or
+equal to that limit, and both together select the closed velocity range. By
+default the selected range is passed; `--reject` rejects the selected velocity
+range. It is an FK-domain smoke filter, not a specialized inversion or picking
+workflow.
 
 Run the minimal GUI:
 
@@ -153,8 +165,10 @@ opened through slicing/downsampling preview workflows. The preprocessing,
 filter, spectrum, and FK examples work on bounded preview/trace data only; they
 do not export processed full-size DAS arrays. Filtering and spectrogram
 analysis depend on scipy.signal. Spectrum and FK examples cover bounded
-traces/previews only: they do not implement F-J, MASW, dispersion picking, or
-export full processed arrays. The internal array convention is always:
+traces/previews only and do not export full processed arrays. Specialized
+inversion or picking workflows are outside the current main roadmap and would
+belong in separate plugins or topic-specific extensions. The internal array
+convention is always:
 
     data.shape == (n_samples, n_channels)
 

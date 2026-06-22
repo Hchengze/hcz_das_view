@@ -7,8 +7,8 @@ axis 1 is the spatial/channel axis.
 This module is intentionally a smoke path.  It builds simple boolean masks in
 frequency-wavenumber coordinates, applies them to a complex FK spectrum while
 preserving phase, and transforms back to the time-channel domain.  It does not
-attempt engineering-grade FK denoising, tapered fan edges, or dispersion
-interpretation.
+attempt engineering-grade FK denoising, tapered fan edges, or specialized
+interpretation workflows.
 """
 
 from __future__ import annotations

@@ -1,135 +1,233 @@
 # Roadmap
 
-## Phase 0: Development baseline
+## Project target
+
+HCZ DAS View is a DAS Viewer / DAS Analysis package.
+
+It focuses on DAS file reading, metadata display, time-channel visualization,
+waveform analysis, spectrum/spectrogram/FK visualization, preprocessing,
+filtering, feature extraction, GUI interaction, testing, documentation,
+packaging, and long-term maintainability.
+
+It is not a dedicated surface-wave inversion, MASW, F-J, or
+dispersion-picking package.
+
+本项目定位为 DAS 数据查看与分析软件包，不是面波成像、MASW、F-J 或频散拾取软件。
+
+## Completed baseline
+
+### Phase 0: Development baseline
+
+- Established package structure, documentation, data convention, metadata
+  model, reader interfaces, and initial tests.
+
+### Phase 1: Minimal DAS Viewer
+
+- Added the first reader workflow, metadata display, bounded preview service,
+  waterfall plotting, and the minimal optional PyQt5 GUI.
+
+### Phase 2A-2D: Stable IO, plotting, and GUI responsiveness
+
+- Added bounded time/channel selection, waveform plotting, local validation
+  tooling, and QThread-backed GUI preview/waveform loading with soft
+  cancellation.
+
+### Phase 3A-3E: Common preprocessing and spectrum analysis
+
+- Added demean, detrend, taper, normalization, clipping, lowpass/highpass/
+  bandpass/bandstop/notch filters, amplitude/power spectrum, periodogram PSD,
+  Welch PSD, single-channel spectrogram smoke paths, file-level services, and
+  a minimal GUI Spectrum tab.
+
+### Phase 4A-4D: FK visualization and FK-domain smoke filtering
+
+- Added bounded FK transform, FK plotting, simple FK-domain velocity fan mask
+  filtering, a minimal GUI FK tab, and safer FK velocity-limit validation.
+- FK is retained as DAS 2D wavefield analysis / FK visualization /
+  FK-domain smoke filtering for bounded time-channel selections.
+- FK work is not a mainline path toward specialized inversion or picking
+  workflows. Such topic-specific algorithms, if ever needed, should live in
+  independent plugins or extensions rather than the current core roadmap.
+
+## Recommended next phases
+
+### Phase 2E: Real sample validation
 
 Goal:
 
-- Establish package structure, documentation, data convention, metadata model, reader interfaces, and tests.
+    Use local_validation_paths.txt to run read-only validation on real or
+    quasi-real ZD HDF5 / Puniu DAT samples, then fix reader, metadata, slice,
+    preview, and GUI boundary issues discovered by those files.
 
 Acceptance:
 
-- Core package imports.
-- Initial tests pass.
-- Docs record old-code reuse rules and development decisions.
+- No real DAS data, generated images, validation outputs, or path lists are
+  committed.
+- Reader metadata, orientation, bounded reads, previews, waveform traces, and
+  GUI loading behavior are checked against available local samples.
+- Any reader/metadata fixes preserve the internal
+  `data.shape == (n_samples, n_channels)` convention.
 
-## Phase 1: Minimal DAS Viewer
+### Phase 5A: Analysis feature statistics
 
 Goal:
 
-- Support one first-priority format end to end.
-- Open a file, read metadata, and display a downsampled DAS image.
-- Phase 1A completed the first reader and non-GUI waterfall smoke path.
-- Phase 1B completed metadata display helpers and GUI-independent preview service.
-- Phase 1C completed the minimal PyQt5 GUI for opening a supported file, displaying metadata, and drawing a preview waterfall.
-- Phase 1D stabilized the preview GUI basics, added preview limit controls, and documented user/developer entry points.
+    Add DAS data statistics and attribute analysis:
+    mean / std / rms / max / min / percentile / peak-to-peak / abs_mean /
+    energy.
 
-Acceptance:
+Scope:
 
-- A small sample file can be opened.
-- Metadata and a basic waterfall/variable-density plot are shown.
-- The GUI calls create_preview instead of implementing file IO directly.
-- Next stabilization should focus on real-data validation, waveform plotting, and moving preview loading to a background worker if needed.
+- Support time-wise statistics, channel-wise statistics, local time windows,
+  and channel ranges.
+- Include finite / NaN / Inf summaries and clipping / saturation summaries
+  where practical.
+- Keep computation GUI-independent and covered by synthetic tests.
 
-## Phase 2: Stable IO and basic plotting
+### Phase 5B: Band energy and spectral attributes
 
 Goal:
 
-- Stabilize ZD HDF5 and Puniu DAT readers.
-- Support time/channel slicing and memory-aware plotting.
-- Phase 2A added a reader-independent data selection service, waveform plotting,
-  and a waveform CLI example.
-- Phase 2B integrated waveform plotting into the minimal GUI, added channel input
-  parsing, and expanded data-service boundary tests for reordered, duplicate, and
-  non-contiguous channel selections.
-- Phase 2C added local real/quasi-real sample validation tools and expanded
-  ZD HDF5/Puniu DAT edge-case tests without committing real data.
-- Phase 2D moved GUI preview and waveform data loading to QThread-backed
-  workers, added a Cancel button, busy progress feedback, and stale/cancelled
-  result protection while keeping plotting in the main thread.
+    Add band energy, dominant frequency, spectral centroid, spectral bandwidth,
+    spectral peak frequency, and band energy ratio analysis.
 
-Acceptance:
+Scope:
 
-- Reader tests cover orientation and metadata.
-- Large files are not blindly loaded for plotting.
-- CLI workflows can create bounded waterfall previews and waveform trace plots.
-- The GUI can show both bounded waterfall previews and simple waveform traces.
-- The GUI loads preview and waveform data through background workers for better
-  responsiveness; cancellation is soft and does not forcibly interrupt
-  synchronous reader IO already in progress.
-- Next work should run the prepared validation tools on real local samples,
-  add a minimal GUI spectrum panel, or begin FK smoke-path work.
+- Reuse existing bounded data access and spectrum service patterns.
+- Support per-channel and averaged summaries.
+- Keep plotting/export separate from numerical analysis.
 
-## Phase 3: Common preprocessing and interactive analysis
+### Phase 5C: Envelope / STA-LTA / event candidate detection
 
 Goal:
 
-- Add demean, detrend, taper, filtering, resampling, spectrum, and STFT.
-- Phase 3A added numpy-only basic preprocessing functions, a DASData service
-  that records preprocessing history, and a preview-level preprocessing CLI
-  example.
-- Phase 3B added scipy-based lowpass, highpass, bandpass, bandstop, and notch
-  filters, integrated them with apply_preprocess, and added a preview-level
-  filter CLI example.
-- Phase 3C added basic amplitude spectrum, power spectrum, and single-channel
-  spectrogram smoke paths, plus Matplotlib spectrum/spectrogram plotting and a
-  bounded trace CLI example.
-- Phase 3D added periodogram PSD, Welch PSD, PSD plotting with optional dB
-  display, and a reusable analysis service for bounded spectrum/PSD/spectrogram
-  file workflows.
-- Phase 3E added a minimal GUI Spectrum tab that runs amplitude, power,
-  periodogram PSD, Welch PSD, and spectrogram tasks through QThread-backed
-  service workers, with main-thread plotting and Phase 2D cancel/progress state
-  reuse.
+    Add envelope, energy envelope, STA/LTA, threshold picker, and event
+    candidate table support.
 
-Acceptance:
+Scope:
 
-- Basic preprocessing operations are covered by numerical tests.
-- Basic filters are covered by numerical tests and service integration tests.
-- Basic spectrum, PSD/Welch, and spectrogram smoke paths are covered by
-  numerical, plotting, service, and CLI parsing tests.
-- The GUI can launch minimal spectrum/PSD/spectrogram service tasks from the
-  Spectrum tab without embedding analysis algorithms in the GUI layer.
-- GUI can run operations without blocking for typical data sizes.
-- Next work can validate real local samples in Phase 2E, or begin FK smoke-path
-  work in Phase 4A.
+- This is DAS data analysis and event candidate detection only.
+- Do not add event location, inversion, or domain-specific interpretation
+  algorithms in this phase.
+- Candidate outputs should include time/channel ranges, scores, and summary
+  attributes suitable for GUI display and CSV/JSON export.
 
-## Phase 4: Advanced analysis
+### Phase 5D: ROI / annotation / export
 
 Goal:
 
-- Add FK, FK filtering, and optional advanced methods such as surface-wave analysis.
-- Phase 4A added a basic FK transform smoke path with FKResult, FK plotting,
-  a bounded FK CLI example, file-level service integration, and synthetic tests.
-- Phase 4B added a simple FK velocity fan filter smoke path with mask
-  construction, FK-domain masking, inverse transform back to time-channel data,
-  file-level service integration, a bounded CLI example, and synthetic tests.
-- Phase 4C added a minimal GUI FK tab that runs existing FK transform and FK
-  velocity-filter services through QThread-backed workers, keeps plotting in the
-  main thread, and reuses the existing Cancel/progress task state.
-- Phase 4D tightened FK mask-limit defaults and user-facing guardrails:
-  velocity-filter mode now requires at least one velocity limit, documents
-  pass/reject semantics, and adds GUI/CLI/parser tests for safer parameter
-  handling.
+    Support GUI selection of time windows, channel ranges, and ROI regions;
+    save analysis summaries as CSV / JSON; export figures; and support simple
+    annotations.
 
-Acceptance:
+Scope:
 
-- Algorithms have synthetic-data smoke tests.
-- Parameters and results are reproducible.
-- Current Phase 4D support is limited to basic FK amplitude/power transform,
-  plotting, simple velocity fan masks, inverse FK filter smoke paths, and a
-  minimal GUI FK service panel with safer velocity-limit validation.
-  Engineering-grade FK denoising, advanced velocity fan polish, F-J, MASW, and
-  dispersion picking remain deferred.
-- Next work can enter Phase 2E real sample validation if local data paths are
-  provided, or Phase 4E FK documentation/examples polish.
+- ROI and annotation support are interpretation aids for DAS data review.
+- Keep saved outputs explicit and user-directed; never commit generated output
+  directories.
 
-## Phase 5: Documentation, packaging, and release
+### Phase 5E: GUI analysis panel
 
 Goal:
 
-- Prepare user docs, examples, packaging, and release checks.
+    Connect statistics, band energy, envelope, and event candidate workflows to
+    the GUI.
 
-Acceptance:
+Scope:
 
-- A new environment can install and run the package.
-- Tests and docs describe the supported workflows clearly.
+- GUI code should call service-layer APIs.
+- GUI-independent parser/state logic should remain testable without PyQt5.
+- Heavy analysis should use the existing background-worker pattern.
+
+### Phase 6A: Packaging and release hardening
+
+Goal:
+
+    Complete pyproject metadata, console scripts, versioning, packaging docs,
+    release checklist, and example-data strategy.
+
+Scope:
+
+- Keep optional GUI dependencies optional.
+- Document how to validate local samples without committing data.
+- Add release checklist coverage for tests, docs, examples, and ignored outputs.
+
+### Phase 6B: Plugin / extension architecture
+
+Goal:
+
+    Reserve plugin-style extension interfaces for additional readers,
+    processing functions, and analysis algorithms.
+
+Scope:
+
+- Keep the core package focused on general DAS viewing and analysis.
+- Specialized or topic-specific algorithms should be isolated behind extension
+  boundaries when they are needed.
+- Do not add heavy optional dependencies to the core package without a clear
+  maintenance reason.
+
+## DAS Analysis capability roadmap
+
+### 1. Basic statistics
+
+- time-wise statistics
+- channel-wise statistics
+- windowed statistics
+- RMS
+- peak-to-peak
+- percentile
+- energy
+- finite / NaN / Inf summary
+- clipping / saturation summary
+
+### 2. Spectral attributes
+
+- band energy
+- dominant frequency
+- spectral centroid
+- spectral bandwidth
+- band energy ratio
+- spectral peak frequency
+
+### 3. Time-frequency attributes
+
+- spectrogram summary
+- band-limited energy image
+- time-varying dominant frequency
+
+### 4. Event / anomaly candidates
+
+- envelope
+- STA/LTA
+- short-window energy
+- threshold crossing
+- event candidate table
+- time-channel bounding box
+
+### 5. Interpretation support
+
+- ROI selection
+- annotation
+- comparison before/after processing
+- summary export
+- figure export
+- analysis report skeleton
+
+Interpretation support here means DAS data review and analysis assistance. It
+does not mean geologic inversion or specialized imaging.
+
+## External references for target alignment
+
+- DASCore / DASDAE: useful reference direction for DAS data management,
+  analysis, visualization, processing conversion, and format IO organization.
+- Xdas: useful reference direction for DAS data management, processing,
+  visualization, metadata abstraction, and large-data/lazy-processing patterns.
+- DASPy: useful reference direction for DAS processing toolbox organization,
+  including preprocessing, filtering, spectral analysis, visualization,
+  denoising, wavefield decomposition, and channel analysis.
+- ObsPy: useful reference direction for general seismic time-series processing,
+  filtering, visualization, and signal-processing API style.
+
+These projects are target-alignment references only. No external project code is
+copied, and this roadmap does not add new dependencies.

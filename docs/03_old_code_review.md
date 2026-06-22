@@ -94,7 +94,7 @@ plotting helpers.
 | power spectrum | analysis_tools.py::psd_periodogram/psd_welch ideas | Reference only | das_view/analysis/spectrum.py::power_spectrum | tests/test_spectrum_analysis.py | Implements a simple FFT-derived power path only; full PSD/Welch is deferred to Phase 3D. |
 | spectrogram smoke path | analysis_tools.py::get_tfp/tfp_analysis; hcz_signal_analyse.py::plot_TF | Reimplemented after refactor | das_view/analysis/spectrum.py::single_channel_spectrogram | tests/test_spectrum_analysis.py | Uses scipy.signal.spectrogram for one selected channel; no GUI coupling and no full STFT analysis platform. |
 | spectrum plotting | hcz_signal_analyse.py::plot_FS/plot_analysis | Reference only | das_view/plotting/spectra.py | tests/test_spectrum_plotting.py | Plotting is separated from analysis results and remains Matplotlib-only. |
-| FK/F-J/MASW and advanced PSD | analysis_tools.py FK/PSD sections | Deferred | Not implemented | Not applicable | Out of scope for Phase 3C. |
+| Historical advanced FK/F-J/MASW and advanced PSD sections | analysis_tools.py FK/PSD sections | Deferred | Not implemented | Not applicable | Historical audit only; not in current main roadmap. |
 
 ## Phase 3D PSD/Welch and analysis service migration decision
 
@@ -116,7 +116,7 @@ selection, channel averaging, validation, plotting, and a file-level service.
 | Welch PSD | analysis_tools.py::psd_welch | Reimplemented after refactor | das_view/analysis/spectrum.py::welch_psd | tests/test_spectrum_analysis.py | Uses nperseg/noverlap/nfft validation, default axis=0, DASData metadata sample-rate support, and channel selection. |
 | PSD plotting | Old plotting mixed with analysis in hcz_signal_analyse.py | Reference only | das_view/plotting/spectra.py::plot_psd | tests/test_spectrum_plotting.py | Plotting accepts PSDResult and optionally shows 10*log10 values; no PyQt5 dependency. |
 | File-level analysis workflow | Old scripts mix loading, plotting, and analysis | New implementation | das_view/analysis/service.py | tests/test_spectrum_service.py | Service reads bounded traces through data_service, optionally applies processing service steps, and returns result/metadata/history. |
-| FK/F-J/MASW | analysis_tools.py advanced sections | Deferred | Not implemented | Not applicable | Explicitly out of scope for Phase 3D. |
+| Historical advanced FK/F-J/MASW sections | analysis_tools.py advanced sections | Deferred | Not implemented | Not applicable | Historical audit only; not in current main roadmap. |
 
 ## Phase 4A FK transform migration decision
 
@@ -141,7 +141,7 @@ Phase 4A therefore reimplemented only the minimal FK transform smoke path:
 | FK plotting | Old workflows did not provide a clean reusable plotting result object | New implementation | das_view/plotting/fk.py::plot_fk | tests/test_fk_plotting.py | Matplotlib-only plotting from FKResult; no PyQt5 dependency. |
 | File-level FK workflow | Old scripts mixed loading, filtering, plotting, and analysis | New implementation | das_view/analysis/service.py::compute_fk_for_file; examples/fk_file.py | tests/test_fk_service.py; tests/test_fk_example.py | Uses read_selection and optional apply_preprocess instead of reader internals. |
 | FK fan mask/filter/inverse filtering | old_code/old_code1/tools/analysis_tools.py::fk_fan_mask and fk_filter | Deferred | Not implemented | Not applicable | Out of scope for Phase 4A; planned only as a later smoke path if needed. |
-| F-J/MASW/dispersion workflows | No clean reusable implementation migrated | Deferred | Not implemented | Not applicable | Out of scope. |
+| Historical F-J/MASW/dispersion workflows | No clean reusable implementation migrated | Deferred | Not implemented | Not applicable | Historical audit only; not in current main roadmap. |
 
 old_code/old_code4/hcz_signal_analyse.py did not expose a focused FK transform
 in the reviewed search. No old_code files were copied, imported, or modified.
@@ -170,7 +170,7 @@ Phase 4B therefore reimplemented only the minimal smoke path:
 | FK mask application and inverse path | old_code/old_code1/tools/analysis_tools.py::fk_filter | Reimplemented after refactor | das_view/analysis/fk_filter.py::apply_fk_mask and fk_velocity_filter | tests/test_fk_filter_analysis.py | Uses (n_samples, n_channels), axis=0 time, axis=1 space, phase-preserving complex FK multiplication, inverse FFT, and crop back to original shape. |
 | File-level FK filter workflow | Old scripts mixed loading, filtering, and plotting | New implementation | das_view/analysis/service.py::compute_fk_filter_for_file; examples/fk_filter_file.py | tests/test_fk_filter_service.py; tests/test_fk_filter_example.py | Uses read_selection and optional apply_preprocess instead of reader internals. |
 | Tapered fan edges, decomposition modes, velocity sign flags, engineering denoising | old_code/old_code1/tools/analysis_tools.py::fk_filter/fk_fan_mask | Deferred | Not implemented | Not applicable | Out of scope for the Phase 4B smoke path. |
-| F-J/MASW/dispersion workflows | No clean reusable implementation migrated | Deferred | Not implemented | Not applicable | Out of scope. |
+| Historical F-J/MASW/dispersion workflows | No clean reusable implementation migrated | Deferred | Not implemented | Not applicable | Historical audit only; not in current main roadmap. |
 
 old_code/old_code4/hcz_signal_analyse.py did not provide a focused FK filter
 implementation in the reviewed material. No old_code files were copied,

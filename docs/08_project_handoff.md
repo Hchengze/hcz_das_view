@@ -1,32 +1,29 @@
-﻿# Project handoff summary
+# Project handoff summary
 
 This document is the handoff point for starting a new Codex conversation on
-hcz_das_view. It records the current repository state after Phase 4D and the
-rules that should be preserved before any further development.
+hcz_das_view after Phase R1 project target realignment. It records the current
+project identity, supported capabilities, constraints, and recommended next
+phases.
 
 ## 1. Project identity
 
 - Project name: hcz_das_view, with the Python package named das_view.
-- Project role: a maintainable DAS data viewing, preview, basic processing,
-  and basic analysis package.
+- Project role: HCZ DAS View is a DAS Viewer / DAS Analysis package.
+- It focuses on DAS file reading, metadata display, time-channel
+  visualization, waveform analysis, spectrum/spectrogram/FK visualization,
+  preprocessing, filtering, feature extraction, GUI interaction, testing,
+  documentation, packaging, and long-term maintainability.
+- It is not a dedicated surface-wave inversion, MASW, F-J, or
+  dispersion-picking package.
+- 本项目定位为 DAS 数据查看与分析软件包，不是面波成像、MASW、F-J 或频散拾取软件。
 - Development model: the new das_view/ package is being rebuilt after auditing
   legacy material under old_code/.
 - New runtime code must not depend on, import, or call old_code.
-- Latest functional development commit: 818c756 Add PSD Welch analysis and
-  spectrum service.
-- Latest handoff commit: 41382a3 Add project handoff summary.
-- Latest GUI responsiveness commit: current HEAD after Phase 2D,
-  Add GUI background loading with cancel and progress.
-- Latest GUI spectrum commit: current HEAD after Phase 3E,
-  Add minimal GUI spectrum panel.
-- Latest FK smoke-path commit: 8fc76fc Add FK transform smoke path.
-- Latest FK filter smoke-path commit: cd88cfa Add FK velocity filter smoke path.
-- Latest GUI FK commit: current HEAD after Phase 4C,
-  Add minimal GUI FK panel.
-- Latest FK polish commit: current HEAD after Phase 4D,
-  Polish FK mask limits and safer defaults.
-- Current phase: Phase 4D, FK polish / mask limits / safer defaults.
-- Current test result after Phase 4D: 238 passed.
+- Latest project state: current HEAD after Phase R1 project target
+  realignment.
+- Current phase: Phase R1, documentation and roadmap realignment toward DAS
+  Viewer / DAS Analysis.
+- Current expected test result after Phase R1: 238 passed.
 
 ## 2. Repository and environment
 
@@ -70,6 +67,9 @@ rules that should be preserved before any further development.
 10. Every development round must update docs/05_development_log.md.
 11. Keep docs/ at eight files or fewer unless the project owner approves an
     expansion.
+12. FK visualization and FK-domain smoke filtering may remain as DAS 2D
+    wavefield inspection capabilities, but should not be treated as a mainline
+    path toward specialized inversion or picking workflows.
 
 ## 4. Current package architecture
 
@@ -79,8 +79,8 @@ rules that should be preserved before any further development.
   selection services.
 - das_view/processing/: pure preprocessing functions, scipy-based filters, and
   DASData-level processing service.
-- das_view/analysis/: spectrum, spectrogram, PSD/Welch, FK functions, and
-  file-level analysis service.
+- das_view/analysis/: spectrum, spectrogram, PSD/Welch, FK visualization,
+  FK-domain smoke filtering, and file-level analysis services.
 - das_view/plotting/: Matplotlib plotting helpers independent of PyQt5.
 - das_view/gui/: optional PyQt5 application, main window, models, and worker
   scaffolding.
@@ -109,196 +109,40 @@ Key modules:
 - Analysis:
   - spectrum.py: amplitude spectrum, power spectrum, spectrogram, periodogram
     PSD, and Welch PSD.
-  - service.py: file-level spectrum/PSD/spectrogram workflows for CLI and
-    future GUI reuse, plus bounded FK/FK-filter services.
-  - fk.py: FKResult and basic FK transform.
+  - service.py: file-level spectrum/PSD/spectrogram workflows for CLI and GUI
+    reuse, plus bounded FK/FK-filter services.
+  - fk.py: FKResult and bounded FK transform.
   - fk_filter.py: FKFilterResult, simple velocity fan mask, FK-domain mask
     application, and inverse FK smoke path.
 - Plotting:
   - waterfall.py: waterfall preview plotting.
   - waveform.py: waveform trace plotting.
   - spectra.py: spectrum, spectrogram, and PSD plotting.
-  - fk.py: FK plotting.
+  - fk.py: FK plotting and FK mask plotting.
 - GUI:
   - main_window.py: minimal GUI with metadata, waterfall, waveform, spectrum,
     and FK tabs.
   - app.py: GUI application entry point.
   - models.py: GUI-independent parsing and small models.
-  - workers.py: no-Qt callable service wrappers plus QThread QObject workers for
-    preview, waveform, spectrum, and FK background loading.
+  - workers.py: no-Qt callable service wrappers plus QThread QObject workers.
 
 ## 5. Completed phase history
 
-### Phase 0: development baseline
-
-- Goal: establish package layout, core data model, docs, old-code rules, and
-  initial tests.
-- Key modules: das_view/core/, docs/01_project_baseline.md, initial tests.
-- Test result: initial baseline tests passed.
-- Not completed: real readers, plotting, GUI, processing, and analysis.
-
-### Phase 1A: reader workflow + non-GUI waterfall plotting
-
-- Goal: implement the first supported reader path and a non-GUI waterfall smoke
-  workflow.
-- Key modules: ZD HDF5 reader, reader registry, waterfall plotting,
-  examples/read_and_plot_zd_h5.py.
-- Test result: 19 passed.
-- Not completed: metadata display service, preview API, GUI, Puniu DAT.
-
-### Phase 1B: metadata formatting + preview API
-
-- Goal: add formatted metadata output and a bounded preview service independent
-  of GUI code.
-- Key modules: metadata_format.py, preview.py, examples/preview_file.py.
-- Test result: 28 passed.
-- Not completed: GUI and broader reader validation.
-
-### Phase 1C: minimal PyQt5 preview GUI
-
-- Goal: create the smallest GUI that opens a supported file, displays metadata,
-  and draws a bounded waterfall preview.
-- Key modules: das_view/gui/main_window.py, app.py, examples/run_gui.py.
-- Test result: 30 passed.
-- Not completed: background loading, waveform, analysis panels.
-
-### Phase 1D: GUI stabilization + README + validation entry
-
-- Goal: stabilize preview GUI basics, improve user entry points, and document
-  the workflow.
-- Key modules: README updates, GUI robustness, validation entry path.
-- Test result: 34 passed.
-- Not completed: waveform plotting, QThread loading, real systematic data
-  validation.
-
-### Phase 2A: waveform plotting + data selection service
-
-- Goal: add bounded data selection helpers and waveform plotting outside the
-  GUI.
-- Key modules: data_service.py, waveform.py, examples/plot_waveform.py.
-- Test result: 46 passed.
-- Not completed: GUI waveform integration and full reader edge-case hardening.
-
-### Phase 2B: GUI waveform tab
-
-- Goal: integrate waveform plotting into the minimal GUI and add channel input
-  parsing.
-- Key modules: GUI waveform tab, models.py channel parser, expanded
-  data-service tests.
-- Test result: 61 passed.
-- Not completed: real sample validation and background GUI loading.
-
-### Phase 2C: local sample validation + reader edge-case checks
-
-- Goal: prepare local real/quasi-real validation tooling and harden ZD HDF5 /
-  Puniu DAT reader boundaries.
-- Key modules: examples/validate_file.py, examples/validate_local_samples.py,
-  reader edge-case tests.
-- Test result: 72 passed.
-- Not completed: systematic real sample validation and GUI responsiveness.
-
-### Phase 2D: GUI QThread background loading
-
-- Goal: move preview and waveform data loading out of the GUI thread and add
-  cancel/progress feedback.
-- Key modules: QThread-backed preview/waveform workers, MainWindow task-state
-  wiring, progress bar, Cancel button, and GUI-independent task state helpers.
-- Test result: 157 passed.
-- Not completed: hard interruption of synchronous reader IO and real large-file
-  responsiveness validation.
-
-### Phase 3A: basic preprocessing
-
-- Goal: migrate small preprocessing operations into pure numpy functions and a
-  reusable service.
-- Key modules: preprocess.py, processing/service.py,
-  examples/preprocess_file.py.
-- Test result: 97 passed.
-- Not completed: filters, spectrum analysis, GUI processing panel.
-
-### Phase 3B: basic filters
-
-- Goal: add lowpass, highpass, bandpass, bandstop, and notch filters and connect
-  them to the processing service.
-- Key modules: filters.py, filter steps in processing/service.py,
-  examples/filter_file.py.
-- Test result: 117 passed.
-- Not completed: spectrum analysis, GUI filter panel, full-data export.
-
-### Phase 3C: basic spectrum + spectrogram smoke path
-
-- Goal: add amplitude spectrum, power spectrum, and a single-channel
-  spectrogram smoke path.
-- Key modules: analysis/spectrum.py, plotting/spectra.py,
-  examples/spectrum_file.py.
-- Test result: 134 passed.
-- Not completed: PSD/Welch service, FK, GUI spectrum panel.
-
-### Phase 3D: PSD / Welch + spectrum service
-
-- Goal: add periodogram PSD, Welch PSD, PSD plotting, and reusable file-level
-  analysis service helpers.
-- Key modules: periodogram_psd, welch_psd, plot_psd, analysis/service.py,
-  enhanced examples/spectrum_file.py.
-- Test result: 150 passed.
-- Not completed: FK, F-J/MASW, GUI spectrum panel, QThread responsiveness, real
-  large-data performance validation.
-
-### Phase 3E: minimal GUI spectrum panel
-
-- Goal: connect existing amplitude, power, PSD, Welch PSD, and spectrogram
-  services to the GUI without adding new algorithms.
-- Key modules: Spectrum tab in MainWindow, SpectrumWorker / QtSpectrumWorker,
-  spectrum request parser/status helpers, and GUI smoke tests.
-- Test result: 166 passed.
-- Not completed: GUI preprocessing/filter panels, FK/F-J/MASW, complete STFT,
-  full export, and real large-file spectrum performance validation.
-
-### Phase 4A: FK transform smoke path
-
-- Goal: add a minimal FK transform, FK result object, FK plotting helper, file
-  service, CLI example, and synthetic tests.
-- Key modules: das_view/analysis/fk.py, compute_fk_for_file in
-  analysis/service.py, das_view/plotting/fk.py, examples/fk_file.py.
-- Test result: 190 passed.
-- Not completed: FK filter, velocity fan filter, F-J/MASW, dispersion picking,
-  GUI FK panel, and real large-file FK performance validation.
-
-### Phase 4B: FK velocity filter smoke path
-
-- Goal: add a minimal FK-domain velocity fan mask, mask application, inverse FK
-  path back to time-channel data, service integration, CLI example, and
-  synthetic tests.
-- Key modules: das_view/analysis/fk_filter.py,
-  compute_fk_filter_for_file in analysis/service.py, plot_fk_mask in
-  plotting/fk.py, examples/fk_filter_file.py.
-- Test result: 216 passed.
-- Not completed: engineering-grade FK filter, GUI FK panel, F-J/MASW,
-  dispersion picking, real large-file FK filter performance validation, and
-  full export.
-
-### Phase 4C: GUI FK panel smoke path
-
-- Goal: connect existing FK transform and FK velocity filter services to the
-  GUI without adding new FK algorithms.
-- Key modules: FK tab in MainWindow, FKWorker / QtFKWorker, FK request
-  parser/status helpers, and GUI smoke tests.
-- Test result: 227 passed.
-- Not completed: engineering-grade FK filter, velocity fan polish, F-J/MASW,
-  dispersion picking, real large-file FK GUI performance validation, and full
-  export.
-
-### Phase 4D: FK polish / mask limits / safer defaults
-
-- Goal: refine FK/FK-filter parameter boundaries, user-facing validation, and
-  CLI/GUI safety defaults without adding new FK algorithms.
-- Key modules: velocity_fan_mask/fk_velocity_filter validation,
-  parse_fk_request guardrails, examples/fk_filter_file.py argument helpers, and
-  FK-focused tests.
-- Test result: 238 passed.
-- Not completed: engineering-grade FK filter, GUI preprocessing/filter panel,
-  F-J/MASW, dispersion picking, real large-file FK performance validation, and
-  full export.
+- Phase 0: established layout, core data model, old-code rules, and baseline
+  tests.
+- Phase 1A-1D: added ZD HDF5 workflow, metadata formatting, bounded preview,
+  waterfall plotting, minimal GUI, and validation entry points.
+- Phase 2A-2D: added reader-independent selection services, waveform plotting,
+  Puniu DAT validation tooling, reader edge-case checks, and QThread-backed GUI
+  preview/waveform loading with soft cancellation.
+- Phase 3A-3E: added preprocessing, filters, amplitude/power spectrum,
+  periodogram PSD, Welch PSD, single-channel spectrogram smoke paths,
+  file-level spectrum services, and a minimal GUI Spectrum tab.
+- Phase 4A-4D: added FK visualization, FK plotting, FK-domain velocity fan
+  smoke filtering, GUI FK service panel, and safer FK velocity-limit defaults.
+- Phase R1: realigned project target toward DAS Viewer / DAS Analysis, removed
+  specialized inversion/picking workflows from the current main roadmap, and
+  redirected next work toward DAS analysis capabilities.
 
 ## 6. Current supported capabilities
 
@@ -342,9 +186,6 @@ Key modules:
 - Parse single or comma-separated channel input.
 - Preview, waveform, spectrum, and FK tasks run in QThread-backed background
   workers with busy progress feedback and soft cancellation.
-- Current limitation: cancellation cannot forcibly interrupt synchronous reader
-  IO or analysis calls already in progress; cancelled results are ignored when
-  they return.
 
 ### Processing
 
@@ -378,94 +219,45 @@ Key modules:
 - compute_fk_for_file.
 - compute_fk_filter_for_file.
 
-## 7. Current examples and how to use them
+## 7. Current examples
 
 - examples/read_and_plot_zd_h5.py: read a ZD HDF5 file and save a waterfall
   smoke plot.
-
-      python examples/read_and_plot_zd_h5.py input.h5 --output preview.png
-
 - examples/preview_file.py: create a bounded preview from any registered
   reader.
-
-      python examples/preview_file.py input.h5 --output preview.png
-
 - examples/validate_file.py: validate one HDF5/DAT file, print metadata and
   preview information, and optionally save preview/waveform images.
-
-      python examples/validate_file.py input.h5 --waveform-output trace.png --channel 10
-
 - examples/validate_local_samples.py: batch-validate paths listed in ignored
   local_validation_paths.txt.
-
-      python examples/validate_local_samples.py
-
 - examples/plot_waveform.py: plot one or more bounded waveform traces.
-
-      python examples/plot_waveform.py input.dat --channels 10 20 30 --output traces.png
-
 - examples/preprocess_file.py: apply preview-level preprocessing and save a
   processed waterfall image.
-
-      python examples/preprocess_file.py input.h5 --output preview_processed.png --demean --taper 0.05 --normalize
-
 - examples/filter_file.py: apply preview-level filtering and save a filtered
   waterfall image.
-
-      python examples/filter_file.py input.h5 --output preview_filtered.png --bandpass 1 50
-
 - examples/spectrum_file.py: compute bounded amplitude, power, PSD/Welch, or
   spectrogram plots, optionally after a filter step.
-
-      python examples/spectrum_file.py input.h5 --channel 10 --psd welch --nperseg 512 --output welch.png
-
 - examples/fk_file.py: compute bounded FK amplitude or power plots, optionally
   after a filter step.
-
-      python examples/fk_file.py input.h5 --output fk.png
-      python examples/fk_file.py input.h5 --output fk_power.png --output-mode power
-
 - examples/fk_filter_file.py: apply a minimal bounded FK velocity fan filter
   and save a filtered waterfall, optionally saving the filtered FK image.
-
-      python examples/fk_filter_file.py input.h5 --output filtered_waterfall.png --vmin 300 --vmax 3000
-      python examples/fk_filter_file.py input.h5 --output filtered_waterfall.png --reject --vmin 300 --vmax 3000
-      python examples/fk_filter_file.py input.h5 --output filtered_waterfall.png --save-fk --vmin 300 --vmax 3000
-
 - examples/run_gui.py: launch the optional PyQt5 GUI.
-
-      python examples/run_gui.py
 
 ## 8. Current tests
 
 Current coverage includes:
 
-- Reader tests for ZD HDF5, Puniu DAT, and reader registry behavior.
-- Preview API tests for bounded preview shape, downsampling, and metadata.
-- Plotting tests for waterfall, waveform, spectrum, spectrogram, and PSD output.
-- GUI smoke tests that cleanly skip when optional PyQt5 is unavailable.
-- GUI spectrum smoke tests for parser/model helpers, Spectrum tab controls,
-  worker construction, and soft cancellation state.
-- GUI FK smoke tests for parser/model helpers, FK tab controls, worker
-  construction, and soft cancellation state.
-- Data service tests for read_selection, read_trace, and channel boundary
-  behavior.
-- Validation script tests for path-list parsing and no-real-data workflows.
-- Preprocessing tests for demean, detrend, taper, normalize, standardize, clip,
-  service history, and no in-place mutation.
-- Filter tests for lowpass, highpass, bandpass, bandstop, notch, validation,
-  scipy behavior, and service integration.
-- Spectrum tests for amplitude/power spectrum, spectrogram, plotting, example
-  parsing, and DASData metadata handling.
-- PSD/Welch service tests for periodogram, Welch, channel selection/averaging,
-  plotting, file-level service calls, and example integration.
-- FK tests for synthetic plane waves, plotting, file-level service calls, and
-  example argument helpers.
-- FK filter tests for velocity fan mask shape/k=0/f=0 behavior, velocity-limit
-  validation, inverse shape restoration, synthetic plane-wave suppression,
-  service calls, plot_fk_mask, and example argument helpers.
+- Core data model, metadata formatting, and dimension validation.
+- ZD HDF5 and Puniu DAT readers, registry behavior, bounded reads, slicing,
+  downsampling, and edge cases.
+- Preview, selection, and trace data services.
+- Waterfall, waveform, spectrum, spectrogram, PSD, FK, and FK mask plotting.
+- Preprocessing and filter functions plus DASData service integration.
+- Spectrum, PSD/Welch, spectrogram, FK, and FK filter analysis helpers.
+- CLI example argument construction and no-real-data smoke behavior.
+- GUI-independent parser/model helpers and optional PyQt5 smoke tests for
+  preview, waveform, spectrum, and FK panels.
 
-Current full test command and result:
+Current full test command and expected result:
 
       D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider
 
@@ -482,8 +274,8 @@ Current full test command and result:
 - old_code/old_code1/tools/analysis_tools.py: preprocessing, filtering,
   spectrum, PSD/Welch, basic FK, and FK filter/fan-mask ideas were audited;
   selected simple numerical logic was reimplemented with explicit numpy/scipy
-  interfaces and the (n_samples, n_channels) convention. Advanced tapered FK
-  filter behavior, F-J, and MASW sections remain deferred.
+  interfaces and the (n_samples, n_channels) convention. Historical
+  topic-specific sections are not in the current main roadmap.
 - old_code/old_code4/hcz_signal_preprocess.py: basic preprocessing and filter
   workflow ideas were audited; clean, dimension-explicit replacements now live
   under das_view/processing/. Old workflow style and unclear parameter coupling
@@ -500,19 +292,22 @@ No old_code files are imported by the new runtime package.
 
 1. ZD HDF5 and Puniu DAT have not been systematically validated with real
    production samples.
-2. GUI preview, waveform, and spectrum tasks use QThread workers, but real
+2. GUI preview, waveform, spectrum, and FK tasks use QThread workers, but real
    production large-file responsiveness has not been validated.
 3. GUI cancellation is soft and cannot forcibly interrupt synchronous reader IO
    or analysis calls already in progress.
 4. There is no GUI preprocessing or filter panel.
-5. The GUI FK tab is a minimal smoke path, not an engineering-grade FK workflow.
-6. FK filter support is currently a simple smoke path, not engineering-grade
-   denoising.
-7. F-J / MASW analysis is not implemented.
-8. A complete STFT workflow is not implemented.
-9. Full processing/analysis result export is not implemented.
-10. SEGY, SAC, and TDMS are not implemented.
-11. Real large-data performance has not been validated.
+5. FK visualization and FK-domain filtering are bounded smoke paths for DAS 2D
+   wavefield inspection, not polished production denoising workflows.
+6. A broader time-frequency workflow is not implemented.
+7. Full processing/analysis result export is not implemented.
+8. DAS statistics and feature-attribute analysis are not implemented.
+9. Band energy and spectral attributes are not implemented.
+10. Envelope / STA-LTA / event candidate detection is not implemented.
+11. ROI / annotation / export workflows are not implemented.
+12. GUI analysis panel is not implemented.
+13. Packaging and release hardening are not completed.
+14. SEGY, SAC, and TDMS are not implemented.
 
 ## 11. Recommended next phases
 
@@ -522,21 +317,92 @@ Goal:
 
       Use local_validation_paths.txt to validate real/quasi-real ZD HDF5 and Puniu DAT samples.
 
-If real sample paths are provided, prioritize this before expanding analysis features.
+If real sample paths are provided, prioritize this before expanding analysis
+features.
 
-### Option B: Phase 4E FK documentation/examples polish
+### Option B: Phase 5A Analysis feature statistics
 
 Goal:
 
-      Polish FK documentation, examples, and smoke-path explanation.
+      Add DAS data statistics and attribute analysis:
+      mean / std / rms / max / min / percentile / peak-to-peak / abs_mean / energy.
 
-Keep this bounded; do not add F-J/MASW or surface-wave analysis in the same round.
+If no real sample paths are available, prioritize this as the next mainline DAS
+analysis feature phase.
 
-## 12. Suggested first prompt for the new Codex chat
+Lower-priority FK documentation or example polish may still be useful later,
+but it should remain below real sample validation and DAS analysis expansion.
+
+## 12. DAS Analysis capability roadmap
+
+### Basic statistics
+
+- time-wise statistics
+- channel-wise statistics
+- windowed statistics
+- RMS
+- peak-to-peak
+- percentile
+- energy
+- finite / NaN / Inf summary
+- clipping / saturation summary
+
+### Spectral attributes
+
+- band energy
+- dominant frequency
+- spectral centroid
+- spectral bandwidth
+- band energy ratio
+- spectral peak frequency
+
+### Time-frequency attributes
+
+- spectrogram summary
+- band-limited energy image
+- time-varying dominant frequency
+
+### Event / anomaly candidates
+
+- envelope
+- STA/LTA
+- short-window energy
+- threshold crossing
+- event candidate table
+- time-channel bounding box
+
+### Interpretation support
+
+- ROI selection
+- annotation
+- comparison before/after processing
+- summary export
+- figure export
+- analysis report skeleton
+
+Interpretation support means DAS data review and analysis assistance. It does
+not mean geologic inversion or specialized imaging.
+
+## 13. External references for target alignment
+
+- DASCore / DASDAE: reference direction for DAS data management, analysis,
+  visualization, processing conversion, and format IO organization.
+- Xdas: reference direction for DAS data management, processing, visualization,
+  metadata abstraction, and large-data/lazy-processing patterns.
+- DASPy: reference direction for DAS processing toolbox organization, including
+  preprocessing, filtering, spectral analysis, visualization, denoising,
+  wavefield decomposition, and channel analysis.
+- ObsPy: reference direction for general seismic time-series processing,
+  filtering, visualization, and signal-processing API style.
+
+These are target-alignment references only. No external project code is copied,
+and Phase R1 adds no dependency.
+
+## 14. Suggested first prompt for the new Codex chat
 
 Copy this into the next Codex conversation:
 
-    璇峰厛涓嶈寮€鍙戞柊鍔熻兘銆傝鍏堥槄璇伙細
+    请先不要开发新功能。请先阅读：
 
     - AGENTS.md
     - README.md
@@ -544,16 +410,16 @@ Copy this into the next Codex conversation:
     - docs/05_development_log.md
     - docs/07_roadmap.md
 
-    鐒跺悗鎵ц锛?
+    然后执行：
     git status --short
     git branch -vv
     git log --oneline -8
     D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider
 
-    璇峰厛杩斿洖褰撳墠浠撳簱鐘舵€併€佹渶鏂?HEAD銆佹祴璇曠粨鏋滃拰浣犲涓嬩竴姝ョ殑寤鸿锛屼笉瑕佺洿鎺ヤ慨鏀逛唬鐮併€?
-    榛樿涓嬩竴姝ュ缓璁繘鍏ワ細
+    请先返回当前仓库状态、最新 HEAD、测试结果和你对下一步的建议，不要直接修改代码。
 
-    Phase 2D锛欸UI QThread 鍚庡彴鍔犺浇銆佸彇娑堜笌杩涘害鎻愮ず
+    如果我提供真实数据路径，则建议进入：
+    Phase 2E：real sample validation
 
-    浣嗗鏋滄垜鏄庣‘鎻愪緵鐪熷疄鏁版嵁璺緞锛屽垯浼樺厛杩涘叆锛?
-    Phase 2E锛歳eal sample validation
+    如果我没有真实数据路径，则建议进入：
+    Phase 5A：Analysis feature statistics

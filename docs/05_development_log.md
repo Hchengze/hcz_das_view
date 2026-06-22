@@ -635,7 +635,7 @@ feedback for the GUI.
 | old_code/old_code1/tools/analysis_tools.py::psd_periodogram/psd_welch | power spectrum idea | Reference only | das_view/analysis/spectrum.py::power_spectrum | tests/test_spectrum_analysis.py | Implements simple FFT-derived power spectrum; full PSD/Welch remains deferred. |
 | old_code/old_code1/tools/analysis_tools.py::get_tfp/tfp_analysis; old_code/old_code4/hcz_signal_analyse.py::plot_TF | spectrogram/STFT idea | Reimplemented after refactor | das_view/analysis/spectrum.py::single_channel_spectrogram | tests/test_spectrum_analysis.py | Uses scipy.signal.spectrogram for one selected channel; no GUI plotting coupling. |
 | old_code/old_code4/hcz_signal_analyse.py::plot_analysis | combined analysis plot | Reference only | das_view/plotting/spectra.py | tests/test_spectrum_plotting.py | Plotting separated from analysis results. |
-| old_code FK/F-J/MASW and advanced PSD sections | advanced analysis | Deferred | Not implemented | Not applicable | Out of scope for Phase 3C. |
+| old_code historical advanced FK/F-J/MASW and advanced PSD sections | advanced analysis | Deferred | Not implemented | Not applicable | Historical audit only; not in current main roadmap. |
 
 No old_code files were imported, copied directly, or modified.
 
@@ -648,7 +648,7 @@ No old_code files were imported, copied directly, or modified.
 
 - Full STFT workflows are not implemented.
 - PSD/Welch service helpers are not implemented.
-- FK/F-J/MASW are not implemented.
+- FK visualization and FK-domain smoke filtering are not yet implemented.
 - GUI spectrum panel is not implemented.
 - Real large-file spectrum performance has not been validated.
 
@@ -708,7 +708,7 @@ background loading, cancel, and progress feedback for the GUI.
 | old_code/old_code1/tools/analysis_tools.py::psd_welch | Welch PSD | Reimplemented after refactor | das_view/analysis/spectrum.py::welch_psd | tests/test_spectrum_analysis.py | Uses nperseg/noverlap/nfft validation and DASData metadata sample-rate support. |
 | old_code/old_code4/hcz_signal_analyse.py plotting workflows | PSD/spectrum plotting ideas | Reference only | das_view/plotting/spectra.py::plot_psd | tests/test_spectrum_plotting.py | Plotting is separated from analysis and remains PyQt5-independent. |
 | Old combined scripts/workflows | File-level spectrum workflow | New implementation | das_view/analysis/service.py | tests/test_spectrum_service.py | Uses read_trace and apply_preprocess services instead of embedding IO/filter logic in examples. |
-| old_code FK/F-J/MASW sections | Advanced analysis | Deferred | Not implemented | Not applicable | Out of scope for Phase 3D. |
+| old_code historical advanced FK/F-J/MASW sections | Advanced analysis | Deferred | Not implemented | Not applicable | Historical audit only; not in current main roadmap. |
 
 No old_code files were imported, copied directly, or modified.
 
@@ -719,7 +719,7 @@ No old_code files were imported, copied directly, or modified.
 
 ### Not completed
 
-- FK/F-J/MASW are not implemented.
+- FK visualization and FK-domain smoke filtering are not yet implemented.
 - GUI spectrum panel is not implemented.
 - Full STFT workflow is not implemented.
 - Full-size spectral analysis/export workflow is not implemented.
@@ -791,8 +791,8 @@ round only changed the new GUI worker/state wiring around existing services.
 - Real large-file GUI responsiveness and cancellation timing have not been
   validated with production samples.
 - GUI preprocessing, filter, and spectrum panels are not implemented.
-- FK, F-J/MASW, full STFT, and complete processing/analysis export remain
-  deferred.
+- FK visualization, full time-frequency workflows, and complete
+  processing/analysis export remain deferred.
 
 ### Suggested next round
 
@@ -853,7 +853,8 @@ das_view.plotting.spectra APIs.
 ### Not completed
 
 - GUI preprocessing and filter panels are not implemented.
-- FK, F-J/MASW, and a complete STFT workflow are not implemented.
+- FK visualization, FK-domain smoke filtering, and a complete time-frequency
+  workflow are not implemented.
 - Full processing/analysis export is not implemented.
 - Real large-file spectrum performance and cancellation timing have not been
   validated with production samples.
@@ -922,9 +923,10 @@ old_code/old_code1/tools/analysis_tools.py contains useful FK transform ideas
 using rfft2/rfftfreq/fftfreq/fftshift, but it transposes data internally, uses
 older (channel, time) assumptions, and is coupled to FK filtering/fan-mask
 workflows. Phase 4A reimplemented only the basic transform smoke path for the
-new (n_samples, n_channels) interface. FK filter, velocity fan filter, inverse
-FK filtering, F-J, MASW, and dispersion picking remain deferred. No old_code
-files were copied, imported, or modified.
+new (n_samples, n_channels) interface. FK filter, velocity fan filter, and
+inverse FK filtering remain deferred. Historical topic-specific old-code
+sections are not in the current main roadmap. No old_code files were copied,
+imported, or modified.
 
 ### Test result
 
@@ -937,7 +939,8 @@ files were copied, imported, or modified.
 
 - FK filter is not implemented.
 - Velocity fan filtering is not implemented.
-- F-J / MASW and dispersion picking are not implemented.
+- Specialized inversion or picking workflows are not in the current main
+  roadmap.
 - GUI FK panel is not implemented.
 - Real large-file FK performance has not been validated.
 - Full processing/analysis export is not implemented.
@@ -999,8 +1002,9 @@ and keep the implementation independent from GUI code.
   optional filtered FK image output. It defaults to 4096 samples by 512 channels.
 - Added plot_fk_mask as a small Matplotlib-only helper for smoke validation.
 - The implementation is intentionally not an engineering-grade FK denoising
-  workflow. It has no tapered fan edges, interactive velocity editor,
-  dispersion picking, F-J, MASW, or GUI FK panel.
+  workflow. It has no tapered fan edges, interactive velocity editor, or GUI FK
+  panel. Specialized inversion or picking workflows are not in the current main
+  roadmap.
 
 ### Old-code migration judgment
 
@@ -1028,7 +1032,8 @@ were copied, imported, or modified.
 
 - Engineering-grade FK filter is not implemented.
 - GUI FK panel is not implemented.
-- F-J / MASW and dispersion picking are not implemented.
+- Specialized inversion or picking workflows are not in the current main
+  roadmap.
 - Real large-file FK filter performance has not been validated.
 - Full processing/analysis export is not implemented.
 
@@ -1092,7 +1097,8 @@ Matplotlib drawing in the main GUI thread, and do not add new FK algorithms.
 
 - Engineering-grade FK filter is not implemented.
 - Velocity fan polish, mask limits, and safer defaults remain future work.
-- F-J / MASW and dispersion picking are not implemented.
+- Specialized inversion or picking workflows are not in the current main
+  roadmap.
 - Real large-file FK GUI performance has not been validated.
 - Full processing/analysis export is not implemented.
 
@@ -1154,12 +1160,76 @@ GUI/CLI error messages, and regression tests.
 
 - Engineering-grade FK filter is not implemented.
 - GUI preprocessing/filter panel is not implemented.
-- F-J / MASW and dispersion picking are not implemented.
+- Specialized inversion or picking workflows are not in the current main
+  roadmap.
 - Real large-file FK performance has not been validated.
 - Full processing/analysis export is not implemented.
 
 ### Suggested next round
 
 Phase 2E: real sample validation if local_validation_paths.txt with
-real/quasi-real DAS sample paths is provided; otherwise Phase 4E: FK
-documentation/examples polish.
+real/quasi-real DAS sample paths is provided; otherwise Phase 5A: analysis
+feature statistics.
+
+## 2026-06-22: Phase R1 project target realignment
+
+### Goal
+
+Realign the project target around a general DAS Viewer / DAS Analysis package
+and remove misleading current-roadmap language that implied a specialized
+surface-wave analysis direction.
+
+### Modified files
+
+- README.md
+- AGENTS.md
+- das_view/analysis/fk_filter.py
+- tests/test_gui_smoke.py
+- docs/02_architecture.md
+- docs/03_old_code_review.md
+- docs/05_development_log.md
+- docs/06_testing.md
+- docs/07_roadmap.md
+- docs/08_project_handoff.md
+
+### Design decisions
+
+- The project target is now stated as DAS file reading, metadata display,
+  time-channel visualization, waveform/spectrum/spectrogram/FK visualization,
+  preprocessing, filtering, feature extraction, GUI interaction, testing,
+  documentation, packaging, and long-term maintainability.
+- F-J / MASW / dispersion picking / surface-wave imaging are explicitly removed
+  from the current main roadmap. If needed later, they should be separate
+  plugins or topic-specific extensions.
+- FK remains in scope as DAS 2D wavefield visualization and FK-domain smoke
+  filtering.
+- The next mainline development direction is DAS analysis: statistics, spectral
+  attributes, envelope/STA-LTA, event candidates, ROI/annotation/export, GUI
+  analysis panels, packaging, and plugin extension boundaries.
+- This round did not add algorithms, readers, GUI features, or numerical logic.
+
+### Old-code migration judgment
+
+No old_code files were copied, imported, modified, or used for implementation.
+Historical old-code audit entries were clarified as not in the current main
+roadmap.
+
+### Test result
+
+- D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider
+- Result: 238 passed.
+
+### Not completed
+
+- Real sample validation is not completed.
+- Statistics and DAS attribute analysis are not implemented.
+- Band energy and spectral attributes are not implemented.
+- Envelope / STA-LTA / event candidate detection is not implemented.
+- ROI / annotation / export workflows are not implemented.
+- GUI analysis panel is not implemented.
+- Packaging and release hardening are not completed.
+
+### Suggested next round
+
+Phase 2E: real sample validation if real/quasi-real data paths are provided.
+Otherwise, Phase 5A: Analysis feature statistics.

@@ -282,7 +282,7 @@ def test_parse_fk_request_maps_filter_and_velocity_parameters():
         ({"vmin_text": "-1"}, "vmin_mps must be positive"),
         ({"mode": "FK velocity filter"}, "requires at least one"),
         ({"vmin_text": "3000", "vmax_text": "300"}, "vmin_mps must be smaller"),
-        ({"mode": "FJ"}, "unsupported FK mode"),
+        ({"mode": "unsupported mode"}, "unsupported FK mode"),
         ({"output": "phase"}, "unsupported FK output mode"),
     ],
 )

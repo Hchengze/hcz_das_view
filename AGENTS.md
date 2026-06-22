@@ -2,7 +2,11 @@
 
 ## Project goal
 
-das_view is the new, maintainable DAS data viewer and analysis package for this workspace. It should grow from a small, testable baseline into a package that can read DAS data, expose metadata, plot DAS data, run processing and analysis, and provide an optional GUI.
+das_view is the new, maintainable DAS Viewer / DAS Analysis package for this workspace. It should grow from a small, testable baseline into a package that can read DAS data, expose metadata, plot time-channel data, waveform traces, spectra, spectrograms, and FK views, run common preprocessing and DAS analysis, provide an optional GUI, and stay testable, documented, packageable, and maintainable.
+
+本项目定位为 DAS 数据查看与分析软件包，不是面波成像、MASW、F-J 或频散拾取软件。
+
+FK visualization and FK-domain smoke filtering may remain as DAS 2D wavefield inspection capabilities. They should not be treated as a mainline path toward specialized topic workflows. If those topic-specific methods are ever needed, they should be independent plugins or extensions outside the current core roadmap.
 
 ## Old code usage rules
 

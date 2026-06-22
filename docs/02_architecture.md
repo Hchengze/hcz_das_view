@@ -46,12 +46,13 @@
 - io: data readers, metadata readers, format registry, GUI-independent preview workflow, and bounded data selection services.
 - processing: GUI-independent preprocessing operations such as demean, linear
   detrend, taper, normalization, standardization, clipping, and later filtering/resampling.
-- analysis: GUI-independent scientific analysis. Phase 3D includes basic
+- analysis: GUI-independent DAS analysis. Current support includes basic
   amplitude spectrum, power spectrum, periodogram PSD, Welch PSD,
-  single-channel spectrogram smoke-path helpers, and file-level spectrum
-  services. Phase 4A adds a basic FK transform smoke path. Phase 4B adds a
-  simple FK velocity fan filter smoke path. Full STFT, engineering-grade FK
-  filtering, F-J, and MASW workflows remain deferred.
+  single-channel spectrogram smoke-path helpers, file-level spectrum services,
+  FK visualization, and FK-domain smoke filtering for DAS 2D wavefield
+  inspection. Future mainline work should expand toward statistics, spectral
+  attributes, envelope/STA-LTA, event candidate detection, ROI summaries, and
+  exportable analysis results.
 - plotting: Matplotlib plotting helpers independent from GUI widgets, including
   waterfall, waveform, spectrum, spectrogram, and FK views.
 - gui: optional PyQt5 layer that calls preview, formatting, and plotting services.
@@ -162,10 +163,9 @@ Reader responsibilities:
   apply_preprocess, then calls fk_velocity_filter. The service returns filtered
   DASData, reader/metadata/selection information, preprocessing history, and
   filter parameters. It does not inspect HDF5/DAT internal paths.
-- Phase 4B FK filtering is a smoke path only. It is intended to validate
-  coordinates, shape, mask behavior, and inverse-transform plumbing. Tapered
-  interactive masks, engineering-grade denoising, F-J, MASW, dispersion
-  picking, and GUI FK panels remain deferred.
+- Phase 4B/4D FK filtering is a smoke path only. It is intended to validate
+  coordinates, shape, mask behavior, and inverse-transform plumbing for DAS 2D
+  wavefield inspection. It is not a specialized inversion or picking workflow.
 
 ## Processing services
 
