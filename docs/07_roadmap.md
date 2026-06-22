@@ -49,6 +49,15 @@ dispersion-picking package.
   workflows. Such topic-specific algorithms, if ever needed, should live in
   independent plugins or extensions rather than the current core roadmap.
 
+### Phase 5A: Analysis feature statistics
+
+- Added basic DAS statistics analysis for numpy arrays and DASData.
+- Added global summaries, time-axis reductions, channel-axis reductions, local
+  window statistics, finite/NaN/Inf summaries, percentiles, RMS, absolute mean,
+  peak-to-peak, and energy.
+- Added file-level compute_statistics_for_file service and
+  examples/statistics_file.py for bounded CLI use with JSON/global CSV output.
+
 ## Recommended next phases
 
 ### Phase 2E: Real sample validation
@@ -76,6 +85,13 @@ Goal:
     mean / std / rms / max / min / percentile / peak-to-peak / abs_mean /
     energy.
 
+Status:
+
+- Completed in Phase 5A for basic global, time-wise, channel-wise, and bounded
+  window statistics.
+- Remaining follow-up belongs to later export/GUI phases, not core statistics
+  computation.
+
 Scope:
 
 - Support time-wise statistics, channel-wise statistics, local time windows,
@@ -96,6 +112,8 @@ Scope:
 - Reuse existing bounded data access and spectrum service patterns.
 - Support per-channel and averaged summaries.
 - Keep plotting/export separate from numerical analysis.
+
+Recommended next if no real sample paths are available.
 
 ### Phase 5C: Envelope / STA-LTA / event candidate detection
 

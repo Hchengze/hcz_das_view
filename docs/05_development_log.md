@@ -1233,3 +1233,78 @@ roadmap.
 
 Phase 2E: real sample validation if real/quasi-real data paths are provided.
 Otherwise, Phase 5A: Analysis feature statistics.
+
+## 2026-06-22: Phase 5A Analysis feature statistics
+
+### Goal
+
+Add basic DAS statistics analysis as the first post-realignment analysis
+capability. Keep the implementation GUI-independent, reader-independent through
+the data service, and bounded by default for file-level workflows.
+
+### Added files
+
+- das_view/analysis/statistics.py
+- examples/statistics_file.py
+- tests/test_statistics_analysis.py
+- tests/test_statistics_service.py
+- tests/test_statistics_example.py
+
+### Modified files
+
+- README.md
+- das_view/analysis/__init__.py
+- das_view/analysis/service.py
+- docs/02_architecture.md
+- docs/05_development_log.md
+- docs/06_testing.md
+- docs/07_roadmap.md
+- docs/08_project_handoff.md
+
+### Design decisions
+
+- Added FiniteSummary and StatisticsResult containers.
+- basic_statistics accepts numpy arrays or DASData and supports axis=None
+  global summaries, axis=0 time-axis reductions with one output per channel,
+  and axis=1 channel-axis reductions with one output per time sample.
+- Statistics include count, finite_count, nan_count, posinf_count,
+  neginf_count, mean, std, min, max, median, percentiles, RMS, abs_mean,
+  peak-to-peak, and energy.
+- nan_policy="omit" computes statistics from finite values and records
+  non-finite counts. nan_policy="raise" rejects NaN/Inf inputs.
+- All-nonfinite inputs return stable NaN-valued summary statistics with energy
+  equal to 0.0 rather than crashing inside reductions.
+- compute_statistics_for_file reads bounded selections through read_selection,
+  optionally applies apply_preprocess, and then calls basic_statistics. It does
+  not inspect HDF5/DAT internal paths and does not depend on GUI code.
+- examples/statistics_file.py provides bounded CLI statistics with JSON output
+  for all modes and global CSV output for scalar summaries.
+- No GUI analysis panel, event detection, band energy, FK expansion, reader
+  changes, or plotting additions were included in this phase.
+
+### Old-code migration judgment
+
+No old_code files were copied, imported, modified, or used for implementation.
+Phase 5A was implemented directly against the new DASData, data service, and
+analysis service interfaces.
+
+### Test result
+
+- D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider tests\test_statistics_analysis.py tests\test_statistics_service.py tests\test_statistics_example.py
+- Result: 23 passed.
+- D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider
+- Result: 261 passed.
+
+### Not completed
+
+- Real sample validation is not completed.
+- Band energy and spectral attributes are not implemented.
+- Envelope / STA-LTA / event candidate detection is not implemented.
+- ROI / annotation / export workflows are not implemented.
+- GUI analysis panel is not implemented.
+- Packaging and release hardening are not completed.
+
+### Suggested next round
+
+Phase 2E: real sample validation if real/quasi-real data paths are provided.
+Otherwise, Phase 5B: Band energy and spectral attributes.

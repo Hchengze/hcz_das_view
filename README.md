@@ -39,13 +39,15 @@ Implemented so far:
 - File-level spectrum analysis service for CLI and future GUI reuse.
 - Basic FK transform, simple velocity fan FK filter, file-level FK services,
   and Matplotlib FK plotting smoke paths.
+- Basic DAS statistics analysis for global, time-wise, channel-wise, and
+  bounded time/channel selections, including finite/NaN/Inf summaries.
 - Synthetic tests for core readers and preview workflows.
 
 Still intentionally deferred:
 
 - Real/quasi-real sample validation using local path lists.
-- Broader DAS analysis features such as statistics, spectral attributes,
-  envelope/STA-LTA, event candidate tables, ROI/annotation, and export.
+- Broader DAS analysis features such as spectral attributes, envelope/STA-LTA,
+  event candidate tables, ROI/annotation, and export.
 - GUI analysis panels for statistics, spectral attributes, envelope, and event
   candidates.
 - Full time-frequency analysis platform beyond the current single-channel
@@ -145,6 +147,24 @@ default the selected range is passed; `--reject` rejects the selected velocity
 range. It is an FK-domain smoke filter, not a specialized inversion or picking
 workflow.
 
+Compute bounded DAS statistics:
+
+    python examples/statistics_file.py input.h5
+    python examples/statistics_file.py input.dat --time-start 0 --time-stop 5000 --channel-start 0 --channel-stop 512
+    python examples/statistics_file.py input.h5 --axis time
+    python examples/statistics_file.py input.h5 --axis channel
+    python examples/statistics_file.py input.h5 --percentiles 1 5 50 95 99
+    python examples/statistics_file.py input.h5 --output stats.json
+    python examples/statistics_file.py input.h5 --output stats.csv
+
+The statistics example reads a bounded time/channel selection by default. It
+reports count, finite/NaN/Inf counts, mean, standard deviation, min, max,
+median, percentiles, RMS, absolute mean, peak-to-peak, and energy. `--axis
+time` reduces along the time/sample axis and returns one value per channel;
+`--axis channel` reduces along the channel axis and returns one value per time
+sample. This is a general DAS analysis feature, not a specialized imaging
+workflow.
+
 Run the minimal GUI:
 
     python examples/run_gui.py
@@ -162,8 +182,8 @@ If installed with the console script, the GUI can also be started with:
 
 Do not commit real DAS data or generated preview images. Large files should be
 opened through slicing/downsampling preview workflows. The preprocessing,
-filter, spectrum, and FK examples work on bounded preview/trace data only; they
-do not export processed full-size DAS arrays. Filtering and spectrogram
+filter, spectrum, statistics, and FK examples work on bounded preview/trace
+data only; they do not export processed full-size DAS arrays. Filtering and spectrogram
 analysis depend on scipy.signal. Spectrum and FK examples cover bounded
 traces/previews only and do not export full processed arrays. Specialized
 inversion or picking workflows are outside the current main roadmap and would

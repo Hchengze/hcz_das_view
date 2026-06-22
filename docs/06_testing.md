@@ -85,6 +85,17 @@ Current coverage:
 - Spectrum example tests cover CLI processing-step construction, analysis mode
   selection, conflict handling, and PSD argument parsing without requiring real
   DAS input files.
+- Statistics analysis tests cover global statistics, RMS, energy, absolute
+  mean, peak-to-peak, percentiles, axis=0/channel-wise outputs, axis=1/time-wise
+  outputs, DASData metadata summaries, finite/NaN/Inf counts, omit/raise
+  non-finite policies, all-nonfinite stability, non-numeric rejection, window
+  statistics, and no in-place mutation.
+- Statistics service tests cover compute_statistics_for_file on synthetic ZD
+  HDF5 data, bounded time/channel selections, preprocessing history, axis=None,
+  axis=0, axis=1, reader name, metadata, and selection reporting.
+- Statistics example tests cover parser behavior, bounded default slices,
+  explicit slices, axis parsing, JSON output to pytest tmp_path, and global CSV
+  output to pytest tmp_path without requiring real DAS data.
 - FK analysis tests cover synthetic plane-wave peak frequency/wavenumber
   detection, amplitude/power shapes, DASData metadata sample-rate/dx handling,
   invalid sample_rate_hz/dx/nfft/dimensionality/NaN/Inf/too-short inputs, and
@@ -111,7 +122,6 @@ Current coverage:
 
 Future coverage:
 
-- DAS statistics and attribute analysis tests.
 - Band energy and spectral attribute tests.
 - Envelope / STA-LTA / event candidate detection tests.
 - ROI / annotation / export service tests.
