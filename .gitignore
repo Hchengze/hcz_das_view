@@ -18,6 +18,7 @@ local_validation_paths.txt
 .env
 .venv/
 venv/
+.tmp_release_venv/
 build/
 dist/
 *.egg-info/

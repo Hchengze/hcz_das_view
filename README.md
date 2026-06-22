@@ -64,8 +64,8 @@ Still intentionally deferred:
   validation set.
 - Full time-frequency analysis platform beyond the current single-channel
   spectrogram smoke path.
-- Automated release CI, signed Windows executables, and clean-environment
-  release validation.
+- Automated release CI, signed Windows executables, and broader
+  clean-environment release validation across more machines.
 - Full-file preprocessing export.
 - GUI filter parameter panel.
 - SEGY/SAC/TDMS support.
@@ -92,6 +92,17 @@ For local packaging smoke work:
 The installed distribution name is `hcz-das-view`; the Python package remains
 `das_view`.
 
+For a release-candidate smoke check, use a temporary local virtual environment
+that is ignored by git:
+
+    python -m venv .tmp_release_venv
+    .tmp_release_venv\Scripts\python -m pip install -e . --no-deps
+    .tmp_release_venv\Scripts\python -m pip show hcz-das-view
+
+The `--no-deps` form validates package metadata and editable installation only.
+Importing or running analysis commands still requires runtime dependencies such
+as numpy and scipy.
+
 ## Test
 
     python -m pytest
@@ -116,6 +127,8 @@ After installation, the package provides these command names:
 The command-line tools use bounded service-layer workflows and do not read
 HDF5/DAT internals directly. `hcz-das-view` launches the optional PyQt5 GUI.
 The older `das-view-gui` GUI script is retained for compatibility.
+On Windows, a `gui-scripts` executable may not echo help text in every shell;
+`python -m das_view.gui.app --help` is the visible GUI-help smoke path.
 
 Examples:
 
@@ -295,6 +308,8 @@ The PyInstaller spec is:
 
 Build artifacts under `build/` and `dist/`, wheels, archives, and exe files are
 local artifacts and must not be committed.
+Clean release-validation environments such as `.tmp_release_venv/` are also
+local artifacts and must not be committed.
 
 ## Release checklist
 
@@ -302,15 +317,17 @@ Before tagging or publishing a release:
 
 1. Check version metadata in `pyproject.toml`.
 2. Run the full pytest suite.
-3. Run real/quasi-real sample smoke validation locally without committing data.
-4. Run CLI `--help` smoke for installed entry points.
-5. Run GUI launch smoke.
-6. Build wheel and sdist smoke artifacts.
-7. Run Windows PyInstaller smoke if releasing an exe.
-8. Update README and `docs/09_tutorial_user_manual.ipynb`.
-9. Confirm no real data, output directories, images, JSON/CSV outputs, wheels,
-   archives, or exe files are staged.
-10. Create the release tag and GitHub release notes.
+3. Run installed CLI `--help` smoke.
+4. Run GUI `--help` smoke and GUI launch smoke.
+5. Run example script `--help` smoke.
+6. Run real/quasi-real sample smoke validation locally without committing data.
+7. Build wheel and sdist smoke artifacts when the `build` package is available.
+8. Run clean venv editable/install smoke.
+9. Run Windows PyInstaller smoke if releasing an exe.
+10. Update README and `docs/09_tutorial_user_manual.ipynb`.
+11. Confirm no real data, output directories, images, JSON/CSV outputs,
+    build/dist artifacts, wheels, archives, or exe files are staged.
+12. Create the release tag and GitHub release notes.
 
 ## Tutorial notebook
 

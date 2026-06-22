@@ -93,11 +93,14 @@ All internal core arrays must use:
   paths. Importing das_view or das_view.cli modules must not require PyQt5.
 - Do not commit build/, dist/, wheel files, source archives, exe files, or
   *.egg-info directories.
+- Do not commit clean-environment validation directories such as
+  .tmp_release_venv/ or temporary pytest directories.
 - Do not commit PyInstaller output. packaging/ may contain documentation,
   scripts, and specs only when they avoid local absolute paths and real data.
 - Release rounds should check version metadata, full pytest, CLI help smoke,
-  GUI launch smoke, wheel/sdist build smoke, Windows packaging smoke where
-  practical, README/notebook freshness, and staged artifact safety.
+  GUI help/launch smoke, example help smoke, clean venv install smoke,
+  wheel/sdist build smoke, Windows packaging smoke where practical,
+  README/notebook freshness, and staged artifact safety.
 
 ## Before and after each development round
 

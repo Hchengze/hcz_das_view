@@ -53,6 +53,8 @@ git.
   manual GUI validation.
 - The GUI entry point is `das_view.gui.app:main`; core, IO, processing,
   analysis, and plotting modules remain PyQt5-independent.
+- For a visible help smoke in shells where Windows `gui-scripts` executables do
+  not attach to the console, run `python -m das_view.gui.app --help`.
 
 ## 5. Validate the exe
 
@@ -76,6 +78,7 @@ Do not commit or bundle:
 - `outputs/`;
 - generated JSON/CSV/image files;
 - `build/`, `dist/`, wheels, archives, or exe files.
+- `.tmp_release_venv/` or other local clean-install validation environments.
 
 ## 7. Current limitations
 
@@ -83,3 +86,6 @@ Do not commit or bundle:
 - The executable is not code-signed.
 - Large-file performance still requires local validation.
 - PyInstaller output may depend on the local Conda/Python environment.
+- Clean-environment install checks with `--no-deps` validate package metadata
+  and entry point generation, but runtime imports still require dependencies
+  such as numpy and scipy.

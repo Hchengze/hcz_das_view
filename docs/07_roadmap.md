@@ -243,8 +243,8 @@ Status:
 - Completed in Phase 6A for package metadata, installed CLI/GUI entry points,
   Windows PyInstaller packaging notes, packaging smoke tests, and release
   checklist documentation.
-- Automated release CI, signed Windows executables, and clean-environment
-  install validation remain follow-up work.
+- Clean-environment install validation is covered further in Phase 6C.
+  Automated release CI and signed Windows executables remain follow-up work.
 
 Release checklist:
 
@@ -252,7 +252,9 @@ Release checklist:
 - Run full pytest.
 - Run real/quasi-real sample smoke validation locally without committing data.
 - Run installed CLI `--help` smoke and GUI launch smoke.
+- Run example script `--help` smoke.
 - Build wheel/sdist smoke artifacts.
+- Run clean venv editable/install smoke.
 - Run Windows PyInstaller smoke when preparing an exe.
 - Update README and docs/09_tutorial_user_manual.ipynb.
 - Confirm no real data, output artifacts, build/dist files, wheels, archives,
@@ -288,6 +290,19 @@ Scope:
 - Keep release automation separate from analysis and reader features.
 - Validate installed CLI/GUI entry points without committing build artifacts.
 - Do not add real DAS data or generated outputs to the repository.
+
+Status:
+
+- Completed in Phase 6C for pyproject metadata review, ignored clean-venv
+  install smoke, installed CLI help smoke, GUI help smoke through the module
+  path, example help smoke, release validation tests, Windows packaging doc
+  polish, release checklist updates, and tutorial notebook release-operation
+  notes.
+- The current environment does not have the `build` package installed, so
+  wheel/sdist build smoke remains deferred rather than forcing a network
+  install. Automated release CI and Windows exe signing remain future work.
+
+Recommended next: Phase 6B or Phase 6D.
 
 ## DAS Analysis capability roadmap
 

@@ -103,6 +103,8 @@ Not allowed:
 - das_view/gui/app.py provides the GUI entry point and delays PyQt5/MainWindow
   imports until the GUI is actually launched. `--help` can run without starting
   a Qt event loop.
+- Release smoke validation can call `python -m das_view.gui.app --help` when a
+  Windows gui-scripts executable does not echo help text to the active shell.
 - examples/ remain user-facing runnable examples, not installed package API.
 
 ## Packaging
@@ -114,6 +116,9 @@ Not allowed:
   a PyInstaller spec without local absolute paths.
 - build/, dist/, wheel/source archives, exe files, and *.egg-info directories
   are ignored local artifacts and must not be committed.
+- Release validation may create ignored local artifacts such as
+  `.tmp_release_venv/` for clean editable-install smoke checks. These
+  environments are not package inputs and should not be committed.
 
 ## Reader design
 

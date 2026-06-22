@@ -1907,3 +1907,89 @@ commit.
 
 Phase 6B: Plugin / extension architecture, or Phase 6C: Release polishing and
 clean-environment install validation.
+
+## 2026-06-22: Phase 6C Release polishing and clean-environment install validation
+
+### Goal
+
+Polish release-candidate validation for HCZ DAS View without adding analysis
+algorithms, readers, GUI features, surface-wave imaging, MASW, F-J,
+dispersion picking, location, or inversion workflows.
+
+### Added or modified files
+
+- .gitignore
+- README.md
+- AGENTS.md
+- packaging/README_windows_packaging.md
+- tests/test_release_validation.py
+- docs/09_tutorial_user_manual.ipynb
+- docs/02_architecture.md
+- docs/05_development_log.md
+- docs/06_testing.md
+- docs/07_roadmap.md
+- docs/08_project_handoff.md
+
+### Release validation
+
+- Reviewed pyproject.toml metadata, optional dependency groups, console
+  scripts, GUI script, and package discovery.
+- Added .tmp_release_venv/ to ignored local artifacts.
+- Created a temporary clean venv and ran an editable install smoke with
+  `pip install -e . --no-deps`; package metadata and `pip show hcz-das-view`
+  succeeded. Importing das_view in that no-deps venv fails until runtime
+  dependencies such as numpy and scipy are installed, which is the expected
+  limitation of a no-deps validation.
+- The current environment does not have the `build` package installed, so
+  wheel/sdist build smoke is deferred instead of forcing a network install.
+- Installed CLI entrypoint help smoke passed for hcz-das-validate,
+  hcz-das-preview, hcz-das-stats, hcz-das-spectrum, and hcz-das-events.
+- GUI help smoke passed through `python -m das_view.gui.app --help`; on this
+  Windows shell the gui-scripts executable returns success but does not echo
+  visible help text.
+- Example help smoke passed for validate_file.py, statistics_file.py,
+  spectral_attributes_file.py, event_detection_file.py, and roi_export_file.py.
+
+### Tests
+
+- Focused release tests:
+  D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider tests\test_packaging.py tests\test_cli_entrypoints.py tests\test_release_validation.py tests\test_tutorial_notebook.py -q
+  Result: 30 passed.
+- Full test result:
+  D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider
+  Result: 394 passed. The first attempt hit the known Windows default
+  temp-directory permission issue; TMP/TEMP were set to .tmp_pytest and the
+  suite passed. Test count increased from 383 to 394 because Phase 6C added 11
+  release validation tests.
+- pip show hcz-das-view in the main environment reports hcz-das-view
+  0.1.0.dev0 installed in editable mode.
+- pip check in the main Conda environment reports pre-existing "not supported
+  on this platform" metadata messages for unrelated installed packages. No
+  hcz-das-view dependency conflict is reported.
+
+### Old-code migration judgment
+
+No old_code files were copied, imported, modified, or used for implementation.
+This phase only polishes release validation, packaging policy, and
+documentation.
+
+### Data and artifact policy confirmation
+
+No real DAS data, generated images, validation_outputs artifacts,
+local_validation_paths.txt, local absolute data paths, JSON/CSV outputs,
+build/dist artifacts, wheels, archives, exe files, or local output files are
+intended for commit.
+
+### Not completed
+
+- Wheel/sdist build smoke remains deferred until the `build` package is
+  available in the environment.
+- Larger real-data release validation is not completed.
+- Automated release CI is not implemented.
+- Windows exe signing is not implemented.
+- Packaging has not yet been validated across multiple clean machines.
+- The tutorial notebook should continue to be maintained as features mature.
+
+### Suggested next round
+
+Phase 6B: Plugin / extension architecture, or Phase 6D: Release CI planning.

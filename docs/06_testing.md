@@ -158,6 +158,11 @@ Current coverage:
   das_view.cli module imports, CLI `--help` smoke behavior, GUI app help
   behavior without starting the Qt event loop, package import without PyQt5,
   and Windows packaging files without local absolute paths.
+- Phase 6C release validation tests cover release metadata, package import
+  without PyQt5, CLI module help smoke, GUI help without a Qt event loop,
+  Windows packaging README/spec/script artifact policy, .gitignore release
+  artifact coverage, and tutorial notebook installation/CLI/GUI/packaging
+  sections.
 - FK analysis tests cover synthetic plane-wave peak frequency/wavenumber
   detection, amplitude/power shapes, DASData metadata sample-rate/dx handling,
   invalid sample_rate_hz/dx/nfft/dimensionality/NaN/Inf/too-short inputs, and
@@ -228,6 +233,12 @@ For cache-free runs during agent work:
   available, plus `pip check`, `pip show hcz-das-view` when installed, and CLI
   `--help` checks for installed entry points. Build artifacts under build/ and
   dist/ are ignored and must not be committed.
+- Clean-environment release smoke may use an ignored `.tmp_release_venv/`.
+  `pip install -e . --no-deps` validates package metadata and editable
+  installation; importing or running analysis code still requires runtime
+  dependencies such as numpy and scipy. The temporary venv, build outputs,
+  wheels, source archives, exe files, and generated JSON/CSV/image files must
+  not be committed.
 - Phase 4D GUI FK parser tests verify that transform mode allows empty
   velocity limits, velocity-filter mode requires at least one limit, invalid
   vmin/vmax values fail early, and pass/reject status text is user-facing.

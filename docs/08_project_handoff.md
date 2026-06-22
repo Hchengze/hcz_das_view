@@ -19,11 +19,14 @@ phases.
 - Development model: the new das_view/ package is being rebuilt after auditing
   legacy material under old_code/.
 - New runtime code must not depend on, import, or call old_code.
-- Latest project state: current HEAD after Phase 6A packaging and release
-  hardening.
-- Current phase: Phase 6A, package metadata, installed entry points, Windows
-  packaging notes, and release checklist.
-- Current expected test result after Phase 6A: 383 passed.
+- Latest project state: current HEAD after Phase 6C release polishing and
+  clean-environment install validation.
+- Current phase: Phase 6C, release metadata review, clean venv install smoke,
+  entrypoint/example help smoke, Windows packaging polish, and release
+  validation tests.
+- Current expected test result after Phase 6C: 394 passed. The count increased
+  from the Phase 6A baseline of 383 because Phase 6C added 11 release
+  validation tests.
 
 ## 2. Repository and environment
 
@@ -193,6 +196,10 @@ Key modules:
 - Phase 6A: hardened packaging metadata, added installed CLI/GUI entry points,
   added Windows PyInstaller packaging notes/spec/script, added packaging and
   entrypoint tests, and documented the release checklist.
+- Phase 6C: polished release validation for pyproject metadata, ignored clean
+  venv editable install smoke, installed CLI help smoke, GUI help smoke,
+  example help smoke, packaging artifact policy, release validation tests, and
+  tutorial/user manual release-operation notes.
 
 ## 6. Current supported capabilities
 
@@ -374,12 +381,16 @@ Current coverage includes:
   groups, console/gui scripts, das_view.cli imports, CLI help behavior, GUI app
   help behavior, package import without PyQt5, and packaging files without
   local absolute paths.
+- Release validation tests for ignored release artifacts, clean-install
+  policy, Windows packaging files without local paths or real-data patterns,
+  GUI help without a Qt event loop, and tutorial notebook installation/CLI/GUI/
+  packaging sections.
 
 Current full test command and expected result:
 
       D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider
 
-      383 passed
+      394 passed
 
 ## 9. Old code migration status
 
@@ -434,8 +445,10 @@ No old_code files are imported by the new runtime package.
 - Run the full pytest suite.
 - Run local real/quasi-real sample smoke validation without committing data.
 - Run installed CLI `--help` smoke.
-- Run GUI launch smoke.
-- Build wheel and sdist smoke artifacts.
+- Run GUI `--help` smoke and GUI launch smoke.
+- Run example script `--help` smoke.
+- Build wheel and sdist smoke artifacts when the `build` package is available.
+- Run clean venv editable/install smoke.
 - Run Windows PyInstaller smoke when preparing an exe.
 - Update README and docs/09_tutorial_user_manual.ipynb.
 - Confirm no real data, local paths, validation outputs, generated images,
@@ -467,6 +480,12 @@ Goal:
 
       Validate wheel/sdist installation and installed entry points in clean
       environments, then refine release notes and automation.
+
+Status:
+
+      Completed for local clean editable-install smoke and entrypoint/example
+      help validation. Broader clean-machine validation, release CI, and signed
+      Windows executables remain future work.
 
 ## 13. DAS Analysis capability roadmap
 
