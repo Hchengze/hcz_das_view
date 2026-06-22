@@ -26,6 +26,11 @@ def test_tutorial_notebook_contains_user_manual_keywords():
     assert "ROI" in text
     assert "Annotation" in text
     assert "JSON / CSV" in text
+    assert "GUI Analysis panel" in text
+    assert "Statistics" in text
+    assert "Band energy" in text
+    assert "Event candidate" in text
+    assert "ROI statistics" in text
 
 
 def test_tutorial_notebook_avoids_local_paths_and_development_content():

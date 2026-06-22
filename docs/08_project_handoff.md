@@ -19,10 +19,10 @@ phases.
 - Development model: the new das_view/ package is being rebuilt after auditing
   legacy material under old_code/.
 - New runtime code must not depend on, import, or call old_code.
-- Latest project state: current HEAD after Phase 5D ROI / annotation / export.
-- Current phase: Phase 5D, DAS ROI, annotation, export, and ROI summary
-  workflows.
-- Current expected test result after Phase 5D: 353 passed.
+- Latest project state: current HEAD after Phase 5E GUI analysis panel.
+- Current phase: Phase 5E, service-backed GUI Analysis tab for DAS analysis
+  summaries and export.
+- Current expected test result after Phase 5E: 367 passed.
 
 ## 2. Repository and environment
 
@@ -176,6 +176,9 @@ Key modules:
   conversion, ROI statistics and spectral summaries, JSON/CSV export helpers,
   ROI overlay plotting, bounded ROI export CLI example, tests, and tutorial
   notebook updates.
+- Phase 5E: added a minimal GUI Analysis tab that connects bounded statistics,
+  band energy, spectral attributes, event candidates, ROI statistics, and
+  JSON/CSV export to existing service-layer APIs through QThread workers.
 
 ## 6. Current supported capabilities
 
@@ -215,6 +218,9 @@ Key modules:
 - Show Spectrum tab for single-channel amplitude spectrum, power spectrum,
   PSD periodogram, PSD Welch, and spectrogram tasks.
 - Show FK tab for bounded FK transform and FK velocity filter service tasks.
+- Show Analysis tab for bounded statistics, band energy, spectral attributes,
+  STA/LTA event candidates, envelope-threshold event candidates, ROI
+  statistics, result tables, and JSON/CSV export.
 - Configure max_samples and max_channels.
 - Parse single or comma-separated channel input.
 - Preview, waveform, spectrum, and FK tasks run in QThread-backed background
@@ -332,13 +338,13 @@ Current coverage includes:
   ROI overlays, and bounded CLI outputs.
 - CLI example argument construction and no-real-data smoke behavior.
 - GUI-independent parser/model helpers and optional PyQt5 smoke tests for
-  preview, waveform, spectrum, and FK panels.
+  preview, waveform, spectrum, FK, and Analysis panels.
 
 Current full test command and expected result:
 
       D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider
 
-      353 passed
+      367 passed
 
 ## 9. Old code migration status
 
@@ -378,12 +384,11 @@ No old_code files are imported by the new runtime package.
    wavefield inspection, not polished production denoising workflows.
 6. A broader time-frequency workflow is not implemented.
 7. Full processing/analysis result export is not implemented.
-8. Event candidate detection and ROI/export workflows are available through
-   analysis/service/CLI, but are not integrated into the GUI analysis panel.
-9. GUI analysis panel is not implemented.
-10. Packaging and release hardening are not completed.
-11. SEGY, SAC, and TDMS are not implemented.
-12. The tutorial notebook should be maintained as stable features mature.
+8. The GUI Analysis tab is intentionally minimal and does not yet provide a
+   rich interactive annotation workspace.
+9. Packaging and release hardening are not completed.
+10. SEGY, SAC, and TDMS are not implemented.
+11. The tutorial notebook should be maintained as stable features mature.
 
 ## 11. Recommended next phases
 
@@ -396,14 +401,7 @@ Goal:
 Phase 2E is complete for the provided local sample directories. Re-enter this
 phase only when new real sample paths or new format variants are provided.
 
-### Option B: Phase 5E GUI analysis panel
-
-Goal:
-
-      Connect statistics, band energy, envelope, event candidate, ROI, and
-      export workflows to the GUI through service-layer APIs.
-
-### Option C: Phase 6A Packaging and release hardening
+### Option B: Phase 6A Packaging and release hardening
 
 Goal:
 

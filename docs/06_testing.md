@@ -146,6 +146,13 @@ Current coverage:
 - ROI export example tests cover manual ROI parsing, detect-events argument
   parsing, bounded default slices, JSON output, CSV output, and no-real-data
   synthetic file workflows.
+- Phase 5E GUI analysis tests cover PyQt-free analysis selection parsing,
+  percentile, band-range, frequency-range, ROI text parsing, analysis type
+  mapping, invalid parameter errors, analysis summary formatting, event
+  candidate rows, ROI summary rows, AnalysisWorker parameter storage,
+  QtAnalysisWorker construction/cancellation flags when PyQt5 is available,
+  Analysis tab widget/control smoke checks, task-control state switching, and
+  analysis-result clearing without real DAS data.
 - FK analysis tests cover synthetic plane-wave peak frequency/wavenumber
   detection, amplitude/power shapes, DASData metadata sample-rate/dx handling,
   invalid sample_rate_hz/dx/nfft/dimensionality/NaN/Inf/too-short inputs, and
@@ -172,7 +179,6 @@ Current coverage:
 
 Future coverage:
 
-- GUI analysis panel smoke tests.
 - Broader time-frequency workflow tests.
 - FK visualization and FK-domain smoke-filter validation with real or
   quasi-real bounded DAS selections.
@@ -209,6 +215,10 @@ For cache-free runs during agent work:
   parser/model helpers, FK worker construction/cancellation flags, and
   construction/state transitions for the minimal FK tab; they do not automate a
   real asynchronous FK service computation.
+- GUI Analysis tab tests also avoid real file dialogs and real DAS data. They
+  check parser/model helpers, analysis worker construction/cancellation flags,
+  table-row/export mapping, and construction/state transitions for the minimal
+  Analysis tab; they do not automate a real asynchronous analysis computation.
 - Phase 4D GUI FK parser tests verify that transform mode allows empty
   velocity limits, velocity-filter mode requires at least one limit, invalid
   vmin/vmax values fail early, and pass/reject status text is user-facing.

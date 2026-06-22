@@ -7,19 +7,31 @@ from typing import Any
 
 from das_view.core.metadata_format import format_metadata
 from das_view.gui.models import (
+    AnalysisRequest,
     PreviewDisplayInfo,
+    candidates_to_table_rows,
+    format_analysis_summary,
     format_error_message,
     format_fk_status,
     format_spectrum_status,
     format_task_status,
     parse_channel_indices,
+    parse_analysis_request,
     parse_fk_request,
     parse_preview_limits,
     parse_spectrum_request,
+    roi_statistics_to_table_rows,
     should_apply_task_result,
     task_control_state,
 )
-from das_view.gui.workers import QtFKWorker, QtPreviewWorker, QtSpectrumWorker, QtWaveformWorker
+from das_view.gui.workers import (
+    QtAnalysisWorker,
+    QtFKWorker,
+    QtPreviewWorker,
+    QtSpectrumWorker,
+    QtWaveformWorker,
+)
+from das_view.io.export import save_csv_rows, save_json
 from das_view.plotting.fk import plot_fk, plot_fk_mask
 from das_view.plotting.spectra import plot_psd, plot_spectrogram, plot_spectrum
 from das_view.plotting.waterfall import plot_waterfall
@@ -73,6 +85,10 @@ class MainWindow(_qt_widgets().QMainWindow):
         self._next_task_id = 0
         self._task_cancel_requested = False
         self._task_kind: str | None = None
+        self._latest_analysis_result: Any | None = None
+        self._latest_analysis_request: AnalysisRequest | None = None
+        self._latest_analysis_rows: list[dict[str, Any]] = []
+        self._latest_event_candidates: tuple[Any, ...] = ()
         self.setWindowTitle("DAS View")
         self.resize(1100, 750)
 
@@ -173,6 +189,82 @@ class MainWindow(_qt_widgets().QMainWindow):
         self.fk_info.setMaximumHeight(150)
         self.fk_info.setPlainText("Load a file, then run a bounded FK task.")
 
+        self.analysis_time_start_input = QtWidgets.QLineEdit("")
+        self.analysis_time_start_input.setToolTip("Optional zero-based start sample")
+        self.analysis_time_stop_input = QtWidgets.QLineEdit("")
+        self.analysis_time_stop_input.setToolTip("Optional stop sample")
+        self.analysis_time_step_input = QtWidgets.QSpinBox()
+        self.analysis_time_step_input.setRange(1, 10_000_000)
+        self.analysis_time_step_input.setValue(1)
+        self.analysis_channel_start_input = QtWidgets.QLineEdit("")
+        self.analysis_channel_start_input.setToolTip("Optional zero-based start channel")
+        self.analysis_channel_stop_input = QtWidgets.QLineEdit("")
+        self.analysis_channel_stop_input.setToolTip("Optional stop channel")
+        self.analysis_channel_step_input = QtWidgets.QSpinBox()
+        self.analysis_channel_step_input.setRange(1, 1_000_000)
+        self.analysis_channel_step_input.setValue(1)
+        self.analysis_type_combo = QtWidgets.QComboBox()
+        self.analysis_type_combo.addItem("Statistics", "statistics")
+        self.analysis_type_combo.addItem("Band energy", "band_energy")
+        self.analysis_type_combo.addItem("Spectral attributes", "spectral_attributes")
+        self.analysis_type_combo.addItem("Event candidates - STA/LTA", "events_stalta")
+        self.analysis_type_combo.addItem("Event candidates - Envelope threshold", "events_envelope")
+        self.analysis_type_combo.addItem("ROI statistics", "roi_statistics")
+        self.analysis_type_combo.currentIndexChanged.connect(self._update_analysis_parameter_state)
+        self.analysis_axis_combo = QtWidgets.QComboBox()
+        self.analysis_axis_combo.addItems(["global", "time", "channel"])
+        self.analysis_percentiles_input = QtWidgets.QLineEdit("1,5,25,50,75,95,99")
+        self.analysis_nan_policy_combo = QtWidgets.QComboBox()
+        self.analysis_nan_policy_combo.addItems(["omit", "raise"])
+        self.analysis_bands_input = QtWidgets.QLineEdit("1-5,5-20,20-80")
+        self.analysis_frequency_range_input = QtWidgets.QLineEdit("")
+        self.analysis_frequency_range_input.setToolTip("Optional frequency range, e.g. 1-80")
+        self.analysis_rolloff_input = QtWidgets.QLineEdit("0.95")
+        self.analysis_average_channels_checkbox = QtWidgets.QCheckBox("Average channels")
+        self.analysis_sta_input = QtWidgets.QSpinBox()
+        self.analysis_sta_input.setRange(1, 10_000_000)
+        self.analysis_sta_input.setValue(25)
+        self.analysis_lta_input = QtWidgets.QSpinBox()
+        self.analysis_lta_input.setRange(2, 10_000_000)
+        self.analysis_lta_input.setValue(250)
+        self.analysis_trigger_on_input = QtWidgets.QLineEdit("3.0")
+        self.analysis_trigger_off_input = QtWidgets.QLineEdit("")
+        self.analysis_threshold_input = QtWidgets.QLineEdit("1.0")
+        self.analysis_smooth_samples_input = QtWidgets.QLineEdit("")
+        self.analysis_min_duration_input = QtWidgets.QSpinBox()
+        self.analysis_min_duration_input.setRange(1, 10_000_000)
+        self.analysis_min_duration_input.setValue(1)
+        self.analysis_merge_gap_input = QtWidgets.QSpinBox()
+        self.analysis_merge_gap_input.setRange(0, 10_000_000)
+        self.analysis_merge_gap_input.setValue(0)
+        self.analysis_max_events_input = QtWidgets.QLineEdit("")
+        self.analysis_roi_text = QtWidgets.QPlainTextEdit()
+        self.analysis_roi_text.setMaximumHeight(80)
+        self.analysis_roi_text.setPlaceholderText("start,end,ch_start,ch_end")
+        self.analysis_use_event_rois_checkbox = QtWidgets.QCheckBox("Use latest event candidates as ROIs")
+        self.analysis_padding_samples_input = QtWidgets.QSpinBox()
+        self.analysis_padding_samples_input.setRange(0, 10_000_000)
+        self.analysis_padding_samples_input.setValue(0)
+        self.analysis_padding_channels_input = QtWidgets.QSpinBox()
+        self.analysis_padding_channels_input.setRange(0, 1_000_000)
+        self.analysis_padding_channels_input.setValue(0)
+        self.analysis_max_rois_input = QtWidgets.QLineEdit("")
+        self.analysis_run_button = QtWidgets.QPushButton("Run analysis")
+        self.analysis_run_button.clicked.connect(self.run_analysis)
+        self.analysis_export_json_button = QtWidgets.QPushButton("Export JSON")
+        self.analysis_export_json_button.clicked.connect(self.export_analysis_json)
+        self.analysis_export_csv_button = QtWidgets.QPushButton("Export CSV")
+        self.analysis_export_csv_button.clicked.connect(self.export_analysis_csv)
+        self.analysis_clear_button = QtWidgets.QPushButton("Clear results")
+        self.analysis_clear_button.clicked.connect(self.clear_analysis_results)
+        self.analysis_info = QtWidgets.QPlainTextEdit()
+        self.analysis_info.setReadOnly(True)
+        self.analysis_info.setMaximumHeight(180)
+        self.analysis_info.setPlainText("Load a file, then run a bounded analysis task.")
+        self.analysis_table = QtWidgets.QTableWidget()
+        self.analysis_table.setAlternatingRowColors(True)
+        self.analysis_table.setSortingEnabled(False)
+
         self.progress_bar = QtWidgets.QProgressBar()
         self.progress_bar.setRange(0, 100)
         self.progress_bar.setValue(0)
@@ -250,11 +342,53 @@ class MainWindow(_qt_widgets().QMainWindow):
         fk_layout.addWidget(self.fk_toolbar)
         fk_layout.addWidget(self.fk_canvas)
 
+        analysis_panel = QtWidgets.QWidget()
+        analysis_layout = QtWidgets.QVBoxLayout(analysis_panel)
+        analysis_controls = QtWidgets.QFormLayout()
+        analysis_controls.addRow("Time start", self.analysis_time_start_input)
+        analysis_controls.addRow("Time stop", self.analysis_time_stop_input)
+        analysis_controls.addRow("Time step", self.analysis_time_step_input)
+        analysis_controls.addRow("Channel start", self.analysis_channel_start_input)
+        analysis_controls.addRow("Channel stop", self.analysis_channel_stop_input)
+        analysis_controls.addRow("Channel step", self.analysis_channel_step_input)
+        analysis_controls.addRow("Analysis type", self.analysis_type_combo)
+        analysis_controls.addRow("Statistics axis", self.analysis_axis_combo)
+        analysis_controls.addRow("Percentiles", self.analysis_percentiles_input)
+        analysis_controls.addRow("NaN policy", self.analysis_nan_policy_combo)
+        analysis_controls.addRow("Bands Hz", self.analysis_bands_input)
+        analysis_controls.addRow("Frequency range Hz", self.analysis_frequency_range_input)
+        analysis_controls.addRow("Rolloff", self.analysis_rolloff_input)
+        analysis_controls.addRow("", self.analysis_average_channels_checkbox)
+        analysis_controls.addRow("STA samples", self.analysis_sta_input)
+        analysis_controls.addRow("LTA samples", self.analysis_lta_input)
+        analysis_controls.addRow("Trigger on", self.analysis_trigger_on_input)
+        analysis_controls.addRow("Trigger off", self.analysis_trigger_off_input)
+        analysis_controls.addRow("Envelope threshold", self.analysis_threshold_input)
+        analysis_controls.addRow("Smooth samples", self.analysis_smooth_samples_input)
+        analysis_controls.addRow("Min duration", self.analysis_min_duration_input)
+        analysis_controls.addRow("Merge gap", self.analysis_merge_gap_input)
+        analysis_controls.addRow("Max events", self.analysis_max_events_input)
+        analysis_controls.addRow("Manual ROI", self.analysis_roi_text)
+        analysis_controls.addRow("", self.analysis_use_event_rois_checkbox)
+        analysis_controls.addRow("ROI pad samples", self.analysis_padding_samples_input)
+        analysis_controls.addRow("ROI pad channels", self.analysis_padding_channels_input)
+        analysis_controls.addRow("Max ROIs", self.analysis_max_rois_input)
+        analysis_layout.addLayout(analysis_controls)
+        analysis_buttons = QtWidgets.QHBoxLayout()
+        analysis_buttons.addWidget(self.analysis_run_button)
+        analysis_buttons.addWidget(self.analysis_export_json_button)
+        analysis_buttons.addWidget(self.analysis_export_csv_button)
+        analysis_buttons.addWidget(self.analysis_clear_button)
+        analysis_layout.addLayout(analysis_buttons)
+        analysis_layout.addWidget(self.analysis_info)
+        analysis_layout.addWidget(self.analysis_table)
+
         self.plot_tabs = QtWidgets.QTabWidget()
         self.plot_tabs.addTab(waterfall_panel, "Waterfall")
         self.plot_tabs.addTab(waveform_panel, "Waveform")
         self.plot_tabs.addTab(spectrum_panel, "Spectrum")
         self.plot_tabs.addTab(fk_panel, "FK")
+        self.plot_tabs.addTab(analysis_panel, "Analysis")
 
         splitter.addWidget(left_panel)
         splitter.addWidget(self.plot_tabs)
@@ -267,6 +401,7 @@ class MainWindow(_qt_widgets().QMainWindow):
         self._clear_waveform_figure()
         self._clear_spectrum_figure()
         self._clear_fk_figure()
+        self._update_analysis_parameter_state()
         self._apply_task_control_state(is_running=False)
         self.statusBar().showMessage("Ready")
 
@@ -293,6 +428,7 @@ class MainWindow(_qt_widgets().QMainWindow):
         self.waveform_info.setPlainText("Load a file, then plot one or more channels.")
         self.spectrum_info.setPlainText("Load a file, then run a single-channel spectrum analysis.")
         self.fk_info.setPlainText("Load a file, then run a bounded FK task.")
+        self.clear_analysis_results()
         self._clear_waterfall_figure()
         self._clear_waveform_figure()
         self._clear_spectrum_figure()
@@ -309,6 +445,7 @@ class MainWindow(_qt_widgets().QMainWindow):
             self.waveform_info.setPlainText(f"Waveform unavailable.\n\n{message}")
             self.spectrum_info.setPlainText(f"Spectrum unavailable.\n\n{message}")
             self.fk_info.setPlainText(f"FK unavailable.\n\n{message}")
+            self.analysis_info.setPlainText(f"Analysis unavailable.\n\n{message}")
             self._clear_waterfall_figure()
             self._clear_waveform_figure()
             self._clear_spectrum_figure()
@@ -329,6 +466,79 @@ class MainWindow(_qt_widgets().QMainWindow):
                 result,
                 task_id=task_id,
                 path=Path(path),
+            ),
+        )
+
+    def run_analysis(self) -> None:
+        """Run a bounded analysis-panel task in the background."""
+
+        if self._active_task_id is not None:
+            self.statusBar().showMessage("A background task is already running")
+            return
+        if self.current_path is None:
+            message = "Open a supported DAS file before running analysis."
+            self.analysis_info.setPlainText(message)
+            self.statusBar().showMessage(f"Error: {message}")
+            _qt_widgets().QMessageBox.warning(self, "DAS View analysis", message)
+            return
+
+        try:
+            request = parse_analysis_request(
+                analysis_type=self.analysis_type_combo.currentData()
+                or self.analysis_type_combo.currentText(),
+                time_start_text=self.analysis_time_start_input.text(),
+                time_stop_text=self.analysis_time_stop_input.text(),
+                time_step=self.analysis_time_step_input.value(),
+                channel_start_text=self.analysis_channel_start_input.text(),
+                channel_stop_text=self.analysis_channel_stop_input.text(),
+                channel_step=self.analysis_channel_step_input.value(),
+                max_samples=self.max_samples_input.value(),
+                max_channels=self.max_channels_input.value(),
+                axis=self.analysis_axis_combo.currentText(),
+                percentiles_text=self.analysis_percentiles_input.text(),
+                nan_policy=self.analysis_nan_policy_combo.currentText(),
+                bands_text=self.analysis_bands_input.text(),
+                frequency_range_text=self.analysis_frequency_range_input.text(),
+                rolloff_text=self.analysis_rolloff_input.text(),
+                average_channels=self.analysis_average_channels_checkbox.isChecked(),
+                sta_samples=self.analysis_sta_input.value(),
+                lta_samples=self.analysis_lta_input.value(),
+                trigger_on_text=self.analysis_trigger_on_input.text(),
+                trigger_off_text=self.analysis_trigger_off_input.text(),
+                threshold_text=self.analysis_threshold_input.text(),
+                smooth_samples_text=self.analysis_smooth_samples_input.text(),
+                min_duration_samples=self.analysis_min_duration_input.value(),
+                merge_gap_samples=self.analysis_merge_gap_input.value(),
+                max_events_text=self.analysis_max_events_input.text(),
+                roi_text=self.analysis_roi_text.toPlainText(),
+                use_event_rois=self.analysis_use_event_rois_checkbox.isChecked(),
+                padding_samples=self.analysis_padding_samples_input.value(),
+                padding_channels=self.analysis_padding_channels_input.value(),
+                max_rois_text=self.analysis_max_rois_input.text(),
+            )
+        except Exception as exc:  # noqa: BLE001 - GUI boundary should catch and display all errors.
+            message = format_error_message(exc)
+            self.analysis_info.setPlainText(f"Failed to run analysis.\n\n{message}")
+            self._clear_analysis_table()
+            self.statusBar().showMessage(f"Error: {message}")
+            _qt_widgets().QMessageBox.critical(self, "DAS View analysis error", message)
+            return
+
+        self.analysis_info.setPlainText(f"Loading analysis...\n\nAnalysis: {request.label}")
+        self._clear_analysis_table()
+        self.statusBar().showMessage(format_task_status("analysis", "loading"))
+        worker = QtAnalysisWorker(
+            self.current_path,
+            request=request,
+            event_candidates=self._latest_event_candidates,
+        )
+        self._start_background_task(
+            "analysis",
+            worker,
+            on_finished=lambda result, task_id: self._handle_analysis_finished(
+                result,
+                task_id=task_id,
+                request=request,
             ),
         )
 
@@ -467,6 +677,66 @@ class MainWindow(_qt_widgets().QMainWindow):
             ),
         )
 
+    def export_analysis_json(self) -> None:
+        """Export the latest analysis result using shared JSON helpers."""
+
+        if self._latest_analysis_result is None or self._latest_analysis_request is None:
+            message = "Run an analysis before exporting JSON."
+            self.statusBar().showMessage(message)
+            _qt_widgets().QMessageBox.information(self, "DAS View analysis export", message)
+            return
+        path, _ = _qt_widgets().QFileDialog.getSaveFileName(
+            self,
+            "Export analysis JSON",
+            "",
+            "JSON files (*.json);;All files (*)",
+        )
+        if not path:
+            return
+        try:
+            save_json(self._analysis_export_payload(), path)
+        except Exception as exc:  # noqa: BLE001 - GUI boundary should catch and display all errors.
+            message = format_error_message(exc)
+            self.statusBar().showMessage(f"Error: {message}")
+            _qt_widgets().QMessageBox.critical(self, "DAS View analysis export error", message)
+            return
+        self.statusBar().showMessage(f"Exported analysis JSON: {path}")
+
+    def export_analysis_csv(self) -> None:
+        """Export the latest analysis table rows using shared CSV helpers."""
+
+        if not self._latest_analysis_rows:
+            message = "Run an analysis that produces table rows before exporting CSV."
+            self.statusBar().showMessage(message)
+            _qt_widgets().QMessageBox.information(self, "DAS View analysis export", message)
+            return
+        path, _ = _qt_widgets().QFileDialog.getSaveFileName(
+            self,
+            "Export analysis CSV",
+            "",
+            "CSV files (*.csv);;All files (*)",
+        )
+        if not path:
+            return
+        try:
+            save_csv_rows(self._latest_analysis_rows, path)
+        except Exception as exc:  # noqa: BLE001 - GUI boundary should catch and display all errors.
+            message = format_error_message(exc)
+            self.statusBar().showMessage(f"Error: {message}")
+            _qt_widgets().QMessageBox.critical(self, "DAS View analysis export error", message)
+            return
+        self.statusBar().showMessage(f"Exported analysis CSV: {path}")
+
+    def clear_analysis_results(self) -> None:
+        """Clear Analysis-tab summary, rows, and cached export state."""
+
+        self._latest_analysis_result = None
+        self._latest_analysis_request = None
+        self._latest_analysis_rows = []
+        self._latest_event_candidates = ()
+        self.analysis_info.setPlainText("Load a file, then run a bounded analysis task.")
+        self._clear_analysis_table()
+
     def _build_menu(self) -> None:
         file_menu = self.menuBar().addMenu("&File")
         self.open_action = file_menu.addAction("&Open File")
@@ -507,6 +777,12 @@ class MainWindow(_qt_widgets().QMainWindow):
             self.fk_info.setPlainText(
                 "Cancelling FK task...\n\n"
                 "Soft cancellation cannot interrupt a reader or FK calculation already in progress, "
+                "but cancelled results will not be applied."
+            )
+        elif task == "analysis":
+            self.analysis_info.setPlainText(
+                "Cancelling analysis task...\n\n"
+                "Soft cancellation cannot interrupt a reader or analysis call already in progress, "
                 "but cancelled results will not be applied."
             )
 
@@ -650,6 +926,25 @@ class MainWindow(_qt_widgets().QMainWindow):
                 f"vmin={request.vmin_mps} | vmax={request.vmax_mps}"
             )
 
+    def _handle_analysis_finished(self, result: Any, *, task_id: int, request: AnalysisRequest) -> None:
+        if not should_apply_task_result(
+            task_id=task_id,
+            active_task_id=self._active_task_id,
+            was_cancelled=self._task_cancel_requested,
+        ):
+            return
+        rows = self._analysis_rows_for_result(result, request)
+        self._latest_analysis_result = result
+        self._latest_analysis_request = request
+        self._latest_analysis_rows = rows
+        if request.analysis_type in {"events_stalta", "events_envelope"}:
+            self._latest_event_candidates = tuple(result.result.candidates)
+        self.analysis_info.setPlainText("\n".join(format_analysis_summary(result, request)))
+        self._populate_analysis_table(rows)
+        self.statusBar().showMessage(
+            f"Loaded analysis: {request.label} | rows={len(rows)}"
+        )
+
     def _handle_task_failed(self, task_kind: str, message: str, *, task_id: int) -> None:
         if not should_apply_task_result(
             task_id=task_id,
@@ -677,10 +972,14 @@ class MainWindow(_qt_widgets().QMainWindow):
             self.spectrum_info.setPlainText(f"Failed to run spectrum analysis.\n\n{message}")
             self._clear_spectrum_figure()
             title = "DAS View spectrum error"
-        else:
+        elif task_kind == "fk":
             self.fk_info.setPlainText(f"Failed to run FK task.\n\n{message}")
             self._clear_fk_figure()
             title = "DAS View FK error"
+        else:
+            self.analysis_info.setPlainText(f"Failed to run analysis.\n\n{message}")
+            self._clear_analysis_table()
+            title = "DAS View analysis error"
         self.statusBar().showMessage(format_task_status(task_kind, "error", message))
         _qt_widgets().QMessageBox.critical(self, title, message)
 
@@ -704,6 +1003,9 @@ class MainWindow(_qt_widgets().QMainWindow):
         elif task_kind == "fk":
             self.fk_info.setPlainText("FK task cancelled.")
             self._clear_fk_figure()
+        elif task_kind == "analysis":
+            self.analysis_info.setPlainText("Analysis task cancelled.")
+            self._clear_analysis_table()
 
     def _cleanup_task(self, *, task_id: int) -> None:
         if self._active_task_id != task_id:
@@ -744,6 +1046,7 @@ class MainWindow(_qt_widgets().QMainWindow):
         self.fk_vmax_input.setEnabled(state.fk_controls_enabled)
         self.fk_pass_inside_checkbox.setEnabled(state.fk_controls_enabled)
         self.fk_button.setEnabled(state.fk_controls_enabled)
+        self._set_analysis_controls_enabled(state.analysis_controls_enabled)
         self.cancel_button.setEnabled(state.cancel_enabled)
         self.progress_bar.setVisible(state.progress_visible)
         self.progress_bar.setRange(state.progress_minimum, state.progress_maximum)
@@ -781,6 +1084,11 @@ class MainWindow(_qt_widgets().QMainWindow):
         ax.set_xticks([])
         ax.set_yticks([])
         self.fk_canvas.draw_idle()
+
+    def _clear_analysis_table(self) -> None:
+        self.analysis_table.clear()
+        self.analysis_table.setRowCount(0)
+        self.analysis_table.setColumnCount(0)
 
     def _draw_preview(self, preview_data) -> None:
         self.figure.clear()
@@ -843,3 +1151,168 @@ class MainWindow(_qt_widgets().QMainWindow):
             raise ValueError(f"unsupported FK mode: {request.mode!r}")
         self.fk_figure.tight_layout()
         self.fk_canvas.draw_idle()
+
+    def _update_analysis_parameter_state(self) -> None:
+        if not hasattr(self, "analysis_type_combo"):
+            return
+        analysis_type = self.analysis_type_combo.currentData() or "statistics"
+        is_statistics = analysis_type == "statistics"
+        is_band = analysis_type == "band_energy"
+        is_spectral = analysis_type == "spectral_attributes"
+        is_stalta = analysis_type == "events_stalta"
+        is_envelope = analysis_type == "events_envelope"
+        is_events = is_stalta or is_envelope
+        is_roi = analysis_type == "roi_statistics"
+
+        self.analysis_axis_combo.setEnabled(is_statistics)
+        self.analysis_percentiles_input.setEnabled(is_statistics or is_roi)
+        self.analysis_nan_policy_combo.setEnabled(True)
+        self.analysis_bands_input.setEnabled(is_band)
+        self.analysis_frequency_range_input.setEnabled(is_spectral)
+        self.analysis_rolloff_input.setEnabled(is_spectral)
+        self.analysis_average_channels_checkbox.setEnabled(is_band or is_spectral)
+        self.analysis_sta_input.setEnabled(is_stalta)
+        self.analysis_lta_input.setEnabled(is_stalta)
+        self.analysis_trigger_on_input.setEnabled(is_stalta)
+        self.analysis_trigger_off_input.setEnabled(is_stalta)
+        self.analysis_threshold_input.setEnabled(is_envelope)
+        self.analysis_smooth_samples_input.setEnabled(is_envelope)
+        self.analysis_min_duration_input.setEnabled(is_events)
+        self.analysis_merge_gap_input.setEnabled(is_events)
+        self.analysis_max_events_input.setEnabled(is_events)
+        self.analysis_roi_text.setEnabled(is_roi)
+        self.analysis_use_event_rois_checkbox.setEnabled(is_roi)
+        self.analysis_padding_samples_input.setEnabled(is_roi)
+        self.analysis_padding_channels_input.setEnabled(is_roi)
+        self.analysis_max_rois_input.setEnabled(is_roi)
+
+    def _set_analysis_controls_enabled(self, enabled: bool) -> None:
+        widgets = [
+            self.analysis_time_start_input,
+            self.analysis_time_stop_input,
+            self.analysis_time_step_input,
+            self.analysis_channel_start_input,
+            self.analysis_channel_stop_input,
+            self.analysis_channel_step_input,
+            self.analysis_type_combo,
+            self.analysis_run_button,
+            self.analysis_export_json_button,
+            self.analysis_export_csv_button,
+            self.analysis_clear_button,
+        ]
+        for widget in widgets:
+            widget.setEnabled(enabled)
+        if enabled:
+            self._update_analysis_parameter_state()
+        else:
+            for widget in [
+                self.analysis_axis_combo,
+                self.analysis_percentiles_input,
+                self.analysis_nan_policy_combo,
+                self.analysis_bands_input,
+                self.analysis_frequency_range_input,
+                self.analysis_rolloff_input,
+                self.analysis_average_channels_checkbox,
+                self.analysis_sta_input,
+                self.analysis_lta_input,
+                self.analysis_trigger_on_input,
+                self.analysis_trigger_off_input,
+                self.analysis_threshold_input,
+                self.analysis_smooth_samples_input,
+                self.analysis_min_duration_input,
+                self.analysis_merge_gap_input,
+                self.analysis_max_events_input,
+                self.analysis_roi_text,
+                self.analysis_use_event_rois_checkbox,
+                self.analysis_padding_samples_input,
+                self.analysis_padding_channels_input,
+                self.analysis_max_rois_input,
+            ]:
+                widget.setEnabled(False)
+
+    def _analysis_rows_for_result(self, result: Any, request: AnalysisRequest) -> list[dict[str, Any]]:
+        if request.analysis_type in {"events_stalta", "events_envelope"}:
+            return candidates_to_table_rows(result.result.candidates)
+        if request.analysis_type == "roi_statistics":
+            return roi_statistics_to_table_rows(result.results)
+        if request.analysis_type == "band_energy":
+            band_result = result.result
+            rows = []
+            for index, band in enumerate(band_result.bands):
+                rows.append(
+                    {
+                        "band": f"{band[0]:g}-{band[1]:g}",
+                        "band_energy": self._table_value(band_result.band_energy[index]),
+                        "band_energy_ratio": self._table_value(band_result.band_energy_ratio[index]),
+                        "average_channels": band_result.average_channels,
+                    }
+                )
+            return rows
+        if request.analysis_type == "spectral_attributes":
+            attr = result.result
+            return [
+                {
+                    "dominant_frequency_hz": self._table_value(attr.dominant_frequency_hz),
+                    "spectral_centroid_hz": self._table_value(attr.spectral_centroid_hz),
+                    "spectral_bandwidth_hz": self._table_value(attr.spectral_bandwidth_hz),
+                    "spectral_rolloff_hz": self._table_value(attr.spectral_rolloff_hz),
+                    "total_energy": self._table_value(attr.total_energy),
+                }
+            ]
+        if request.analysis_type == "statistics":
+            stats = result.result
+            return [
+                {
+                    "count": self._table_value(stats.count),
+                    "finite_count": self._table_value(stats.finite_count),
+                    "nan_count": self._table_value(stats.nan_count),
+                    "mean": self._table_value(stats.mean),
+                    "std": self._table_value(stats.std),
+                    "rms": self._table_value(stats.rms),
+                    "energy": self._table_value(stats.energy),
+                    "min": self._table_value(stats.min),
+                    "max": self._table_value(stats.max),
+                }
+            ]
+        return []
+
+    def _populate_analysis_table(self, rows: list[dict[str, Any]]) -> None:
+        self._clear_analysis_table()
+        if not rows:
+            return
+        columns: list[str] = []
+        for row in rows:
+            for key in row:
+                if key not in columns:
+                    columns.append(key)
+        self.analysis_table.setColumnCount(len(columns))
+        self.analysis_table.setRowCount(len(rows))
+        self.analysis_table.setHorizontalHeaderLabels(columns)
+        for row_index, row in enumerate(rows):
+            for column_index, column in enumerate(columns):
+                item = _qt_widgets().QTableWidgetItem(str(row.get(column, "")))
+                self.analysis_table.setItem(row_index, column_index, item)
+        self.analysis_table.resizeColumnsToContents()
+
+    def _analysis_export_payload(self) -> dict[str, Any]:
+        request = self._latest_analysis_request
+        result = self._latest_analysis_result
+        return {
+            "analysis_type": None if request is None else request.analysis_type,
+            "summary": [] if request is None or result is None else format_analysis_summary(result, request),
+            "rows": self._latest_analysis_rows,
+        }
+
+    def _table_value(self, value: Any) -> Any:
+        try:
+            import numpy as np
+
+            array = np.asarray(value)
+            if array.ndim == 0:
+                scalar = array.item()
+                if isinstance(scalar, float):
+                    return float(scalar)
+                return scalar
+            return array.tolist()
+        except Exception:  # noqa: BLE001 - best-effort display conversion.
+            return value

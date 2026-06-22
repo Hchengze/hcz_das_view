@@ -1,22 +1,34 @@
 import pytest
 
 from das_view.gui.models import (
+    AnalysisRequest,
     PreviewDisplayInfo,
+    candidates_to_table_rows,
     format_error_message,
+    format_analysis_summary,
     format_fk_status,
     format_spectrum_status,
     format_task_status,
+    parse_analysis_request,
+    parse_analysis_selection,
+    parse_band_ranges,
     parse_channel_indices,
+    parse_frequency_range,
     parse_fk_request,
     parse_optional_nonnegative_int,
     parse_optional_positive_int,
+    parse_percentiles,
     parse_preview_limits,
+    parse_roi_text,
     parse_spectrum_request,
+    roi_statistics_to_table_rows,
     should_apply_task_result,
     spectrum_analysis_label,
     task_control_state,
 )
-from das_view.gui.workers import FKWorker, PreviewWorker, SpectrumWorker, WaveformWorker
+from das_view.analysis.events import EventCandidate
+from das_view.analysis.roi import TimeChannelROI
+from das_view.gui.workers import AnalysisWorker, FKWorker, PreviewWorker, SpectrumWorker, WaveformWorker
 
 
 def test_gui_display_info_and_error_formatting_are_pyqt_free():
@@ -62,6 +74,7 @@ def test_gui_task_control_state_helper():
     assert not running.waveform_controls_enabled
     assert not running.spectrum_controls_enabled
     assert not running.fk_controls_enabled
+    assert not running.analysis_controls_enabled
     assert running.cancel_enabled
     assert running.progress_visible
     assert running.progress_minimum == running.progress_maximum == 0
@@ -71,6 +84,7 @@ def test_gui_task_control_state_helper():
     assert idle.waveform_controls_enabled
     assert idle.spectrum_controls_enabled
     assert idle.fk_controls_enabled
+    assert idle.analysis_controls_enabled
     assert not idle.cancel_enabled
     assert not idle.progress_visible
     assert idle.progress_minimum == 0
@@ -305,6 +319,197 @@ def test_parse_fk_request_rejects_invalid_values(kwargs, message):
         parse_fk_request(**params)
 
 
+def test_parse_analysis_selection_and_common_ranges():
+    time_slice, channel_slice, downsample, max_samples, max_channels = parse_analysis_selection(
+        time_start_text="10",
+        time_stop_text="100",
+        time_step=2,
+        channel_start_text="3",
+        channel_stop_text="40",
+        channel_step=4,
+        max_samples="4096",
+        max_channels="512",
+    )
+
+    assert time_slice == slice(10, 100)
+    assert channel_slice == slice(3, 40)
+    assert downsample == (2, 4)
+    assert max_samples == 4096
+    assert max_channels == 512
+
+    assert parse_percentiles("1, 50, 99") == (1.0, 50.0, 99.0)
+    assert parse_band_ranges("1-5,5-20") == ((1.0, 5.0), (5.0, 20.0))
+    assert parse_frequency_range("1-80") == (1.0, 80.0)
+    assert parse_frequency_range("") is None
+
+
+def test_parse_analysis_request_maps_supported_types():
+    statistics = parse_analysis_request(
+        analysis_type="Statistics",
+        axis="channel",
+        percentiles_text="5,50,95",
+    )
+    band = parse_analysis_request(
+        analysis_type="Band energy",
+        bands_text="1-5,5-20",
+        average_channels=True,
+    )
+    attrs = parse_analysis_request(
+        analysis_type="Spectral attributes",
+        frequency_range_text="1,80",
+        rolloff_text="0.9",
+    )
+    stalta = parse_analysis_request(
+        analysis_type="Event candidates - STA/LTA",
+        sta_samples=10,
+        lta_samples=100,
+        trigger_on_text="3.0",
+        trigger_off_text="1.5",
+    )
+    envelope = parse_analysis_request(
+        analysis_type="Event candidates - Envelope threshold",
+        threshold_text="0.8",
+        smooth_samples_text="5",
+    )
+    roi = parse_analysis_request(
+        analysis_type="ROI statistics",
+        roi_text="0,100,0,4",
+        use_event_rois=False,
+        max_rois_text="3",
+    )
+
+    assert statistics.analysis_type == "statistics"
+    assert statistics.axis == 1
+    assert statistics.percentiles == (5.0, 50.0, 95.0)
+    assert band.analysis_type == "band_energy"
+    assert band.average_channels
+    assert attrs.frequency_range == (1.0, 80.0)
+    assert attrs.rolloff == 0.9
+    assert stalta.analysis_type == "events_stalta"
+    assert stalta.sta_samples == 10
+    assert stalta.lta_samples == 100
+    assert stalta.trigger_off == 1.5
+    assert envelope.analysis_type == "events_envelope"
+    assert envelope.threshold == 0.8
+    assert envelope.smooth_samples == 5
+    assert roi.analysis_type == "roi_statistics"
+    assert roi.rois[0].start_sample == 0
+    assert roi.rois[0].channel_end == 4
+    assert roi.max_rois == 3
+
+
+@pytest.mark.parametrize(
+    ("kwargs", "message"),
+    [
+        ({"time_start_text": "10", "time_stop_text": "1"}, "time_start must be smaller"),
+        ({"analysis_type": "unknown"}, "unsupported analysis type"),
+        ({"percentiles_text": "101"}, "percentiles must be between"),
+        ({"analysis_type": "Band energy", "bands_text": "5-1"}, "0 <= low < high"),
+        ({"analysis_type": "Spectral attributes", "frequency_range_text": "80-1"}, "0 <= low < high"),
+        (
+            {"analysis_type": "Event candidates - STA/LTA", "sta_samples": 100, "lta_samples": 10},
+            "lta_samples must be greater",
+        ),
+        (
+            {
+                "analysis_type": "Event candidates - STA/LTA",
+                "trigger_on_text": "2",
+                "trigger_off_text": "3",
+            },
+            "trigger_off must be less",
+        ),
+        ({"analysis_type": "ROI statistics", "roi_text": "0,10,1"}, "ROI rows"),
+    ],
+)
+def test_parse_analysis_request_rejects_invalid_values(kwargs, message):
+    params = {"analysis_type": "Statistics"}
+    params.update(kwargs)
+
+    with pytest.raises(ValueError, match=message):
+        parse_analysis_request(**params)
+
+
+def test_parse_roi_text_and_analysis_table_rows():
+    rois = parse_roi_text("0,100,0,4\n200,300")
+
+    assert len(rois) == 2
+    assert rois[0].roi_id == "manual_001"
+    assert rois[0].n_channels == 4
+    assert rois[1].channel_start is None
+
+    candidate = EventCandidate(
+        event_id=1,
+        start_sample=10,
+        end_sample=20,
+        duration_samples=10,
+        channel_start=2,
+        channel_end=2,
+        peak_sample=15,
+        peak_channel=2,
+        peak_value=5.0,
+        mean_value=3.0,
+        max_value=5.0,
+        score=5.0,
+    )
+    rows = candidates_to_table_rows([candidate])
+    assert rows[0]["event_id"] == 1
+    assert rows[0]["score"] == 5.0
+    assert roi_statistics_to_table_rows([]) == []
+
+
+def test_format_analysis_summary_is_pyqt_free_for_statistics_and_events():
+    request = parse_analysis_request(analysis_type="Statistics")
+
+    class Stats:
+        axis = None
+        input_shape = (10, 4)
+        count = 40
+        finite_count = 40
+        nan_count = 0
+        posinf_count = 0
+        neginf_count = 0
+        mean = 1.0
+        std = 0.5
+        rms = 1.1
+        energy = 12.0
+        min = 0.0
+        max = 2.0
+        percentiles = {50.0: 1.0}
+
+    class Selection:
+        time_slice = slice(0, 10, 1)
+        channel_slice = slice(0, 4, 1)
+        downsample = (1, 1)
+
+    class ServiceResult:
+        reader_name = "synthetic"
+        result = Stats()
+        selection = Selection()
+        preprocessing_history = ()
+
+    lines = format_analysis_summary(ServiceResult(), request)
+    assert "Reader: synthetic" in lines
+    assert "Analysis: Statistics" in lines
+    assert "mean: 1" in lines
+
+    event_request = parse_analysis_request(analysis_type="Event candidates - Envelope threshold")
+
+    class EventResult:
+        method = "envelope"
+        feature = type("Feature", (), {"shape": (10, 4)})()
+        candidates = ()
+
+    class EventServiceResult:
+        reader_name = "synthetic"
+        result = EventResult()
+        selection = Selection()
+        preprocessing_history = ()
+
+    event_lines = format_analysis_summary(EventServiceResult(), event_request)
+    assert "Event candidates: 0" in event_lines
+    assert any("not location" in line for line in event_lines)
+
+
 def test_format_fk_status_is_pyqt_free_for_transform_and_filter():
     transform_request = parse_fk_request(mode="FK transform", output="Power", db=True)
 
@@ -381,6 +586,8 @@ def test_callable_workers_store_service_parameters():
     spectrum = SpectrumWorker("sample.h5", request=spectrum_request)
     fk_request = parse_fk_request(mode="FK velocity filter", output="Amplitude", vmin_text="300")
     fk = FKWorker("sample.h5", request=fk_request)
+    analysis_request = parse_analysis_request(analysis_type="Statistics")
+    analysis = AnalysisWorker("sample.h5", request=analysis_request)
 
     assert preview.path.name == "sample.h5"
     assert preview.max_samples == 10
@@ -393,12 +600,20 @@ def test_callable_workers_store_service_parameters():
     assert spectrum.request.channel == 2
     assert fk.path.name == "sample.h5"
     assert fk.request.mode == "velocity_filter"
+    assert analysis.path.name == "sample.h5"
+    assert analysis.request.analysis_type == "statistics"
 
 
 def test_qt_workers_can_be_constructed_and_cancelled_when_pyqt5_is_available():
     pytest.importorskip("PyQt5")
 
-    from das_view.gui.workers import QtFKWorker, QtPreviewWorker, QtSpectrumWorker, QtWaveformWorker
+    from das_view.gui.workers import (
+        QtAnalysisWorker,
+        QtFKWorker,
+        QtPreviewWorker,
+        QtSpectrumWorker,
+        QtWaveformWorker,
+    )
 
     preview = QtPreviewWorker("sample.h5", max_samples=10, max_channels=5)
     waveform = QtWaveformWorker("sample.h5", channels=(1, 3), time_step=4)
@@ -407,19 +622,26 @@ def test_qt_workers_can_be_constructed_and_cancelled_when_pyqt5_is_available():
         request=parse_spectrum_request(analysis_type="Spectrogram", channel_text="0"),
     )
     fk = QtFKWorker("sample.h5", request=parse_fk_request(mode="FK transform", output="Amplitude"))
+    analysis = QtAnalysisWorker(
+        "sample.h5",
+        request=parse_analysis_request(analysis_type="Statistics"),
+    )
 
     assert not preview.is_cancelled()
     assert not waveform.is_cancelled()
     assert not spectrum.is_cancelled()
     assert not fk.is_cancelled()
+    assert not analysis.is_cancelled()
     preview.cancel()
     waveform.cancel()
     spectrum.cancel()
     fk.cancel()
+    analysis.cancel()
     assert preview.is_cancelled()
     assert waveform.is_cancelled()
     assert spectrum.is_cancelled()
     assert fk.is_cancelled()
+    assert analysis.is_cancelled()
 
 
 def test_main_window_can_be_created_when_pyqt5_is_available():
@@ -437,9 +659,10 @@ def test_main_window_can_be_created_when_pyqt5_is_available():
     assert window.statusBar().currentMessage() == "Ready"
     assert window.max_samples_input.value() == 2000
     assert window.max_channels_input.value() == 500
-    assert window.plot_tabs.count() == 4
+    assert window.plot_tabs.count() == 5
     assert window.plot_tabs.tabText(2) == "Spectrum"
     assert window.plot_tabs.tabText(3) == "FK"
+    assert window.plot_tabs.tabText(4) == "Analysis"
     assert window.waveform_channel_input.text() == "0"
     assert window.waveform_time_step_input.value() == 1
     assert window.spectrum_channel_input.text() == "0"
@@ -460,6 +683,13 @@ def test_main_window_can_be_created_when_pyqt5_is_available():
     assert window.fk_vmax_input.text() == ""
     assert window.fk_pass_inside_checkbox.isChecked()
     assert window.fk_button.text() == "Run FK"
+    assert window.analysis_type_combo.currentText() == "Statistics"
+    assert window.analysis_run_button.text() == "Run analysis"
+    assert window.analysis_export_json_button.text() == "Export JSON"
+    assert window.analysis_export_csv_button.text() == "Export CSV"
+    assert window.analysis_clear_button.text() == "Clear results"
+    assert window.analysis_time_step_input.value() == 1
+    assert window.analysis_channel_step_input.value() == 1
     assert window.progress_bar is not None
     assert window.cancel_button is not None
     assert window.progress_bar.isHidden()
@@ -504,6 +734,8 @@ def test_main_window_task_controls_switch_when_pyqt5_is_available():
     assert not window.fk_vmax_input.isEnabled()
     assert not window.fk_pass_inside_checkbox.isEnabled()
     assert not window.fk_button.isEnabled()
+    assert not window.analysis_type_combo.isEnabled()
+    assert not window.analysis_run_button.isEnabled()
     assert window.cancel_button.isEnabled()
     assert not window.progress_bar.isHidden()
 
@@ -532,6 +764,8 @@ def test_main_window_task_controls_switch_when_pyqt5_is_available():
     assert window.fk_vmax_input.isEnabled()
     assert window.fk_pass_inside_checkbox.isEnabled()
     assert window.fk_button.isEnabled()
+    assert window.analysis_type_combo.isEnabled()
+    assert window.analysis_run_button.isEnabled()
     assert not window.cancel_button.isEnabled()
     assert window.progress_bar.isHidden()
     window.close()
@@ -631,5 +865,66 @@ def test_main_window_cancel_updates_fk_info_when_pyqt5_is_available():
     assert worker.cancelled
     assert window._task_cancel_requested
     assert "Cancelling FK" in window.fk_info.toPlainText()
+    window.close()
+    app.processEvents()
+
+
+def test_main_window_cancel_updates_analysis_info_when_pyqt5_is_available():
+    pytest.importorskip("PyQt5")
+    matplotlib = pytest.importorskip("matplotlib")
+    matplotlib.use("Agg", force=True)
+
+    from PyQt5 import QtWidgets
+    from das_view.gui.main_window import MainWindow
+
+    class FakeWorker:
+        def __init__(self) -> None:
+            self.cancelled = False
+
+        def cancel(self) -> None:
+            self.cancelled = True
+
+    app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
+    window = MainWindow()
+    worker = FakeWorker()
+    window._task_worker = worker
+    window._active_task_id = 1
+    window._task_kind = "analysis"
+    window.cancel_button.setEnabled(True)
+
+    window.cancel_active_task()
+
+    assert worker.cancelled
+    assert window._task_cancel_requested
+    assert "Cancelling analysis" in window.analysis_info.toPlainText()
+    window.close()
+    app.processEvents()
+
+
+def test_main_window_analysis_results_clear_when_pyqt5_is_available():
+    pytest.importorskip("PyQt5")
+    matplotlib = pytest.importorskip("matplotlib")
+    matplotlib.use("Agg", force=True)
+
+    from PyQt5 import QtWidgets
+    from das_view.gui.main_window import MainWindow
+
+    app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
+    window = MainWindow()
+    window._latest_analysis_result = object()
+    window._latest_analysis_request = AnalysisRequest("statistics")
+    window._latest_analysis_rows = [{"mean": 1.0}]
+    window._latest_event_candidates = (object(),)
+    window.analysis_table.setColumnCount(1)
+    window.analysis_table.setRowCount(1)
+
+    window.clear_analysis_results()
+
+    assert window._latest_analysis_result is None
+    assert window._latest_analysis_request is None
+    assert window._latest_analysis_rows == []
+    assert window._latest_event_candidates == ()
+    assert window.analysis_table.rowCount() == 0
+    assert "Load a file" in window.analysis_info.toPlainText()
     window.close()
     app.processEvents()

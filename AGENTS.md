@@ -76,7 +76,8 @@ All internal core arrays must use:
 - If a development round adds mature, stable user-facing functionality, update
   docs/09_tutorial_user_manual.ipynb in the same round.
 - The tutorial notebook should explain method principles, key formulas, CLI
-  examples, GUI workflow, and interpretation boundaries. It must not include
+  examples, GUI workflow including mature GUI panels, and interpretation
+  boundaries. It must not include
   development process notes, test runs, commit history, real data paths, or
   private local paths.
 - Update docs/05_development_log.md every development round.

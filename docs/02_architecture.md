@@ -61,7 +61,8 @@
   for DAS 2D wavefield inspection.
 - plotting: Matplotlib plotting helpers independent from GUI widgets, including
   waterfall, waveform, spectrum, spectrogram, FK views, and ROI overlays.
-- gui: optional PyQt5 layer that calls preview, formatting, and plotting services.
+- gui: optional PyQt5 layer that calls preview, formatting, plotting,
+  analysis-service, and export-helper APIs.
 - utils: validation, slicing, logging, and shared small helpers.
 - docs/09_tutorial_user_manual.ipynb: stable user tutorial and operation
   manual. It is not a development log, test report, or commit history.
@@ -195,6 +196,16 @@ Reader responsibilities:
   read_selection, optionally call apply_preprocess, then call existing
   statistics or spectral attribute helpers. They do not inspect HDF5/DAT
   internal paths and do not depend on GUI code.
+- das_view/gui/main_window.py provides a minimal Analysis tab that exposes
+  bounded statistics, band energy, spectral attributes, event candidates, and
+  ROI statistics. The tab builds validated requests through
+  das_view/gui/models.py and runs them through das_view/gui/workers.py.
+- Analysis workers call only das_view/analysis/service.py functions. They do
+  not read HDF5/DAT internal paths and do not update Qt widgets directly.
+- Analysis result summaries, QTableWidget rows, Matplotlib canvas updates, and
+  JSON/CSV save dialogs remain in the Qt main thread. Export buttons call
+  das_view/io/export.py helpers instead of implementing serialization in GUI
+  code.
 - The default axis=0 follows the DAS convention and treats each column as an
   independent channel through time.
 - Spectrum helpers accept numpy arrays or DASData. DASData input can provide

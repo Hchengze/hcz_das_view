@@ -5,16 +5,26 @@ from __future__ import annotations
 from pathlib import Path
 
 from das_view.analysis.service import (
+    BandEnergyServiceResult,
+    EventDetectionServiceResult,
     FKFilterServiceResult,
     FKServiceResult,
+    ROIAnalysisServiceResult,
     SpectrumServiceResult,
+    SpectralAttributesServiceResult,
+    StatisticsServiceResult,
+    compute_band_energy_for_file,
+    compute_roi_statistics_for_file,
     compute_fk_filter_for_file,
     compute_fk_for_file,
     compute_psd_for_file,
+    compute_spectral_attributes_for_file,
     compute_spectrogram_for_file,
     compute_spectrum_for_file,
+    compute_statistics_for_file,
+    detect_events_for_file,
 )
-from das_view.gui.models import FKAnalysisRequest, SpectrumAnalysisRequest
+from das_view.gui.models import AnalysisRequest, FKAnalysisRequest, SpectrumAnalysisRequest
 from das_view.io.data_service import SelectionResult, read_trace
 from das_view.io.preview import PreviewResult, create_preview
 
@@ -167,6 +177,109 @@ class FKWorker:
                 return_fk=False,
             )
         raise ValueError(f"unsupported FK mode: {request.mode!r}")
+
+
+class AnalysisWorker:
+    """Thin callable wrapper around file-level analysis-panel services."""
+
+    def __init__(
+        self,
+        path: str | Path,
+        *,
+        request: AnalysisRequest,
+        event_candidates=None,
+    ) -> None:
+        self.path = Path(path)
+        self.request = request
+        self.event_candidates = tuple(event_candidates or ())
+
+    def run(
+        self,
+    ) -> (
+        StatisticsServiceResult
+        | BandEnergyServiceResult
+        | SpectralAttributesServiceResult
+        | EventDetectionServiceResult
+        | ROIAnalysisServiceResult
+    ):
+        request = self.request
+        common = {
+            "time_slice": request.bounded_time_slice(),
+            "channel_slice": request.bounded_channel_slice(),
+            "downsample": request.downsample,
+            "max_samples": request.max_samples,
+            "max_channels": request.max_channels,
+        }
+        if request.analysis_type == "statistics":
+            return compute_statistics_for_file(
+                self.path,
+                **common,
+                axis=request.axis,
+                percentiles=request.percentiles,
+                nan_policy=request.nan_policy,
+            )
+        if request.analysis_type == "band_energy":
+            return compute_band_energy_for_file(
+                self.path,
+                **common,
+                bands=request.bands,
+                average_channels=request.average_channels,
+                nan_policy=request.nan_policy,
+            )
+        if request.analysis_type == "spectral_attributes":
+            return compute_spectral_attributes_for_file(
+                self.path,
+                **common,
+                frequency_range=request.frequency_range,
+                rolloff=request.rolloff,
+                average_channels=request.average_channels,
+                nan_policy=request.nan_policy,
+            )
+        if request.analysis_type == "events_stalta":
+            return detect_events_for_file(
+                self.path,
+                **common,
+                method="stalta",
+                sta_samples=request.sta_samples,
+                lta_samples=request.lta_samples,
+                trigger_on=request.trigger_on,
+                trigger_off=request.trigger_off,
+                min_duration_samples=request.min_duration_samples,
+                merge_gap_samples=request.merge_gap_samples,
+                max_events=request.max_events,
+                nan_policy=request.nan_policy,
+            )
+        if request.analysis_type == "events_envelope":
+            # The service exposes envelope-threshold detection.  A separate
+            # envelope result can be computed by compute_envelope_for_file, but
+            # GUI event output only needs the candidate table from the service.
+            return detect_events_for_file(
+                self.path,
+                **common,
+                method="envelope",
+                threshold=request.threshold,
+                smooth_samples=request.smooth_samples,
+                min_duration_samples=request.min_duration_samples,
+                merge_gap_samples=request.merge_gap_samples,
+                max_events=request.max_events,
+                nan_policy=request.nan_policy,
+            )
+        if request.analysis_type == "roi_statistics":
+            rois = request.rois
+            if request.use_event_rois:
+                from das_view.gui.models import event_candidates_to_rois
+
+                rois = event_candidates_to_rois(self.event_candidates, request)
+            if not rois:
+                raise ValueError("ROI statistics requires manual ROIs or recent event candidates")
+            return compute_roi_statistics_for_file(
+                self.path,
+                rois,
+                max_channels=request.max_channels,
+                percentiles=request.percentiles,
+                nan_policy=request.nan_policy,
+            )
+        raise ValueError(f"unsupported analysis type: {request.analysis_type!r}")
 
 
 if QtCore is not None:
@@ -338,6 +451,44 @@ if QtCore is not None:
                 return
             self.finished.emit(result)
 
+
+    class QtAnalysisWorker(_BaseQtWorker):
+        """QObject worker that runs Analysis-tab services in a QThread."""
+
+        finished = QtCore.pyqtSignal(object)
+
+        def __init__(
+            self,
+            path: str | Path,
+            *,
+            request: AnalysisRequest,
+            event_candidates=None,
+        ) -> None:
+            super().__init__()
+            self.worker = AnalysisWorker(
+                path,
+                request=request,
+                event_candidates=event_candidates,
+            )
+
+        @QtCore.pyqtSlot()
+        def run(self) -> None:
+            self.started.emit()
+            self.progress.emit("Computing analysis", 25)
+            if self._emit_cancelled_if_requested():
+                return
+            try:
+                result = self.worker.run()
+            except Exception as exc:  # noqa: BLE001 - worker boundary reports all errors.
+                if self._emit_cancelled_if_requested():
+                    return
+                self.failed.emit(_format_worker_error(exc))
+                return
+            self.progress.emit("Analysis computed", 100)
+            if self._emit_cancelled_if_requested():
+                return
+            self.finished.emit(result)
+
 else:
 
     class QtPreviewWorker:  # type: ignore[no-redef]
@@ -366,6 +517,13 @@ else:
 
         def __init__(self, *args, **kwargs) -> None:  # noqa: ANN002, ANN003
             raise ImportError("PyQt5 is required to use QtFKWorker")
+
+
+    class QtAnalysisWorker:  # type: ignore[no-redef]
+        """Placeholder that fails only when Qt worker construction is requested."""
+
+        def __init__(self, *args, **kwargs) -> None:  # noqa: ANN002, ANN003
+            raise ImportError("PyQt5 is required to use QtAnalysisWorker")
 
 
 def _format_worker_error(error: BaseException) -> str:

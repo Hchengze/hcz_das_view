@@ -171,9 +171,10 @@ Status:
   tables, bounded file-level services, CLI JSON/CSV output, and synthetic tests.
 - Candidate outputs remain event candidates only; they are not location,
   inversion, or interpretation results.
-- GUI integration remains deferred to Phase 5E.
+- GUI integration was added in Phase 5E through the service-backed Analysis
+  tab.
 
-Recommended next: Phase 5D or Phase 5E.
+Recommended next: Phase 6A.
 
 ### Phase 5D: ROI / annotation / export
 
@@ -195,9 +196,9 @@ Status:
   event-candidate to ROI conversion, ROI statistics/spectral summaries,
   JSON/CSV export helpers, ROI overlay plotting, bounded CLI export workflows,
   and tutorial notebook updates.
-- GUI analysis panel integration remains deferred to Phase 5E.
+- GUI analysis panel integration was added in Phase 5E.
 
-Recommended next: Phase 5E or Phase 6A.
+Recommended next: Phase 6A.
 
 ### Phase 5E: GUI analysis panel
 
@@ -211,6 +212,18 @@ Scope:
 - GUI code should call service-layer APIs.
 - GUI-independent parser/state logic should remain testable without PyQt5.
 - Heavy analysis should use the existing background-worker pattern.
+
+Status:
+
+- Completed in Phase 5E for a minimal Analysis tab with bounded statistics,
+  band energy, spectral attributes, STA/LTA event candidates,
+  envelope-threshold event candidates, ROI statistics, background workers,
+  result tables, and JSON/CSV export through shared helpers.
+- The GUI Analysis tab is a service integration layer only. It does not add
+  new analysis algorithms and does not produce location or geologic
+  interpretation results.
+
+Recommended next: Phase 6A.
 
 ### Phase 6A: Packaging and release hardening
 

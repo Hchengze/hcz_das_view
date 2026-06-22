@@ -571,6 +571,7 @@ def detect_events_for_file(
     lta_samples: int | None = None,
     trigger_on: float | None = None,
     trigger_off: float | None = None,
+    smooth_samples: int | None = None,
     min_duration_samples: int = 1,
     merge_gap_samples: int = 0,
     max_events: int | None = None,
@@ -607,7 +608,12 @@ def detect_events_for_file(
     elif method == "envelope":
         if threshold is None:
             raise ValueError("envelope detection requires threshold")
-        envelope = amplitude_envelope(das_data, axis=0, nan_policy=nan_policy)
+        envelope = amplitude_envelope(
+            das_data,
+            axis=0,
+            smooth_samples=smooth_samples,
+            nan_policy=nan_policy,
+        )
         threshold_result = detect_threshold_events(
             envelope,
             threshold=threshold,
@@ -625,6 +631,7 @@ def detect_events_for_file(
             parameters={
                 **threshold_result.parameters,
                 "feature": "amplitude_envelope",
+                "smooth_samples": smooth_samples,
                 "nan_policy": nan_policy,
             },
         )

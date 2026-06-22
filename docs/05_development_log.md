@@ -1705,3 +1705,88 @@ output files are intended for commit.
 ### Suggested next round
 
 Phase 5E: GUI analysis panel, or Phase 6A: Packaging and release hardening.
+
+## 2026-06-22: Phase 5E GUI analysis panel
+
+### Goal
+
+Add a minimal service-backed GUI Analysis tab for mature DAS analysis
+workflows. This phase does not add new analysis algorithms, surface-wave
+imaging, MASW, F-J, dispersion picking, source location, or geologic
+interpretation workflows.
+
+### Added or modified files
+
+- README.md
+- AGENTS.md
+- das_view/analysis/service.py
+- das_view/gui/models.py
+- das_view/gui/workers.py
+- das_view/gui/main_window.py
+- tests/test_gui_smoke.py
+- tests/test_tutorial_notebook.py
+- docs/09_tutorial_user_manual.ipynb
+- docs/02_architecture.md
+- docs/05_development_log.md
+- docs/06_testing.md
+- docs/07_roadmap.md
+- docs/08_project_handoff.md
+
+### Implemented GUI Analysis capabilities
+
+- Added AnalysisRequest and PyQt-free parsing helpers for time/channel
+  selection, percentiles, band ranges, frequency ranges, STA/LTA parameters,
+  envelope-threshold parameters, ROI text, and analysis type mapping.
+- Added AnalysisWorker and QtAnalysisWorker. The worker dispatches to existing
+  service-layer functions for statistics, band energy, spectral attributes,
+  event candidates, and ROI statistics.
+- Added an Analysis tab with common bounded selection controls, analysis type
+  selection, task-specific parameters, Run analysis, Export JSON, Export CSV,
+  Clear results, a summary text area, and a result table.
+- Analysis runs in the existing QThread-backed background-task framework with
+  soft cancellation and stale-result protection.
+- JSON/CSV export uses das_view/io/export.py helpers. GUI code does not
+  implement serialization details.
+- The GUI still does not read HDF5/DAT internal paths or implement analysis
+  algorithms directly.
+
+### Tutorial notebook
+
+- docs/09_tutorial_user_manual.ipynb was updated with GUI Analysis panel,
+  Statistics operation, Band energy / spectral attributes operation, Event
+  candidate detection operation, ROI statistics and JSON/CSV export, and GUI
+  interpretation-boundary sections.
+- The notebook remains a user tutorial and operation manual. It does not
+  include development logs, test process, commit history, real data paths, or
+  real data.
+
+### Tests
+
+- Focused GUI result:
+  D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider tests\test_gui_smoke.py -q
+  Result: 57 passed.
+- Full test result:
+  D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider
+  Result: 367 passed. The first full run failed because Windows denied access to the default pytest temp directory; rerunning with TMP/TEMP set to .tmp_pytest passed.
+
+### Old-code migration judgment
+
+No old_code files were copied, imported, modified, or used for implementation.
+This phase connects existing service-layer analysis and export workflows to
+the GUI.
+
+### Data policy confirmation
+
+No real DAS input data, generated images, validation_outputs artifacts,
+local_validation_paths.txt, local absolute paths, JSON/CSV outputs, or local
+output files are intended for commit.
+
+### Not completed
+
+- Larger real-data GUI Analysis validation is not completed.
+- Packaging and release hardening are not completed.
+- The tutorial notebook should continue to be maintained as features mature.
+
+### Suggested next round
+
+Phase 6A: Packaging and release hardening.

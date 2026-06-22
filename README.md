@@ -49,6 +49,8 @@ Implemented so far:
 - ROI and annotation helpers, event-candidate to ROI conversion, ROI statistics
   and spectral summaries, JSON/CSV export helpers, and Matplotlib ROI overlay
   helpers.
+- Minimal GUI Analysis tab for bounded statistics, band energy, spectral
+  attributes, event candidates, ROI statistics, and JSON/CSV export.
 - Tutorial/user manual notebook at docs/09_tutorial_user_manual.ipynb for
   stable user-facing concepts, CLI examples, GUI workflow, and interpretation
   boundaries.
@@ -58,9 +60,6 @@ Still intentionally deferred:
 
 - Broader real/quasi-real sample validation coverage beyond the initial local
   validation set.
-- GUI integration for ROI/annotation/export workflows.
-- GUI analysis panels for statistics, spectral attributes, envelope, and event
-  candidates.
 - Full time-frequency analysis platform beyond the current single-channel
   spectrogram smoke path.
 - Packaging and release hardening.
@@ -227,6 +226,13 @@ zero-based channel index such as 10 or comma-separated indices such as
 10,20,30. The GUI calls the shared data service; it does not read format
 internals directly.
 
+The Analysis tab runs bounded service-backed tasks for statistics, band energy,
+spectral attributes, STA/LTA event candidates, envelope-threshold event
+candidates, and ROI statistics. Analysis results are shown as summaries and
+tables, and can be exported as JSON or CSV through the shared export helpers.
+Event candidates, ROI statistics, and exported tables are DAS data review aids;
+they are not source-location or geologic interpretation results.
+
 If installed with the console script, the GUI can also be started with:
 
     das-view-gui
@@ -240,8 +246,9 @@ The user-facing tutorial and operation manual lives at:
 It covers the stable DAS Viewer / DAS Analysis workflow, data shape convention,
 metadata, waterfall/waveform views, preprocessing, filters, spectrum/PSD/
 spectrogram, statistics, spectral attributes, FK inspection, event candidates,
-ROI/annotation/export workflows, CLI usage, GUI usage, and interpretation
-boundaries. It uses synthetic data and placeholder paths only.
+ROI/annotation/export workflows, CLI usage, GUI usage including the Analysis
+tab, and interpretation boundaries. It uses synthetic data and placeholder
+paths only.
 
 ## Data policy
 
@@ -267,7 +274,7 @@ generated images are intentionally ignored by git.
 
 - New runtime code must not import old_code.
 - old_code/ is local reference material only.
-- GUI code calls services such as create_preview, read_trace, format_metadata,
-  plot_waterfall, plot_waveform, and preprocessing service helpers; it must not
-  implement HDF5/DAT internals directly.
+- GUI code calls services such as create_preview, read_trace, analysis
+  services, export helpers, format_metadata, plot_waterfall, and plot_waveform;
+  it must not implement HDF5/DAT internals directly.
 - Core, IO, processing, analysis, and plotting layers must not depend on PyQt5.
