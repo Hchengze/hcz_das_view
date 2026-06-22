@@ -53,6 +53,8 @@ Implemented so far:
   attributes, event candidates, ROI statistics, and JSON/CSV export.
 - Packaging metadata, installed CLI/GUI entry points, Windows PyInstaller
   packaging notes, and a release checklist.
+- Lightweight plugin / extension metadata, registry, optional entry point
+  discovery, and an installed extension-inspection CLI.
 - Tutorial/user manual notebook at docs/09_tutorial_user_manual.ipynb for
   stable user-facing concepts, CLI examples, GUI workflow, and interpretation
   boundaries.
@@ -122,6 +124,7 @@ After installation, the package provides these command names:
     hcz-das-stats --help
     hcz-das-spectrum --help
     hcz-das-events --help
+    hcz-das-extensions --help
     hcz-das-view --help
 
 The command-line tools use bounded service-layer workflows and do not read
@@ -137,8 +140,24 @@ Examples:
     hcz-das-stats input.h5 --axis global --output stats.json
     hcz-das-spectrum input.h5 --channel 10 --mode welch --output welch.png
     hcz-das-events input.h5 --method stalta --sta 50 --lta 500 --trigger-on 3.0 --output events.csv
+    hcz-das-extensions --list
+    hcz-das-extensions --kind analysis --json
 
 Generated outputs are local user artifacts and should not be committed.
+
+## Extension architecture
+
+`das_view.plugins` provides a lightweight extension metadata and registry layer
+for future readers, processing operations, analysis functions, plotting helpers,
+and export helpers. Built-in extension metadata describes the current stable
+package capabilities such as ZD HDF5, Puniu DAT, statistics, event candidates,
+ROI summaries, waterfall/waveform/FK plots, and JSON/CSV export.
+
+The extension registry is intentionally not a replacement for the existing
+reader registry or service APIs. Existing workflows continue to call stable
+services directly. Plugin discovery through Python entry points is explicit and
+on-demand; importing `das_view` does not scan external plugins, read data, or
+start GUI code.
 
 ## Script examples
 

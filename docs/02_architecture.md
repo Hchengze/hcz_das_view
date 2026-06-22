@@ -36,12 +36,17 @@
       - spectra.py
       - fk.py
       - roi.py
+    - plugins/
+      - base.py
+      - registry.py
+      - builtins.py
     - cli/
       - validate.py
       - preview.py
       - statistics.py
       - spectrum.py
       - events.py
+      - extensions.py
     - gui/
       - app.py
       - main_window.py
@@ -67,6 +72,9 @@
   for DAS 2D wavefield inspection.
 - plotting: Matplotlib plotting helpers independent from GUI widgets, including
   waterfall, waveform, spectrum, spectrogram, FK views, and ROI overlays.
+- plugins: lightweight extension metadata, extension wrappers, registry, built-in
+  capability metadata, and optional Python entry point discovery. It does not
+  replace existing services or trigger plugin scans at package import time.
 - cli: installed command-line entry points that call stable service-layer APIs
   and avoid depending on examples/ as package API.
 - gui: optional PyQt5 layer that calls preview, formatting, plotting,
@@ -84,12 +92,14 @@ Allowed:
     processing/analysis -> core/utils
     plotting -> core
     cli -> analysis/processing/io/plotting/core
+    cli -> plugins
 
 Not allowed:
 
     core -> GUI
     io -> GUI
     processing/analysis -> GUI
+    plugins -> GUI
     das_view -> old_code
 
 ## CLI and GUI entry points
@@ -106,6 +116,26 @@ Not allowed:
 - Release smoke validation can call `python -m das_view.gui.app --help` when a
   Windows gui-scripts executable does not echo help text to the active shell.
 - examples/ remain user-facing runnable examples, not installed package API.
+
+## Plugin architecture
+
+- das_view/plugins/base.py defines ExtensionMetadata plus reader, processing,
+  analysis, plotting, and export extension wrappers.
+- ExtensionMetadata records name, kind, version, description, provider, module,
+  tags, and enabled status. It is JSON-friendly through to_dict/from_dict.
+- das_view/plugins/registry.py provides ExtensionRegistry plus global helper
+  functions for register, unregister, list, get, and clear operations. Isolated
+  registries are preferred for tests and one-off inspection.
+- das_view/plugins/builtins.py registers metadata for existing stable package
+  capabilities. Builtins describe callable import paths and capability tags; they
+  do not read data, run analysis, create plots, or start GUI code.
+- discover_entry_point_extensions uses importlib.metadata on demand for the
+  `das_view.plugins` group. It is not called at import time, does not use the
+  network, and records third-party loading failures instead of crashing the
+  application.
+- The current plugin layer is an extension boundary for future work. It does not
+  replace the existing reader registry, IO data service, analysis service,
+  plotting helpers, export helpers, or GUI workflows.
 
 ## Packaging
 

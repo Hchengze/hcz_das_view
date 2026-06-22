@@ -40,6 +40,11 @@ def test_pyproject_has_optional_dependencies_and_entrypoints():
     assert scripts["hcz-das-stats"] == "das_view.cli.statistics:main"
     assert scripts["hcz-das-spectrum"] == "das_view.cli.spectrum:main"
     assert scripts["hcz-das-events"] == "das_view.cli.events:main"
+    assert scripts["hcz-das-extensions"] == "das_view.cli.extensions:main"
+
+    assert project["entry-points"]["das_view.plugins"][
+        "hcz_das_view_builtins"
+    ] == "das_view.plugins.builtins:list_builtin_extensions"
 
     gui_scripts = project["gui-scripts"]
     assert gui_scripts["hcz-das-view"] == "das_view.gui.app:main"

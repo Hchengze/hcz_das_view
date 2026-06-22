@@ -1,0 +1,274 @@
+"""Built-in extension metadata for existing HCZ DAS View capabilities."""
+
+from __future__ import annotations
+
+from das_view.plugins.base import (
+    AnalysisExtension,
+    ExportExtension,
+    ExtensionMetadata,
+    PlottingExtension,
+    ProcessingExtension,
+    ReaderExtension,
+)
+from das_view.plugins.registry import ExtensionRegistry, register_extension
+
+
+PROVIDER = "hcz-das-view"
+VERSION = "0.1.0.dev0"
+
+
+def _metadata(
+    name: str,
+    kind: str,
+    *,
+    description: str,
+    module: str,
+    tags: tuple[str, ...] = (),
+) -> ExtensionMetadata:
+    return ExtensionMetadata(
+        name=name,
+        kind=kind,
+        version=VERSION,
+        description=description,
+        provider=PROVIDER,
+        module=module,
+        tags=tags,
+    )
+
+
+def list_builtin_extensions() -> list[object]:
+    """Return metadata wrappers for stable built-in capabilities.
+
+    This helper does not read DAS files, start GUI code, or run analysis. It
+    only describes existing package capabilities for inspection and future
+    extension composition.
+    """
+
+    return [
+        ReaderExtension(
+            metadata=_metadata(
+                "zd_hdf5",
+                "reader",
+                description="ZD HDF5 reader",
+                module="das_view.io.hdf5_zd",
+                tags=("hdf5", "reader"),
+            ),
+            extensions=(".h5", ".hdf5"),
+            can_read="das_view.io.hdf5_zd.ZDHDF5Reader.can_read",
+            read_metadata="das_view.io.hdf5_zd.ZDHDF5Reader.read_metadata",
+            read="das_view.io.hdf5_zd.ZDHDF5Reader.read",
+        ),
+        ReaderExtension(
+            metadata=_metadata(
+                "puniu_dat",
+                "reader",
+                description="Puniu DAT reader",
+                module="das_view.io.puniu_dat",
+                tags=("dat", "reader"),
+            ),
+            extensions=(".dat",),
+            can_read="das_view.io.puniu_dat.PuniuDATReader.can_read",
+            read_metadata="das_view.io.puniu_dat.PuniuDATReader.read_metadata",
+            read="das_view.io.puniu_dat.PuniuDATReader.read",
+        ),
+        *[
+            ProcessingExtension(
+                metadata=_metadata(
+                    name,
+                    "processing",
+                    description=description,
+                    module=module,
+                    tags=("processing",),
+                ),
+                function=f"{module}.{name}",
+            )
+            for name, description, module in [
+                ("demean", "Remove mean along an axis", "das_view.processing.preprocess"),
+                ("detrend_linear", "Remove a linear trend", "das_view.processing.preprocess"),
+                ("taper", "Apply an edge taper", "das_view.processing.preprocess"),
+                ("normalize", "Normalize amplitudes", "das_view.processing.preprocess"),
+                ("standardize", "Standardize amplitudes", "das_view.processing.preprocess"),
+                ("clip", "Clip amplitudes", "das_view.processing.preprocess"),
+                ("lowpass", "Low-pass filter", "das_view.processing.filters"),
+                ("highpass", "High-pass filter", "das_view.processing.filters"),
+                ("bandpass", "Band-pass filter", "das_view.processing.filters"),
+                ("bandstop", "Band-stop filter", "das_view.processing.filters"),
+                ("notch", "Notch filter", "das_view.processing.filters"),
+            ]
+        ],
+        *[
+            AnalysisExtension(
+                metadata=_metadata(
+                    name,
+                    "analysis",
+                    description=description,
+                    module="das_view.analysis.service",
+                    tags=("analysis",),
+                ),
+                function=function,
+                input_kind="file_selection",
+                output_kind=output_kind,
+            )
+            for name, description, function, output_kind in [
+                (
+                    "statistics",
+                    "Bounded DAS statistics",
+                    "das_view.analysis.service.compute_statistics_for_file",
+                    "statistics_summary",
+                ),
+                (
+                    "spectral_attributes",
+                    "Bounded spectral attributes",
+                    "das_view.analysis.service.compute_spectral_attributes_for_file",
+                    "spectral_attributes",
+                ),
+                (
+                    "band_energy",
+                    "Frequency-band energy",
+                    "das_view.analysis.service.compute_band_energy_for_file",
+                    "band_energy",
+                ),
+                (
+                    "amplitude_envelope",
+                    "Amplitude envelope",
+                    "das_view.analysis.service.compute_envelope_for_file",
+                    "envelope",
+                ),
+                (
+                    "sta_lta",
+                    "STA/LTA ratio",
+                    "das_view.analysis.service.compute_stalta_for_file",
+                    "sta_lta",
+                ),
+                (
+                    "event_candidates",
+                    "Event candidate detection",
+                    "das_view.analysis.service.detect_events_for_file",
+                    "event_candidates",
+                ),
+                (
+                    "roi_statistics",
+                    "ROI statistics",
+                    "das_view.analysis.service.compute_roi_statistics_for_file",
+                    "roi_statistics",
+                ),
+                (
+                    "roi_spectral_attributes",
+                    "ROI spectral attributes",
+                    "das_view.analysis.service.compute_roi_spectral_attributes_for_file",
+                    "roi_spectral_attributes",
+                ),
+                (
+                    "fk_transform",
+                    "Bounded FK transform",
+                    "das_view.analysis.service.compute_fk_for_file",
+                    "fk_result",
+                ),
+                (
+                    "fk_velocity_filter",
+                    "FK velocity fan smoke filter",
+                    "das_view.analysis.service.compute_fk_filter_for_file",
+                    "fk_filter_result",
+                ),
+            ]
+        ],
+        *[
+            PlottingExtension(
+                metadata=_metadata(
+                    name,
+                    "plotting",
+                    description=description,
+                    module=module,
+                    tags=("plotting",),
+                ),
+                function=function,
+                input_kind=input_kind,
+            )
+            for name, description, module, function, input_kind in [
+                (
+                    "waterfall",
+                    "Waterfall plot",
+                    "das_view.plotting.waterfall",
+                    "das_view.plotting.waterfall.plot_waterfall",
+                    "DASData",
+                ),
+                (
+                    "waveform",
+                    "Waveform plot",
+                    "das_view.plotting.waveform",
+                    "das_view.plotting.waveform.plot_waveform",
+                    "DASData",
+                ),
+                (
+                    "spectrum",
+                    "Spectrum plot",
+                    "das_view.plotting.spectra",
+                    "das_view.plotting.spectra.plot_spectrum",
+                    "SpectrumResult",
+                ),
+                (
+                    "spectrogram",
+                    "Spectrogram plot",
+                    "das_view.plotting.spectra",
+                    "das_view.plotting.spectra.plot_spectrogram",
+                    "SpectrogramResult",
+                ),
+                (
+                    "psd",
+                    "PSD plot",
+                    "das_view.plotting.spectra",
+                    "das_view.plotting.spectra.plot_psd",
+                    "PSDResult",
+                ),
+                (
+                    "fk",
+                    "FK plot",
+                    "das_view.plotting.fk",
+                    "das_view.plotting.fk.plot_fk",
+                    "FKResult",
+                ),
+                (
+                    "roi_overlay",
+                    "ROI waterfall overlay",
+                    "das_view.plotting.roi",
+                    "das_view.plotting.roi.plot_rois_on_waterfall",
+                    "ROISet",
+                ),
+            ]
+        ],
+        ExportExtension(
+            metadata=_metadata(
+                "json",
+                "export",
+                description="JSON export helper",
+                module="das_view.io.export",
+                tags=("export", "json"),
+            ),
+            function="das_view.io.export.save_json",
+            output_format="json",
+        ),
+        ExportExtension(
+            metadata=_metadata(
+                "csv",
+                "export",
+                description="CSV export helper",
+                module="das_view.io.export",
+                tags=("export", "csv"),
+            ),
+            function="das_view.io.export.save_csv_rows",
+            output_format="csv",
+        ),
+    ]
+
+
+def register_builtin_extensions(
+    registry: ExtensionRegistry | None = None,
+    *,
+    replace: bool = True,
+) -> list[object]:
+    """Register built-in extension metadata in a registry."""
+
+    extensions = list_builtin_extensions()
+    for extension in extensions:
+        register_extension(extension, registry=registry, replace=replace)
+    return extensions

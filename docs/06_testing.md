@@ -163,6 +163,11 @@ Current coverage:
   Windows packaging README/spec/script artifact policy, .gitignore release
   artifact coverage, and tutorial notebook installation/CLI/GUI/packaging
   sections.
+- Phase 6B plugin tests cover ExtensionMetadata validation and round trips,
+  extension wrapper construction, isolated and global registries, kind/enabled
+  filtering, duplicate and replace behavior, entry point discovery success and
+  failure summaries, built-in extension metadata, and the
+  hcz-das-extensions CLI.
 - FK analysis tests cover synthetic plane-wave peak frequency/wavenumber
   detection, amplitude/power shapes, DASData metadata sample-rate/dx handling,
   invalid sample_rate_hz/dx/nfft/dimensionality/NaN/Inf/too-short inputs, and
@@ -198,6 +203,7 @@ Future coverage:
 - Additional plot types beyond waterfall and waveform.
 - GUI load-file behavior with real small files.
 - Real large-file GUI responsiveness and cancellation timing.
+- Real third-party plugin packages using the das_view.plugins entry point group.
 
 ## Command
 

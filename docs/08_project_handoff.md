@@ -19,14 +19,14 @@ phases.
 - Development model: the new das_view/ package is being rebuilt after auditing
   legacy material under old_code/.
 - New runtime code must not depend on, import, or call old_code.
-- Latest project state: current HEAD after Phase 6C release polishing and
-  clean-environment install validation.
-- Current phase: Phase 6C, release metadata review, clean venv install smoke,
-  entrypoint/example help smoke, Windows packaging polish, and release
-  validation tests.
-- Current expected test result after Phase 6C: 394 passed. The count increased
-  from the Phase 6A baseline of 383 because Phase 6C added 11 release
-  validation tests.
+- Latest project state: current HEAD after Phase 6B plugin / extension
+  architecture.
+- Current phase: Phase 6B, lightweight extension metadata, registry, built-in
+  capability metadata, optional entry point discovery, and extension inspection
+  CLI.
+- Current expected test result after Phase 6B: 418 passed. The count increased
+  from the Phase 6C baseline of 394 because Phase 6B added 24 plugin and
+  extension CLI tests.
 
 ## 2. Repository and environment
 
@@ -93,6 +93,9 @@ phases.
 - das_view/io/export.py: JSON/CSV export helpers for event candidates, ROIs,
   annotations, and ROI analysis summaries.
 - das_view/plotting/: Matplotlib plotting helpers independent of PyQt5.
+- das_view/plugins/: lightweight extension metadata, extension wrappers,
+  registry helpers, built-in capability metadata, and optional on-demand entry
+  point discovery.
 - das_view/cli/: installed command-line wrappers for validation, preview,
   statistics, spectrum/PSD/spectrogram, and event-candidate workflows.
 - das_view/gui/: optional PyQt5 application, main window, models, and worker
@@ -200,6 +203,11 @@ Key modules:
   venv editable install smoke, installed CLI help smoke, GUI help smoke,
   example help smoke, packaging artifact policy, release validation tests, and
   tutorial/user manual release-operation notes.
+- Phase 6B: added a lightweight plugin / extension architecture with
+  ExtensionMetadata, reader/processing/analysis/plotting/export extension
+  wrappers, an isolated/global extension registry, built-in extension metadata,
+  on-demand Python entry point discovery, and the hcz-das-extensions inspection
+  CLI.
 
 ## 6. Current supported capabilities
 
@@ -227,6 +235,7 @@ Key modules:
 - hcz-das-stats.
 - hcz-das-spectrum.
 - hcz-das-events.
+- hcz-das-extensions.
 - hcz-das-view.
 - das-view-gui remains as a compatibility GUI script.
 
@@ -311,6 +320,21 @@ Key modules:
 - compute_roi_statistics_for_file.
 - compute_roi_spectral_attributes_for_file.
 
+### Plugins and extensions
+
+- ExtensionMetadata.
+- ReaderExtension.
+- ProcessingExtension.
+- AnalysisExtension.
+- PlottingExtension.
+- ExportExtension.
+- ExtensionRegistry.
+- register_builtin_extensions.
+- list_builtin_extensions.
+- discover_entry_point_extensions.
+- hcz-das-extensions for user-facing inspection of built-in extension
+  metadata.
+
 ## 7. Current examples
 
 - examples/read_and_plot_zd_h5.py: read a ZD HDF5 file and save a waterfall
@@ -344,6 +368,8 @@ Key modules:
 - Installed entry points in das_view/cli provide package-level CLI wrappers
   for validation, preview, statistics, spectrum/PSD/spectrogram, and event
   candidates without treating examples/ as package API.
+- hcz-das-extensions lists built-in extension metadata by kind and can emit
+  JSON for tooling.
 - packaging/README_windows_packaging.md documents Windows Conda setup, GUI
   launch, PyInstaller build, artifact policy, and exe validation.
 - packaging/build_windows.ps1 runs the local PyInstaller packaging smoke path.
@@ -385,12 +411,16 @@ Current coverage includes:
   policy, Windows packaging files without local paths or real-data patterns,
   GUI help without a Qt event loop, and tutorial notebook installation/CLI/GUI/
   packaging sections.
+- Plugin tests for metadata validation, extension wrapper construction,
+  registry register/list/filter/unregister behavior, isolated versus global
+  registry behavior, entry point discovery failure summaries, built-in
+  extension metadata, and hcz-das-extensions CLI output.
 
 Current full test command and expected result:
 
       D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider
 
-      394 passed
+      418 passed
 
 ## 9. Old code migration status
 
@@ -473,6 +503,12 @@ Goal:
 
       Reserve extension boundaries for future readers, processing functions,
       and analysis workflows without expanding the core package.
+
+Status:
+
+      Completed for lightweight metadata, registry, builtins, entry point
+      discovery design, and extension inspection CLI. Real third-party plugin
+      package validation remains future work.
 
 ### Option C: Phase 6C Release polishing and clean-environment install validation
 

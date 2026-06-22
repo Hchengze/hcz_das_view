@@ -9,6 +9,7 @@ CLI_MODULES = [
     "das_view.cli.statistics",
     "das_view.cli.spectrum",
     "das_view.cli.events",
+    "das_view.cli.extensions",
 ]
 
 

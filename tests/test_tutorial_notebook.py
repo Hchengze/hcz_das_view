@@ -36,6 +36,9 @@ def test_tutorial_notebook_contains_user_manual_keywords():
     assert "hcz-das-view" in text
     assert "Windows packaging" in text
     assert "Release usage notes" in text
+    assert "Extensions and plugins" in text
+    assert "hcz-das-extensions" in text
+    assert "das_view.plugins" in text
 
 
 def test_tutorial_notebook_avoids_local_paths_and_development_content():

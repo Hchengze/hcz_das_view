@@ -102,6 +102,20 @@ All internal core arrays must use:
   wheel/sdist build smoke, Windows packaging smoke where practical,
   README/notebook freshness, and staged artifact safety.
 
+## Plugin and extension rules
+
+- Plugin core code must not depend on PyQt5.
+- Importing das_view must not scan external plugins.
+- Entry point discovery must be explicit and on-demand.
+- Plugin metadata and discovery must not read real DAS data or generate output
+  artifacts.
+- Built-in extension metadata may describe existing stable capabilities, but it
+  must not execute analysis, plotting, reader IO, or GUI startup work.
+- The plugin layer must not replace or break the existing reader registry,
+  data service, analysis service, plotting helpers, or GUI APIs.
+- Third-party extension interfaces should remain lightweight until validated
+  with real external packages.
+
 ## Before and after each development round
 
 Before:

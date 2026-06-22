@@ -278,6 +278,18 @@ Scope:
 - Do not add heavy optional dependencies to the core package without a clear
   maintenance reason.
 
+Status:
+
+- Completed in Phase 6B for lightweight extension metadata,
+  reader/processing/analysis/plotting/export extension wrappers, an in-memory
+  extension registry, built-in capability metadata, optional on-demand Python
+  entry point discovery, and the hcz-das-extensions inspection CLI.
+- The plugin layer is an extension boundary for future packages. It does not
+  replace the existing reader registry, IO data service, analysis service,
+  plotting helpers, export helpers, or GUI workflows.
+
+Recommended next: Phase 6D or Phase 7A.
+
 ### Phase 6C: Release polishing and clean-environment install validation
 
 Goal:
@@ -302,7 +314,7 @@ Status:
   wheel/sdist build smoke remains deferred rather than forcing a network
   install. Automated release CI and Windows exe signing remain future work.
 
-Recommended next: Phase 6B or Phase 6D.
+Recommended next: Phase 6D.
 
 ## DAS Analysis capability roadmap
 

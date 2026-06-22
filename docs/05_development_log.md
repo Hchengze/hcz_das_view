@@ -1993,3 +1993,99 @@ intended for commit.
 ### Suggested next round
 
 Phase 6B: Plugin / extension architecture, or Phase 6D: Release CI planning.
+
+## 2026-06-22: Phase 6B Plugin / extension architecture
+
+### Goal
+
+Add a lightweight, maintainable extension architecture for future readers,
+processing helpers, analysis helpers, plotting helpers, and export helpers
+without adding concrete algorithms, concrete readers, GUI features, surface-wave
+imaging, MASW, F-J, dispersion picking, location, or inversion workflows.
+
+### Added or modified files
+
+- pyproject.toml
+- README.md
+- AGENTS.md
+- das_view/plugins/__init__.py
+- das_view/plugins/base.py
+- das_view/plugins/registry.py
+- das_view/plugins/builtins.py
+- das_view/cli/__init__.py
+- das_view/cli/extensions.py
+- tests/test_plugins_base.py
+- tests/test_plugins_registry.py
+- tests/test_plugins_builtins.py
+- tests/test_cli_extensions.py
+- tests/test_cli_entrypoints.py
+- tests/test_packaging.py
+- tests/test_tutorial_notebook.py
+- docs/09_tutorial_user_manual.ipynb
+- docs/02_architecture.md
+- docs/05_development_log.md
+- docs/06_testing.md
+- docs/07_roadmap.md
+- docs/08_project_handoff.md
+
+### Plugin architecture
+
+- Added ExtensionMetadata with validation, enabled state, tags, and
+  to_dict/from_dict support.
+- Added ReaderExtension, ProcessingExtension, AnalysisExtension,
+  PlottingExtension, and ExportExtension wrappers that describe existing or
+  future callables without executing IO, analysis, plotting, export, or GUI
+  startup work.
+- Added ExtensionRegistry plus global helper functions for register, unregister,
+  list, get, clear, kind filtering, enabled filtering, duplicate detection, and
+  replace behavior.
+- Added explicit on-demand entry point discovery for the das_view.plugins group.
+  Discovery is not run at import time and records third-party loading failures
+  instead of crashing the application.
+- Added built-in extension metadata for existing reader, processing, analysis,
+  plotting, and export capabilities. This metadata does not replace existing
+  reader/service APIs.
+- Added hcz-das-extensions for listing built-in extension metadata in text or
+  JSON form.
+
+### Tests
+
+- Focused plugin tests:
+  D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider tests\test_plugins_base.py tests\test_plugins_registry.py tests\test_plugins_builtins.py tests\test_cli_extensions.py tests\test_cli_entrypoints.py tests\test_packaging.py -q
+  Result: 40 passed.
+- Focused plugin/notebook tests:
+  D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider tests\test_plugins_base.py tests\test_plugins_registry.py tests\test_plugins_builtins.py tests\test_cli_extensions.py tests\test_cli_entrypoints.py tests\test_packaging.py tests\test_tutorial_notebook.py -q
+  Result: 43 passed.
+- Full test result:
+  D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider
+  Result: 418 passed. The first attempt hit the known Windows default
+  temp-directory permission issue; TMP/TEMP were set to .tmp_pytest and the
+  suite passed. Test count increased from 394 to 418 because Phase 6B added 24
+  plugin and extension CLI tests.
+
+### Old-code migration judgment
+
+No old_code files were copied, imported, modified, or used for implementation.
+This phase only adds an extension metadata and registry layer around existing
+package capabilities.
+
+### Data and artifact policy confirmation
+
+No real DAS data, generated images, validation_outputs artifacts,
+local_validation_paths.txt, local absolute data paths, JSON/CSV outputs,
+build/dist artifacts, wheels, archives, exe files, or local output files are
+intended for commit.
+
+### Not completed
+
+- Real third-party plugin package validation is not completed.
+- Plugin API stability still needs validation before external promises are made.
+- Automated release CI is not implemented.
+- Windows exe signing is not implemented.
+- Larger real-data validation remains future work.
+- The tutorial notebook should continue to be maintained as features mature.
+
+### Suggested next round
+
+Phase 6D: Release CI planning, or Phase 7A: API stability and documentation
+cleanup.
