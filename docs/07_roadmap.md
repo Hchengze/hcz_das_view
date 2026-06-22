@@ -32,6 +32,17 @@ dispersion-picking package.
   tooling, and QThread-backed GUI preview/waveform loading with soft
   cancellation.
 
+### Phase 2E: Real sample validation
+
+- Validated representative local real/quasi-real Puniu DAT and ZD HDF5 samples
+  without committing input data, local path lists, generated outputs, or local
+  absolute paths.
+- Hardened Puniu DAT seek handling, ZD HDF5 Count-as-total-values orientation
+  inference, local path-list BOM parsing, and direct waveform example execution.
+- Confirmed bounded metadata, preview, waveform, spectrum/PSD/spectrogram,
+  statistics, spectral attributes, FK transform, and FK-filter smoke paths on
+  selected samples.
+
 ### Phase 3A-3E: Common preprocessing and spectrum analysis
 
 - Added demean, detrend, taper, normalization, clipping, lowpass/highpass/
@@ -88,6 +99,13 @@ Acceptance:
 - Any reader/metadata fixes preserve the internal
   `data.shape == (n_samples, n_channels)` convention.
 
+Status:
+
+- Completed for the provided local validation directories with representative
+  Puniu DAT and ZD HDF5 samples.
+- Broader real-data coverage and project-owner manual GUI validation remain
+  future validation work.
+
 ### Phase 5A: Analysis feature statistics
 
 Goal:
@@ -131,7 +149,7 @@ Status:
 - Remaining follow-up belongs to later GUI/ROI/export phases, not core spectral
   attribute computation.
 
-Recommended next if no real sample paths are available: Phase 5C.
+Recommended next: Phase 5C or Phase 5D.
 
 ### Phase 5C: Envelope / STA-LTA / event candidate detection
 

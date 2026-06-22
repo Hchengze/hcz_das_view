@@ -41,6 +41,7 @@ class PuniuDATHeader:
     start_channel: int
     seek: int
     light_channel: int
+    header_seek: int | None = None
 
     @property
     def sample_rate_hz(self) -> float:
@@ -78,6 +79,7 @@ class PuniuDATReader(BaseDASReader):
                 "timestamp_seconds": header.timestamp_seconds,
                 "timestamp_nanoseconds": header.timestamp_nanoseconds,
                 "seek": header.seek,
+                "header_seek": header.header_seek,
                 "light_channel": header.light_channel,
                 "raw_header_bytes": PUNIU_HEADER_BYTES,
             },
@@ -150,6 +152,7 @@ def parse_puniu_dat_header(path: str | Path) -> PuniuDATHeader:
         timestamp_nanoseconds = float(header[6])
         start_channel = _finite_int(header[7], "start_channel")
         seek = _finite_int(header[8], "seek")
+        header_seek = seek
         light_channel = _finite_int(header[9], "light_channel")
     except (TypeError, ValueError, OverflowError) as exc:
         raise ReaderError(f"Puniu DAT header contains invalid numeric values: {exc}") from exc
@@ -165,7 +168,11 @@ def parse_puniu_dat_header(path: str | Path) -> PuniuDATHeader:
             f"Puniu DAT seek offset {seek} is smaller than header size {PUNIU_HEADER_BYTES}"
         )
     file_size = source.stat().st_size
-    if seek > file_size:
+    expected_values = n_samples * channel_count
+    expected_payload_bytes = expected_values * np.dtype(np.float32).itemsize
+    if seek >= file_size and file_size - PUNIU_HEADER_BYTES == expected_payload_bytes:
+        seek = PUNIU_HEADER_BYTES
+    elif seek > file_size:
         raise ReaderError(f"Puniu DAT seek offset {seek} exceeds file size {file_size}")
     payload_bytes = file_size - seek
     if payload_bytes % np.dtype(np.float32).itemsize != 0:
@@ -182,6 +189,7 @@ def parse_puniu_dat_header(path: str | Path) -> PuniuDATHeader:
         start_channel=start_channel,
         seek=seek,
         light_channel=light_channel,
+        header_seek=header_seek,
     )
 
 

@@ -28,6 +28,27 @@ def write_puniu_dat(path, data, *, n_samples=None, n_channels=None):
         data.astype(np.float32).tofile(f)
 
 
+def write_puniu_dat_with_seek_value(path, data, *, seek_value):
+    header = np.array(
+        [
+            data.shape[1],
+            0.4,
+            data.shape[0],
+            0.001,
+            1,
+            1_700_000_000.0,
+            500_000_000.0,
+            10,
+            seek_value,
+            99,
+        ],
+        dtype=np.float64,
+    )
+    with path.open("wb") as f:
+        header.tofile(f)
+        data.astype(np.float32).tofile(f)
+
+
 def write_puniu_header(path, values, payload=b""):
     with path.open("wb") as f:
         np.array(values, dtype=np.float64).tofile(f)
@@ -87,6 +108,20 @@ def test_puniu_dat_reader_rejects_data_length_mismatch(tmp_path):
 
     with pytest.raises(ReaderError, match="does not match expected"):
         PuniuDATReader().read(path)
+
+
+def test_puniu_dat_reader_accepts_seek_equal_to_file_size_when_payload_follows_header(tmp_path):
+    path = tmp_path / "seek_file_size.dat"
+    data = np.arange(6, dtype=np.float32).reshape(3, 2)
+    file_size = PUNIU_HEADER_BYTES + data.size * np.dtype(np.float32).itemsize
+    write_puniu_dat_with_seek_value(path, data, seek_value=file_size)
+
+    header = parse_puniu_dat_header(path)
+    das_data = PuniuDATReader().read(path)
+
+    assert header.seek == PUNIU_HEADER_BYTES
+    assert header.header_seek == file_size
+    np.testing.assert_array_equal(das_data.data, data)
 
 
 def test_puniu_dat_reader_rejects_incomplete_header(tmp_path):

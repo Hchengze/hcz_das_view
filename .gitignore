@@ -36,6 +36,7 @@ old_code/
 *.npy
 *.npz
 *.mat
+*.json
 *.csv
 *.xlsx
 *.txt

@@ -28,7 +28,7 @@ def parse_path_list(lines: Iterable[str]) -> list[Path]:
 
     paths: list[Path] = []
     for raw_line in lines:
-        line = raw_line.strip()
+        line = raw_line.lstrip("\ufeff").strip()
         if not line or line.startswith("#"):
             continue
         paths.append(Path(line))
@@ -75,7 +75,7 @@ def validate_local_samples(
         )
         return 0
 
-    paths = parse_path_list(path_list.read_text(encoding="utf-8").splitlines())
+    paths = parse_path_list(path_list.read_text(encoding="utf-8-sig").splitlines())
     if not paths:
         print(f"{path_list} contains no sample paths.")
         return 0
@@ -111,7 +111,7 @@ def validate_local_samples(
             )
         except Exception as exc:  # noqa: BLE001 - batch tool should continue after one failure.
             failures += 1
-            print(f"error: {exc}")
+            print(f"error: {_console_safe(str(exc))}")
     print(f"validated: {len(paths) - failures}/{len(paths)} passed")
     return 1 if failures else 0
 
@@ -125,6 +125,12 @@ def main(argv: list[str] | None = None) -> int:
         waveform_channel=args.waveform_channel,
         save_preview_dir=args.save_preview_dir,
     )
+
+
+def _console_safe(value: str) -> str:
+    """Return a string that can be printed on narrow Windows consoles."""
+
+    return value.encode(errors="replace").decode()
 
 
 if __name__ == "__main__":

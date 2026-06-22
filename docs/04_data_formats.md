@@ -47,6 +47,11 @@ Orientation logic:
 
 - If raw_shape == (Count, NumberOfLoci), raw orientation is time_channel.
 - If raw_shape == (NumberOfLoci, Count), raw orientation is channel_time and the reader transposes to internal convention.
+- Phase 2E real/quasi-real validation found ZD files where Count stores the
+  total raw value count rather than the time-sample count. When
+  Count == raw_shape[0] * raw_shape[1] and NumberOfLoci matches exactly one raw
+  dataset axis, the reader now infers orientation from NumberOfLoci and raw
+  shape.
 - If only one hint exists, it must match exactly one axis.
 - If orientation is ambiguous or cannot be inferred from Count/NumberOfLoci, the reader raises ReaderError instead of guessing.
 - Count/NumberOfLoci mismatches with raw_shape are treated as cannot-infer errors;
@@ -94,6 +99,11 @@ Current reader support:
   seek offsets, float32 payload alignment, payload length mismatches, and empty
   selections with clearer ReaderError messages.
 - Timestamp conversion failures return start_time=None instead of crashing metadata reads.
+- Phase 2E real/quasi-real validation found Puniu DAT files where the header
+  seek field stores the file size while the float32 payload still starts
+  immediately after the fixed 80-byte header. If that layout exactly matches
+  n_samples * n_channels float32 values, the reader uses the 80-byte payload
+  offset and records the original header seek value in metadata.extra_attrs.
 
 ## Real/quasi-real local validation
 
@@ -104,6 +114,12 @@ Current reader support:
   batch-validates local files without committing inputs or outputs.
 - Phase 2C prepared these tools and ran the no-path-list smoke path. No real
   sample paths or generated images were committed.
+- Phase 2E used two user-provided local validation directories, discovered 31
+  candidate DAT files and 2 candidate HDF5 files, selected 5 representative
+  samples for validation, and verified bounded reader, metadata, preview,
+  waveform, spectrum/PSD/spectrogram, statistics, spectral attributes, FK, and
+  FK-filter smoke paths. No input data, generated image, local path list, local
+  absolute path, or output artifact was committed.
 
 ## Deferred formats
 

@@ -1386,3 +1386,105 @@ analysis service interfaces.
 
 Phase 2E: real sample validation if real/quasi-real data paths are provided.
 Otherwise, Phase 5C: Envelope / STA-LTA / event candidate detection.
+
+## 2026-06-22: Phase 2E real sample validation
+
+### Goal
+
+Validate existing DAS Viewer / DAS Analysis workflows on user-provided local
+real/quasi-real sample directories without committing input data, generated
+outputs, local path lists, or local absolute paths.
+
+### Local validation scope
+
+- Local validation directories provided: 2.
+- Candidate files discovered: 33 total.
+- Candidate formats discovered: 31 DAT files and 2 HDF5 files.
+- Selected validation samples: 5 total, with at most 3 DAT and 2 HDF5 samples.
+- Formats observed in selected samples: Puniu DAT and ZD HDF5.
+- Batch validation result after reader/tooling fixes: 5 passed, 0 failed.
+
+### Anonymized sample summary
+
+| Sample | Extension | Size | Reader | n_samples | n_channels | sample_rate_hz | dt_s | dx_m | duration_s | Preview shape | Downsample | Warnings | Deep smoke status |
+|---|---|---|---|---:|---:|---:|---:|---:|---:|---|---|---:|---|
+| sample_001 | .dat | medium | puniu_dat | 15000 | 113 | 250 | 0.004 | 1.0 | 60 | (1875, 113) | (8, 1) | 1 | passed |
+| sample_002 | .dat | medium | puniu_dat | 15000 | 113 | 250 | 0.004 | 1.0 | 60 | (1875, 113) | (8, 1) | 1 | passed |
+| sample_003 | .dat | medium | puniu_dat | 15000 | 113 | 250 | 0.004 | 1.0 | 60 | (1875, 113) | (8, 1) | 1 | passed |
+| sample_004 | .h5 | large | zd_hdf5 | 60000 | 1027 | 1000 | 0.001 | about 1.0225 | 60 | (2000, 343) | (30, 3) | 1 | passed |
+| sample_005 | .h5 | large | zd_hdf5 | 60000 | 1027 | 1000 | 0.001 | about 1.0225 | 60 | (2000, 343) | (30, 3) | 1 | passed |
+
+For each selected sample, bounded service-level smoke checks passed for
+metadata, preview, waveform, spectrum, Welch PSD, spectrogram, statistics,
+spectral attributes, FK transform, and FK velocity-filter smoke path.
+
+### Added or modified files
+
+- .gitignore
+- das_view/io/hdf5_zd.py
+- das_view/io/puniu_dat.py
+- examples/plot_waveform.py
+- examples/validate_local_samples.py
+- tests/test_hdf5_zd_reader.py
+- tests/test_puniu_dat_reader.py
+- tests/test_validation_scripts.py
+- docs/04_data_formats.md
+- docs/05_development_log.md
+- docs/06_testing.md
+- docs/07_roadmap.md
+- docs/08_project_handoff.md
+
+### Fixes from real/quasi-real validation
+
+- Puniu DAT: accepted a validated layout variant where the header seek field
+  stores the file size while the float32 payload starts immediately after the
+  fixed 80-byte header. The effective payload offset remains validated against
+  n_samples * n_channels.
+- ZD HDF5: accepted files where Count stores the total raw value count and
+  NumberOfLoci identifies the channel axis.
+- Local validation path parsing: stripped UTF-8 BOM from local path-list input
+  and made error printing safer on narrow Windows consoles.
+- Waveform example: added the same repository-root import bootstrap used by
+  other examples so direct script execution works.
+- .gitignore: added *.json to keep local validation JSON summaries ignored.
+
+### GUI validation
+
+Manual GUI validation was not executed in this non-interactive tool session
+because the assistant cannot operate a native file dialog or visually inspect
+the running PyQt5 window. Existing GUI smoke tests remain part of the full test
+suite, but real manual GUI validation should still be performed by the project
+owner on a local desktop.
+
+### Old-code migration judgment
+
+No old_code files were copied, imported, modified, or used for implementation.
+This phase only hardened existing new readers and validation/example tooling
+based on real/quasi-real sample behavior.
+
+### Test result
+
+- D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider tests\test_puniu_dat_reader.py tests\test_hdf5_zd_reader.py tests\test_validation_scripts.py
+- Result: 27 passed.
+- D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider
+- Result: 297 passed.
+
+### Data policy confirmation
+
+No real DAS input data, generated images, validation_outputs artifacts,
+local_validation_paths.txt, local absolute paths, or local output files were
+staged for commit.
+
+### Not completed
+
+- Broader real-data coverage across more acquisition variants is not completed.
+- Manual GUI validation remains to be performed by the project owner.
+- Envelope / STA-LTA / event candidate detection is not implemented.
+- ROI / annotation / export workflows are not implemented.
+- GUI analysis panel is not implemented.
+- Packaging and release hardening are not completed.
+
+### Suggested next round
+
+Phase 5C: Envelope / STA-LTA / event candidate detection, or Phase 5D:
+ROI / annotation / export.

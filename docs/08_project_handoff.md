@@ -19,10 +19,10 @@ phases.
 - Development model: the new das_view/ package is being rebuilt after auditing
   legacy material under old_code/.
 - New runtime code must not depend on, import, or call old_code.
-- Latest project state: current HEAD after Phase 5B Band energy and spectral
-  attributes.
-- Current phase: Phase 5B, DAS spectral attributes analysis.
-- Current expected test result after Phase 5B: 293 passed.
+- Latest project state: current HEAD after Phase 2E real sample validation.
+- Current phase: Phase 2E, real/quasi-real sample validation and reader/tooling
+  hardening.
+- Current expected test result after Phase 2E: 297 passed.
 
 ## 2. Repository and environment
 
@@ -139,6 +139,9 @@ Key modules:
 - Phase 2A-2D: added reader-independent selection services, waveform plotting,
   Puniu DAT validation tooling, reader edge-case checks, and QThread-backed GUI
   preview/waveform loading with soft cancellation.
+- Phase 2E: validated representative local Puniu DAT and ZD HDF5 samples,
+  hardened reader/tooling compatibility issues, and confirmed bounded analysis
+  smoke paths without committing input data or generated outputs.
 - Phase 3A-3E: added preprocessing, filters, amplitude/power spectrum,
   periodogram PSD, Welch PSD, single-channel spectrogram smoke paths,
   file-level spectrum services, and a minimal GUI Spectrum tab.
@@ -268,7 +271,8 @@ Current coverage includes:
 
 - Core data model, metadata formatting, and dimension validation.
 - ZD HDF5 and Puniu DAT readers, registry behavior, bounded reads, slicing,
-  downsampling, and edge cases.
+  downsampling, Count-as-total-values HDF5 metadata, Puniu DAT seek fallback,
+  and edge cases.
 - Preview, selection, and trace data services.
 - Waterfall, waveform, spectrum, spectrogram, PSD, FK, and FK mask plotting.
 - Preprocessing and filter functions plus DASData service integration.
@@ -286,7 +290,7 @@ Current full test command and expected result:
 
       D:\HczApp\Anaconda\envs\mywork\python.exe -B -m pytest -p no:cacheprovider
 
-      293 passed
+      297 passed
 
 ## 9. Old code migration status
 
@@ -315,8 +319,8 @@ No old_code files are imported by the new runtime package.
 
 ## 10. Known limitations and risks
 
-1. ZD HDF5 and Puniu DAT have not been systematically validated with real
-   production samples.
+1. ZD HDF5 and Puniu DAT have been validated on a small representative local
+   sample set, but broader production coverage is still needed.
 2. GUI preview, waveform, spectrum, and FK tasks use QThread workers, but real
    production large-file responsiveness has not been validated.
 3. GUI cancellation is soft and cannot forcibly interrupt synchronous reader IO
@@ -340,8 +344,8 @@ Goal:
 
       Use local_validation_paths.txt to validate real/quasi-real ZD HDF5 and Puniu DAT samples.
 
-If real sample paths are provided, prioritize this before expanding analysis
-features.
+Phase 2E is complete for the provided local sample directories. Re-enter this
+phase only when new real sample paths or new format variants are provided.
 
 ### Option B: Phase 5C Envelope / STA-LTA / event candidate detection
 
@@ -355,6 +359,13 @@ analysis feature phase.
 
 Lower-priority FK documentation or example polish may still be useful later,
 but it should remain below real sample validation and DAS analysis expansion.
+
+### Option C: Phase 5D ROI / annotation / export
+
+Goal:
+
+      Add ROI selection, simple annotation, figure export, and CSV/JSON
+      analysis-summary export workflows.
 
 ## 12. DAS Analysis capability roadmap
 

@@ -1,4 +1,6 @@
 from pathlib import Path
+import subprocess
+import sys
 
 from examples.validate_local_samples import parse_path_list, validate_local_samples
 from examples.validate_file import preview_summary
@@ -16,6 +18,12 @@ def test_parse_path_list_ignores_comments_and_blank_lines():
     )
 
     assert paths == [Path(r"E:\data\sample.h5"), Path(r"E:\data\sample.dat")]
+
+
+def test_parse_path_list_strips_utf8_bom():
+    paths = parse_path_list(["\ufeff" + r"E:\data\sample.h5"])
+
+    assert paths == [Path(r"E:\data\sample.h5")]
 
 
 def test_validate_local_samples_missing_path_list_exits_cleanly(tmp_path, capsys):
@@ -52,3 +60,15 @@ def test_preview_summary_is_path_safe():
     assert summary["raw_shape"] == (10, 4)
     assert summary["preview_shape"] == (5, 2)
     assert "source_path" not in summary
+
+
+def test_plot_waveform_script_help_imports_package():
+    result = subprocess.run(
+        [sys.executable, "examples/plot_waveform.py", "--help"],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0
+    assert "Plot DAS waveform" in result.stdout

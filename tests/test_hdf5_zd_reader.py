@@ -133,6 +133,20 @@ def test_zd_hdf5_reader_transposes_channel_time_slice(tmp_path):
     assert das_data.metadata.n_channels == 2
 
 
+def test_zd_hdf5_reader_accepts_count_as_total_value_count(tmp_path):
+    path = tmp_path / "total_count.h5"
+    data = np.arange(12, dtype=np.float32).reshape(4, 3)
+    create_zd_h5(path, data, count=data.size, number_of_loci=3)
+
+    metadata = ZDHDF5Reader().read_metadata(path)
+    das_data = ZDHDF5Reader().read(path)
+
+    assert metadata.n_samples == 4
+    assert metadata.n_channels == 3
+    assert metadata.extra_attrs["raw_orientation"] == "time_channel"
+    np.testing.assert_array_equal(das_data.data, data)
+
+
 def test_zd_hdf5_reader_missing_raw_dataset_has_clear_error(tmp_path):
     path = tmp_path / "missing.h5"
     with h5py.File(path, "w") as handle:

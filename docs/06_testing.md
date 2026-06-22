@@ -12,10 +12,12 @@ Current coverage:
 - Reader registry registration and lookup.
 - ZD HDF5 metadata read, full read, time slicing, channel slicing, downsampling, orientation transpose, missing path errors, and ambiguous orientation errors.
 - ZD HDF5 edge cases for numpy scalar attrs, bytes attrs, missing RawData,
-  Count/NumberOfLoci mismatches, ambiguous orientation, and empty selections.
+  Count/NumberOfLoci mismatches, Count-as-total-values metadata, ambiguous
+  orientation, and empty selections.
 - Puniu DAT header parsing, full read, slicing, downsampling, start_time conversion, and length mismatch errors.
 - Puniu DAT edge cases for incomplete headers, invalid seek, unaligned payloads,
-  invalid timestamps, and empty/out-of-range selections.
+  validated seek fallback when payload follows the fixed header, invalid
+  timestamps, and empty/out-of-range selections.
 - plot_waterfall smoke test with non-interactive Matplotlib backend and image save.
 - Metadata formatting to dict, text summary, missing-value display, and duration calculation.
 - Reader preview API for synthetic ZD HDF5 and Puniu DAT, including automatic downsampling, unsupported formats, and metadata error wrapping.
@@ -51,8 +53,9 @@ Current coverage:
 - Channel parser tests are PyQt-free and cover single channel input, comma-separated
   input, spaces, duplicate preservation, empty input, non-integer input, and negative
   input.
-- Local validation script tests cover path-list parsing, missing path-list friendly
-  exit behavior, and path-safe preview summaries.
+- Local validation script tests cover path-list parsing, UTF-8 BOM stripping,
+  missing path-list friendly exit behavior, path-safe preview summaries, and
+  direct plot_waveform.py script import behavior.
 - Basic preprocessing function tests cover demean, linear detrend, taper,
   maxabs/minmax normalization, standardization, clipping, invalid parameters,
   NaN/Inf behavior, and no in-place modification.
@@ -182,9 +185,18 @@ For cache-free runs during agent work:
   be testable. Phase 2D/3E/4C tests exercise QThread worker construction and soft
   cancellation flags, but do not automate real asynchronous file loading through
   a file dialog.
-- Real or quasi-real file validation should use examples/validate_file.py and
-  examples/plot_waveform.py with local data paths. Do not commit the input data
-  or generated preview/waveform images.
+- Real or quasi-real file validation should use examples/validate_file.py,
+  examples/plot_waveform.py, examples/spectrum_file.py,
+  examples/statistics_file.py, examples/spectral_attributes_file.py,
+  examples/fk_file.py, and examples/fk_filter_file.py with local data paths.
+  Do not commit input data, local path lists, generated preview/waveform/FK
+  images, JSON/CSV summaries, or validation output directories.
 - Batch real/quasi-real validation should use examples/validate_local_samples.py
-  with local_validation_paths.txt. The path file and validation output directories
-  are ignored by git.
+  with local_validation_paths.txt. The path file and validation output
+  directories are ignored by git.
+- Phase 2E validated five local real/quasi-real samples selected from two
+  user-provided directories: three Puniu DAT samples and two ZD HDF5 samples.
+  The validation covered metadata, preview, waveform, spectrum, Welch PSD,
+  spectrogram, statistics, spectral attributes, FK transform, and FK-filter
+  smoke paths. These local files remain outside automated tests; synthetic tests
+  cover the reader/tooling compatibility fixes.

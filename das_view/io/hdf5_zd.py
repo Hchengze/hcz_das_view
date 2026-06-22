@@ -173,6 +173,11 @@ def _infer_internal_shape(
             candidates.append((n_samples_hint, n_channels_hint, "time_channel"))
         if raw_shape == (n_channels_hint, n_samples_hint):
             candidates.append((n_samples_hint, n_channels_hint, "channel_time"))
+        if n_samples_hint == rows * cols:
+            if cols == n_channels_hint:
+                candidates.append((rows, cols, "time_channel"))
+            if rows == n_channels_hint:
+                candidates.append((cols, rows, "channel_time"))
     elif n_channels_hint is not None:
         if cols == n_channels_hint:
             candidates.append((rows, cols, "time_channel"))
