@@ -44,6 +44,13 @@ def test_tutorial_notebook_contains_user_manual_keywords():
     assert "CLI / GUI / plugin" in text
     assert "Interpretation boundaries" in text
     assert "Troubleshooting" in text
+    assert "DAS QC metrics" in text
+    assert "Bad channel detection" in text
+    assert "noise floor" in text
+    assert "Multiband feature map" in text
+    assert "Local channel coherence" in text
+    assert "Five-level DAS Analysis roadmap" in text
+    assert "hcz-das-qc" in text
 
 
 def test_tutorial_notebook_avoids_local_paths_and_development_content():

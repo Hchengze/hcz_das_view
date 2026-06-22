@@ -15,6 +15,12 @@ def test_register_builtin_extensions_contains_expected_capabilities():
 
     assert {"zd_hdf5", "puniu_dat"}.issubset(_names_by_kind(registry, "reader"))
     assert {"statistics", "event_candidates"}.issubset(_names_by_kind(registry, "analysis"))
+    assert {"quality_report", "multiband_energy_map", "local_channel_coherence"}.issubset(
+        _names_by_kind(registry, "analysis")
+    )
+    assert {"channel_quality", "multiband_energy_map_plot", "coherence_map"}.issubset(
+        _names_by_kind(registry, "plotting")
+    )
     assert {"json", "csv"}.issubset(_names_by_kind(registry, "export"))
 
 

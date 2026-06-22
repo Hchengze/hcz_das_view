@@ -27,6 +27,8 @@
       - spectral_attributes.py
       - events.py
       - roi.py
+      - qc.py
+      - multiband.py
       - fk.py
       - fk_filter.py
       - service.py
@@ -36,6 +38,8 @@
       - spectra.py
       - fk.py
       - roi.py
+      - qc.py
+      - multiband.py
     - plugins/
       - base.py
       - registry.py
@@ -68,10 +72,12 @@
   statistics, spectral attributes, envelope/STA-LTA event candidates,
   amplitude spectrum, power spectrum, periodogram PSD, Welch PSD,
   single-channel spectrogram smoke-path helpers, ROI/annotation helpers,
-  file-level analysis services, FK visualization, and FK-domain smoke filtering
-  for DAS 2D wavefield inspection.
+  DAS QC/channel-quality metrics, multiband feature maps, local channel
+  coherence, file-level analysis services, FK visualization, and FK-domain
+  smoke filtering for DAS 2D wavefield inspection.
 - plotting: Matplotlib plotting helpers independent from GUI widgets, including
-  waterfall, waveform, spectrum, spectrogram, FK views, and ROI overlays.
+  waterfall, waveform, spectrum, spectrogram, FK views, ROI overlays, QC plots,
+  multiband maps, and coherence maps.
 - plugins: lightweight extension metadata, extension wrappers, registry, built-in
   capability metadata, and optional Python entry point discovery. It does not
   replace existing services or trigger plugin scans at package import time.
@@ -245,6 +251,9 @@ Reader responsibilities:
 - plot_rois_on_waterfall and plot_event_candidates_on_waterfall overlay
   half-open time/channel ROI boxes on Matplotlib axes or DASData waterfall
   plots. They do not perform ROI analysis and do not depend on PyQt5.
+- plot_channel_quality, plot_bad_channels, plot_multiband_energy_map, and
+  plot_coherence_map visualize DAS QC and feature-map outputs with Matplotlib.
+  They do not compute QC or spectral features and do not depend on PyQt5.
 - Plotting helpers assume the internal data convention (n_samples, n_channels).
 
 ## Analysis services
@@ -271,6 +280,15 @@ Reader responsibilities:
   ROIAnalysisResult, and rois_from_event_candidates. ROI sample and channel
   ranges are half-open intervals. These objects are data review and export aids,
   not location or interpretation results.
+- das_view/analysis/qc.py provides ChannelQualityResult, DataQualityReport,
+  LocalCoherenceResult, channel_quality_metrics, bad-channel detection,
+  noise-floor estimates, SNR estimates, local_channel_coherence, and QC row
+  helpers. These functions are data-quality and spatial-continuity aids only.
+- das_view/analysis/multiband.py provides MultibandFeatureMap,
+  multiband_energy_map, and spectral_attribute_map for windowed
+  time-channel-band feature extraction. These maps are interpretable feature
+  summaries, not classification, location, inversion, MASW, F-J, or dispersion
+  picking.
 - das_view/analysis/spectrum.py provides SpectrumResult, PSDResult, and
   SpectrogramResult containers plus amplitude_spectrum, power_spectrum,
   periodogram_psd, welch_psd, and single_channel_spectrogram.
@@ -299,6 +317,12 @@ Reader responsibilities:
   read_selection, optionally call apply_preprocess, then call existing
   statistics or spectral attribute helpers. They do not inspect HDF5/DAT
   internal paths and do not depend on GUI code.
+- das_view/analysis/service.py also provides compute_quality_report_for_file,
+  compute_multiband_map_for_file, compute_spectral_attribute_map_for_file, and
+  compute_coherence_for_file. They read bounded 2-D selections through
+  read_selection, optionally apply apply_preprocess, then call the QC,
+  multiband, or local-coherence helpers. They do not inspect HDF5/DAT internal
+  paths and do not depend on GUI code.
 - das_view/gui/main_window.py provides a minimal Analysis tab that exposes
   bounded statistics, band energy, spectral attributes, event candidates, and
   ROI statistics. The tab builds validated requests through

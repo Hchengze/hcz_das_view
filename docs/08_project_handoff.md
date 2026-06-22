@@ -20,14 +20,15 @@ phases.
 - Development model: the new das_view/ package is being rebuilt after auditing
   legacy material under old_code/.
 - New runtime code must not depend on, import, or call old_code.
-- Latest project state: current HEAD after Phase 7A API stability and
-  documentation cleanup.
-- Current phase: Phase 7A, public API inventory, import-boundary checks,
-  compatibility policy, documentation consistency cleanup, and tutorial
-  notebook maintenance.
-- Current expected test result after Phase 7A: 430 passed. The count increased
-  from the Phase 6B baseline of 418 because Phase 7A added 12 API/import
-  stability tests.
+- Latest project state: current HEAD after Phase 7B advanced DAS QC and
+  multiband feature analysis.
+- Current phase: Phase 7B, DAS QC/channel quality, noise-floor and SNR
+  estimates, multiband feature maps, local channel coherence, hcz-das-qc, and
+  documentation of the five-level DAS Analysis roadmap.
+- Current expected test result after Phase 7B: 458 passed. The count increased
+  from the Phase 7A baseline of 430 because Phase 7B added 28 QC, multiband,
+  service, CLI, plotting, plugin metadata, entrypoint, and tutorial coverage
+  tests.
 
 ## 2. Repository and environment
 
@@ -90,16 +91,19 @@ phases.
 - das_view/processing/: pure preprocessing functions, scipy-based filters, and
   DASData-level processing service.
 - das_view/analysis/: spectrum, spectrogram, PSD/Welch, spectral attributes,
-  envelope/STA-LTA event candidates, ROI/annotation helpers, FK visualization,
+  envelope/STA-LTA event candidates, ROI/annotation helpers, DAS QC/channel
+  quality, multiband feature maps, local channel coherence, FK visualization,
   FK-domain smoke filtering, basic statistics, and file-level analysis services.
 - das_view/io/export.py: JSON/CSV export helpers for event candidates, ROIs,
   annotations, and ROI analysis summaries.
-- das_view/plotting/: Matplotlib plotting helpers independent of PyQt5.
+- das_view/plotting/: Matplotlib plotting helpers independent of PyQt5,
+  including QC and multiband/coherence map plots.
 - das_view/plugins/: lightweight extension metadata, extension wrappers,
   registry helpers, built-in capability metadata, and optional on-demand entry
   point discovery.
 - das_view/cli/: installed command-line wrappers for validation, preview,
-  statistics, spectrum/PSD/spectrogram, and event-candidate workflows.
+  statistics, spectrum/PSD/spectrogram, event-candidate workflows, extension
+  inspection, and QC/multiband/coherence workflows.
 - das_view/gui/: optional PyQt5 application, main window, models, and worker
   scaffolding.
 - das_view/utils/: shared utilities, including slicing helpers.
@@ -124,14 +128,16 @@ Stable public API:
 - `das_view.processing`: documented preprocessing and filter functions plus
   `apply_preprocess`.
 - `das_view.analysis`: documented numerical helpers and bounded file-level
-  services for statistics, spectral attributes, events, ROI summaries,
-  spectrum/PSD/spectrogram, and FK smoke workflows.
+  services for statistics, spectral attributes, events, ROI summaries, QC,
+  multiband feature maps, local coherence, spectrum/PSD/spectrogram, and FK
+  smoke workflows.
 - `das_view.plotting`: documented Matplotlib helpers for waterfall, waveform,
-  spectrum, PSD, spectrogram, FK, and ROI overlays.
+  spectrum, PSD, spectrogram, FK, ROI overlays, QC plots, multiband maps, and
+  coherence maps.
 - `das_view.plugins`: lightweight extension metadata, registry helpers,
   built-in metadata registration, and explicit entry point discovery.
 - Installed CLI commands such as `hcz-das-validate`, `hcz-das-stats`,
-  `hcz-das-events`, `hcz-das-extensions`, and `hcz-das-view`.
+  `hcz-das-events`, `hcz-das-extensions`, `hcz-das-qc`, and `hcz-das-view`.
 
 Experimental API:
 
@@ -260,6 +266,12 @@ Key modules:
   policy, cleaned handoff/roadmap consistency, and updated the tutorial
   notebook with public API, data-shape, usage-boundary, and troubleshooting
   guidance.
+- Phase 7B: added DAS QC/channel-quality metrics, bad-channel flags,
+  noise-floor and SNR estimates, multiband energy maps, spectral-attribute
+  maps, local channel coherence, bounded service functions, hcz-das-qc,
+  Matplotlib QC/map plots, plugin metadata, tests, and tutorial updates. Level
+  4 traditional denoising and Level 5 wavefield/apparent-moveout work remain
+  roadmap-only.
 
 ## 7. Current supported capabilities
 
@@ -288,6 +300,7 @@ Key modules:
 - hcz-das-spectrum.
 - hcz-das-events.
 - hcz-das-extensions.
+- hcz-das-qc.
 - hcz-das-view.
 - das-view-gui remains as a compatibility GUI script.
 
@@ -300,6 +313,9 @@ Key modules:
 - PSD plots, including optional dB display.
 - FK amplitude/power plots.
 - FK mask plots for smoke-path validation.
+- Channel quality and bad-channel plots.
+- Multiband energy map plots.
+- Local coherence map plots.
 
 ### GUI
 
@@ -371,6 +387,19 @@ Key modules:
 - rois_from_event_candidates.
 - compute_roi_statistics_for_file.
 - compute_roi_spectral_attributes_for_file.
+- channel_quality_metrics.
+- data_quality_report.
+- channel_quality_rows.
+- detect_bad_channels.
+- estimate_noise_floor.
+- estimate_snr.
+- multiband_energy_map.
+- spectral_attribute_map.
+- local_channel_coherence.
+- compute_quality_report_for_file.
+- compute_multiband_map_for_file.
+- compute_spectral_attribute_map_for_file.
+- compute_coherence_for_file.
 
 ### Plugins and extensions
 
@@ -412,14 +441,17 @@ Key modules:
   candidates and optionally save JSON/CSV candidate tables.
 - examples/roi_export_file.py: create manual ROIs, convert event candidates to
   ROIs, export events/ROIs as JSON/CSV, and export ROI statistics summaries.
+- examples/qc_file.py: run bounded DAS QC reports, bad-channel CSV export,
+  multiband feature maps, and local coherence summaries.
 - examples/fk_file.py: compute bounded FK amplitude or power plots, optionally
   after a filter step.
 - examples/fk_filter_file.py: apply a minimal bounded FK velocity fan filter
   and save a filtered waterfall, optionally saving the filtered FK image.
 - examples/run_gui.py: launch the optional PyQt5 GUI.
 - Installed entry points in das_view/cli provide package-level CLI wrappers
-  for validation, preview, statistics, spectrum/PSD/spectrogram, and event
-  candidates without treating examples/ as package API.
+  for validation, preview, statistics, spectrum/PSD/spectrogram, event
+  candidates, and QC/multiband/coherence workflows without treating examples/
+  as package API.
 - hcz-das-extensions lists built-in extension metadata by kind and can emit
   JSON for tooling.
 - packaging/README_windows_packaging.md documents Windows Conda setup, GUI
@@ -470,12 +502,17 @@ Current coverage includes:
 - API stability and import-boundary tests for public imports, PyQt5 dependency
   boundaries, explicit plugin discovery, package import behavior, CLI import
   behavior, and GUI help without a Qt event loop.
+- QC and multiband tests for channel quality, bad-channel flags, spike and
+  clipping detection, NaN/Inf fractions, noise-floor/SNR estimates, local
+  channel coherence, multiband energy maps, spectral attribute maps, service
+  bounded reads, hcz-das-qc JSON/CSV output, plotting helpers, plugin metadata,
+  and entrypoint declarations.
 
 Current full test command and expected result:
 
       python -B -m pytest -p no:cacheprovider
 
-      430 passed
+      458 passed
 
 ## 10. Old code migration status
 
@@ -554,16 +591,18 @@ Status:
 
       Not implemented. This is the recommended next release-hardening step.
 
-### Option B: Phase 7B Clean docs and user-facing release candidate polish
+### Option B: Phase 7C Traditional robust denoising and wavefield enhancement planning
 
 Goal:
 
-      Refine user-facing docs, examples, and release-candidate wording without
-      adding algorithms, readers, or GUI features.
+      Plan traditional robust denoising, enhancement, and wavefield-assistance
+      helpers without adding deep learning, location, inversion, MASW, F-J, or
+      dispersion-picking workflows.
 
 Status:
 
-      Not implemented. This is a documentation/release polish option.
+      Not implemented. This is the recommended analysis-roadmap planning option
+      after Phase 7B.
 
 ### Option C: Phase 2E real sample validation refresh
 
@@ -578,6 +617,34 @@ Status:
       Re-enter only when new sample paths are intentionally supplied.
 
 ## 14. DAS Analysis capability roadmap
+
+### Five-level DAS Analysis roadmap
+
+1. Level 1: DAS data quality / QC analysis.
+   Includes bad/dead/quiet/noisy channel detection, clipping/saturation,
+   spikes, NaN/Inf/zero fractions, RMS/STD/energy stability, noise floor, SNR,
+   channel quality score, time-window quality score, and QC report JSON/CSV
+   export.
+2. Level 2: Multiband / multispectral DAS feature map.
+   Includes time-window x channel x band energy maps, low/mid/high band maps,
+   band ratios, dominant frequency, centroid, bandwidth, rolloff, multiband
+   export, and ROI-based multiband summary.
+3. Level 3: Cross-channel coherence / local similarity / spatial continuity.
+   Includes adjacent-channel correlation, local channel coherence, channel-lag
+   coherence, windowed spatial-continuity score, and coherence maps.
+4. Level 4: Robust denoising / enhancement using traditional methods.
+   Deferred. Candidate future helpers include common-mode removal, median
+   filtering, despike, channel balancing, local normalization, time-space 2D
+   median filtering, robust clipping, and directional FK-domain polish.
+5. Level 5: Wavefield decomposition / apparent moveout assisted analysis.
+   Deferred. Candidate future helpers include apparent slope/velocity
+   attributes, directional energy ratio, directional wavefield energy helpers,
+   FK directional energy summary, and event moveout auxiliary attributes.
+
+Levels 1-3 are general DAS data-quality and feature-analysis layers. Levels 4
+and 5 are roadmap-only after Phase 7B. None of the levels imply surface-wave
+imaging, MASW, F-J, dispersion picking, source location, inversion, or geologic
+interpretation.
 
 ### Basic statistics
 

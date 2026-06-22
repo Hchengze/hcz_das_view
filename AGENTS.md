@@ -62,6 +62,12 @@ All internal core arrays must use:
 - GUI must not depend on concrete HDF5 internal paths; it should call reader/core APIs.
 - Large files must be handled with slicing, downsampling, or lazy-access plans before full visualization.
 - Prefer explicit exceptions from das_view.core.exceptions.
+- When adding more advanced DAS functionality, prefer general, testable,
+  low-risk data-quality and feature-analysis helpers first.
+- Deep-learning models, location, inversion, or specialized interpretation
+  algorithms must remain deferred experimental/plugin work unless the project
+  owner explicitly changes the roadmap.
+- Do not present specialized algorithms as the mainline package direction.
 
 ## Testing requirements
 

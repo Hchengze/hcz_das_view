@@ -49,6 +49,9 @@ Implemented so far:
 - ROI and annotation helpers, event-candidate to ROI conversion, ROI statistics
   and spectral summaries, JSON/CSV export helpers, and Matplotlib ROI overlay
   helpers.
+- Advanced DAS QC and feature analysis, including channel quality metrics, bad
+  channel flags, noise-floor and SNR estimates, multiband energy maps,
+  spectral-attribute maps, and local channel coherence.
 - Minimal GUI Analysis tab for bounded statistics, band energy, spectral
   attributes, event candidates, ROI statistics, and JSON/CSV export.
 - Packaging metadata, installed CLI/GUI entry points, Windows PyInstaller
@@ -125,6 +128,7 @@ After installation, the package provides these command names:
     hcz-das-spectrum --help
     hcz-das-events --help
     hcz-das-extensions --help
+    hcz-das-qc --help
     hcz-das-view --help
 
 The command-line tools use bounded service-layer workflows and do not read
@@ -142,8 +146,33 @@ Examples:
     hcz-das-events input.h5 --method stalta --sta 50 --lta 500 --trigger-on 3.0 --output events.csv
     hcz-das-extensions --list
     hcz-das-extensions --kind analysis --json
+    hcz-das-qc input.h5 --quality-report --output qc_report.json
+    hcz-das-qc input.h5 --bad-channels --output bad_channels.csv
+    hcz-das-qc input.h5 --multiband 1 5 5 20 20 80 --window-samples 1024 --step-samples 512 --output multiband.json
+    hcz-das-qc input.h5 --coherence --channel-lag 1 --output coherence.json
 
 Generated outputs are local user artifacts and should not be committed.
+
+## Advanced DAS QC and multiband features
+
+The Phase 7B analysis layer adds general DAS data-quality and interpretable
+feature workflows:
+
+- `channel_quality_metrics` and `data_quality_report` summarize per-channel
+  RMS, standard deviation, absolute mean, energy, NaN/Inf/zero fractions,
+  clipping fraction, spike count, dead/quiet/noisy/low-energy flags, quality
+  score, and bad-channel table rows.
+- `estimate_noise_floor` and `estimate_snr` provide simple per-channel
+  noise-floor and signal-to-noise estimates for bounded selections.
+- `multiband_energy_map` computes time-window x channel x band energy maps.
+- `spectral_attribute_map` computes windowed dominant-frequency, centroid,
+  bandwidth, and rolloff maps.
+- `local_channel_coherence` computes adjacent or lagged channel correlation as
+  a spatial-continuity aid.
+
+These outputs are DAS data-quality and feature summaries. They are not
+earthquake/source locations, velocity inversions, MASW, F-J, dispersion picking,
+surface-wave imaging, or geologic interpretation results.
 
 ## Extension architecture
 

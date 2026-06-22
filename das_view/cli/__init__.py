@@ -6,6 +6,7 @@ __all__ = [
     "events",
     "extensions",
     "preview",
+    "qc",
     "spectrum",
     "statistics",
     "validate",

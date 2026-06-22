@@ -170,6 +170,48 @@ def list_builtin_extensions() -> list[object]:
                     "das_view.analysis.service.compute_fk_filter_for_file",
                     "fk_filter_result",
                 ),
+                (
+                    "quality_report",
+                    "DAS channel quality report",
+                    "das_view.analysis.service.compute_quality_report_for_file",
+                    "quality_report",
+                ),
+                (
+                    "bad_channel_detection",
+                    "DAS bad-channel detection",
+                    "das_view.analysis.qc.detect_bad_channels",
+                    "bad_channel_table",
+                ),
+                (
+                    "noise_floor",
+                    "Per-channel noise floor estimate",
+                    "das_view.analysis.qc.estimate_noise_floor",
+                    "noise_floor",
+                ),
+                (
+                    "snr_estimate",
+                    "Per-channel SNR estimate",
+                    "das_view.analysis.qc.estimate_snr",
+                    "snr",
+                ),
+                (
+                    "multiband_energy_map",
+                    "Windowed multiband energy map",
+                    "das_view.analysis.service.compute_multiband_map_for_file",
+                    "multiband_feature_map",
+                ),
+                (
+                    "spectral_attribute_map",
+                    "Windowed spectral attribute map",
+                    "das_view.analysis.service.compute_spectral_attribute_map_for_file",
+                    "spectral_attribute_map",
+                ),
+                (
+                    "local_channel_coherence",
+                    "Local channel coherence",
+                    "das_view.analysis.service.compute_coherence_for_file",
+                    "coherence_map",
+                ),
             ]
         ],
         *[
@@ -233,6 +275,27 @@ def list_builtin_extensions() -> list[object]:
                     "das_view.plotting.roi",
                     "das_view.plotting.roi.plot_rois_on_waterfall",
                     "ROISet",
+                ),
+                (
+                    "channel_quality",
+                    "Channel quality plot",
+                    "das_view.plotting.qc",
+                    "das_view.plotting.qc.plot_channel_quality",
+                    "DataQualityReport",
+                ),
+                (
+                    "multiband_energy_map_plot",
+                    "Multiband energy map plot",
+                    "das_view.plotting.multiband",
+                    "das_view.plotting.multiband.plot_multiband_energy_map",
+                    "MultibandFeatureMap",
+                ),
+                (
+                    "coherence_map",
+                    "Local channel coherence map plot",
+                    "das_view.plotting.multiband",
+                    "das_view.plotting.multiband.plot_coherence_map",
+                    "LocalCoherenceResult",
                 ),
             ]
         ],

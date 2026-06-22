@@ -2180,3 +2180,116 @@ intended for commit.
 
 Phase 6D: Release CI planning, or Phase 7B: Clean docs and user-facing release
 candidate polish.
+
+## 2026-06-22: Phase 7B Advanced DAS QC and multiband feature analysis
+
+### Goal
+
+Add practical, general DAS data-quality and feature-analysis capabilities while
+keeping the project out of surface-wave imaging, MASW, F-J, dispersion picking,
+source location, inversion, and deep-learning model workflows.
+
+### Added or modified files
+
+- pyproject.toml
+- README.md
+- AGENTS.md
+- das_view/analysis/qc.py
+- das_view/analysis/multiband.py
+- das_view/analysis/service.py
+- das_view/analysis/__init__.py
+- das_view/cli/qc.py
+- das_view/plotting/qc.py
+- das_view/plotting/multiband.py
+- das_view/plotting/__init__.py
+- das_view/plugins/builtins.py
+- examples/qc_file.py
+- tests/test_qc_analysis.py
+- tests/test_multiband_analysis.py
+- tests/test_qc_service.py
+- tests/test_qc_cli.py
+- tests/test_qc_plotting.py
+- tests/test_cli_entrypoints.py
+- tests/test_packaging.py
+- tests/test_release_validation.py
+- tests/test_public_api_stability.py
+- tests/test_plugins_builtins.py
+- docs/09_tutorial_user_manual.ipynb
+- docs/02_architecture.md
+- docs/05_development_log.md
+- docs/06_testing.md
+- docs/07_roadmap.md
+- docs/08_project_handoff.md
+
+### Analysis work
+
+- Added channel_quality_metrics, DataQualityReport, bad-channel flags,
+  clipping/spike/NaN/Inf/zero fractions, per-channel RMS/STD/energy/abs_mean,
+  quality scores, noise-floor estimates, SNR estimates, and CSV-friendly QC
+  rows.
+- Added multiband_energy_map for time-window x channel x band energy features.
+- Added spectral_attribute_map for windowed dominant-frequency, centroid,
+  bandwidth, and rolloff maps.
+- Added local_channel_coherence for adjacent or lagged channel correlation and
+  windowed spatial-continuity support.
+- Added bounded service functions: compute_quality_report_for_file,
+  compute_multiband_map_for_file, compute_spectral_attribute_map_for_file, and
+  compute_coherence_for_file.
+- Added hcz-das-qc and examples/qc_file.py for JSON/CSV user workflows.
+- Added Matplotlib-only QC, bad-channel, multiband, and coherence plotting
+  helpers.
+- Updated built-in plugin metadata for QC, multiband, coherence, and related
+  plotting helpers.
+
+### Five-level DAS Analysis roadmap
+
+- Level 1: DAS QC / channel quality.
+- Level 2: Multiband feature map.
+- Level 3: Local coherence / spatial continuity.
+- Level 4: Traditional robust denoising / enhancement, deferred.
+- Level 5: Wavefield decomposition / apparent moveout assisted analysis,
+  deferred.
+
+Levels 4 and 5 are planning-only in this phase.
+
+### Tests
+
+- Focused QC/multiband tests:
+  python -B -m pytest -p no:cacheprovider --basetemp .tmp_pytest/phase7b_focused tests/test_qc_analysis.py tests/test_multiband_analysis.py tests/test_qc_service.py tests/test_qc_cli.py tests/test_qc_plotting.py tests/test_plugins_builtins.py tests/test_cli_entrypoints.py tests/test_packaging.py tests/test_release_validation.py tests/test_public_api_stability.py -q
+  Result: 66 passed.
+- Full test result:
+  python -B -m pytest -p no:cacheprovider --basetemp .tmp_pytest/phase7b_full
+  Result: 458 passed. Test count increased from 430 to 458 because Phase 7B
+  added 28 QC, multiband, service, CLI, plotting, plugin metadata, entrypoint,
+  and tutorial coverage tests.
+
+### Old-code migration judgment
+
+No old_code files were copied, imported, modified, or used for implementation.
+This phase adds new general DAS QC and feature-analysis modules under the new
+package interfaces.
+
+### Data and artifact policy confirmation
+
+No real DAS data, generated images, validation_outputs artifacts,
+local_validation_paths.txt, local absolute data paths, JSON/CSV outputs,
+build/dist artifacts, wheels, archives, exe files, or local output files are
+intended for commit.
+
+### Not completed
+
+- Larger real-data validation remains future work.
+- Automated release CI is not implemented.
+- Windows exe signing is not implemented.
+- Level 4 traditional robust denoising and enhancement are deferred.
+- Level 5 wavefield decomposition and apparent moveout analysis are deferred.
+- Deep-learning denoising is deferred and should remain future experimental
+  plugin work.
+- Plugin API still needs validation with real third-party plugin packages.
+- The tutorial notebook should continue to be maintained as stable features
+  mature.
+
+### Suggested next round
+
+Phase 6D: Release CI planning, or Phase 7C: Traditional robust denoising and
+wavefield enhancement planning.

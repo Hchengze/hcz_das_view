@@ -173,6 +173,12 @@ Current coverage:
   import without real data reads, CLI module imports without GUI startup, GUI
   app help without a Qt event loop, and stable public API import/callability
   checks for core, IO, processing, analysis, plotting, and plugins.
+- Phase 7B QC and multiband tests cover channel-quality metrics, zero/dead
+  channel flags, spike and clipping detection, NaN/Inf fractions, noise-floor
+  and SNR estimates, bad-channel detection, DASData input, local channel
+  coherence, multiband energy maps, spectral attribute maps, service-layer
+  bounded reads, preprocessing history, hcz-das-qc CLI JSON/CSV outputs,
+  Matplotlib QC/map plots, plugin metadata, and entrypoint declarations.
 - FK analysis tests cover synthetic plane-wave peak frequency/wavenumber
   detection, amplitude/power shapes, DASData metadata sample-rate/dx handling,
   invalid sample_rate_hz/dx/nfft/dimensionality/NaN/Inf/too-short inputs, and

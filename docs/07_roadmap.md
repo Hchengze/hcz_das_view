@@ -345,7 +345,133 @@ Status:
 
 Recommended next: Phase 6D or Phase 7B.
 
+### Phase 7B: Advanced DAS QC and multiband feature analysis
+
+Goal:
+
+    Add practical DAS data-quality, multiband feature-map, and local coherence
+    analysis while keeping the project focused on general DAS Viewer / DAS
+    Analysis workflows.
+
+Scope:
+
+- Implement Level 1 core QC report, bad-channel flags, noise-floor estimates,
+  and SNR estimates.
+- Implement Level 2 multiband energy maps and spectral attribute maps.
+- Implement Level 3 local channel coherence as a spatial-continuity aid.
+- Keep Level 4 traditional denoising/enhancement and Level 5 wavefield /
+  apparent-moveout work as roadmap-only planning in this phase.
+- Do not add surface-wave imaging, MASW, F-J, dispersion picking, source
+  location, inversion, or deep-learning models.
+
+Status:
+
+- Completed in Phase 7B for DAS QC helpers, multiband feature maps, local
+  channel coherence, bounded service functions, hcz-das-qc, example wrapper,
+  Matplotlib plotting helpers, plugin metadata, tests, and tutorial updates.
+
+Recommended next: Phase 6D or Phase 7C.
+
 ## DAS Analysis capability roadmap
+
+## Five-level DAS Analysis roadmap
+
+### Level 1: DAS data quality / QC analysis
+
+Highest priority. This layer helps determine whether DAS data are healthy,
+which channels are trustworthy, and which time windows have poor quality.
+
+- bad channel detection
+- dead / quiet channel detection
+- noisy channel detection
+- clipping / saturation detection
+- spike detection
+- NaN / Inf / zero fraction
+- channel RMS / STD / energy stability
+- noise floor estimate
+- SNR estimate
+- channel quality score
+- time-window quality score
+- QC report JSON / CSV export
+
+This is general DAS data quality control, not location, inversion, or geologic
+interpretation.
+
+### Level 2: Multiband / multispectral DAS feature map
+
+This layer expands band energy and spectral attributes into interpretable
+time-channel feature maps for DAS monitoring and assisted review.
+
+- time-window x channel x band energy map
+- low / middle / high frequency energy map
+- band energy ratio map
+- dominant frequency map
+- spectral centroid map
+- spectral bandwidth map
+- spectral rolloff map
+- multiband feature export
+- ROI-based multiband summary
+
+This is frequency-band and spectral-attribute analysis only, not dispersion
+picking, MASW, F-J, or surface-wave imaging.
+
+### Level 3: Cross-channel coherence / local similarity / spatial continuity
+
+This layer uses DAS spatial continuity to support QC, coupling review, local
+event screening, and spatial continuity monitoring.
+
+- adjacent-channel correlation
+- local channel coherence
+- local similarity
+- channel-lag coherence
+- windowed spatial continuity score
+- coherence map
+- channel delay / lag estimate as an optional experimental feature
+
+This layer is for data quality and spatial-continuity support only. It does not
+perform velocity inversion, source location, or geologic interpretation.
+
+### Level 4: Robust denoising / enhancement using traditional methods
+
+Deferred until Levels 1-3 are stable. Prefer interpretable, testable, low
+dependency methods.
+
+- common-mode removal
+- median filter
+- despike
+- channel balancing
+- local normalization
+- time-space 2D median filtering
+- robust clipping
+- directional FK-domain pass / reject polish
+- simple wavefield enhancement helpers
+
+Deep-learning denoising is not part of the current mainline and should remain
+future experimental/plugin work.
+
+### Level 5: Wavefield decomposition / apparent moveout assisted analysis
+
+Deferred higher-level wavefield assistance. This remains DAS analysis support,
+not a specialized imaging or inversion package.
+
+- apparent slope attribute
+- apparent velocity attribute
+- directional energy ratio
+- upgoing / downgoing or left-going / right-going energy helper
+- FK directional energy summary
+- event moveout auxiliary attributes
+
+This is not surface-wave imaging, MASW, F-J, dispersion picking, source
+location, or inversion. Any such interpretation workflow must be planned as a
+separate experimental/plugin direction.
+
+Priority order:
+
+1. Level 1: DAS QC / channel quality
+2. Level 2: Multiband feature map
+3. Level 3: Local coherence / spatial continuity
+4. Level 4: Traditional robust denoising / enhancement
+5. Level 5: Wavefield decomposition / apparent moveout assisted analysis
 
 ## Tutorial notebook maintenance
 

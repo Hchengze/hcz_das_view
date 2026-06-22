@@ -52,7 +52,15 @@ def test_analysis_public_api_imports():
         amplitude_envelope,
         band_energy,
         basic_statistics,
+        channel_quality_metrics,
+        compute_coherence_for_file,
+        compute_multiband_map_for_file,
+        compute_quality_report_for_file,
         compute_roi_statistics_for_file,
+        estimate_noise_floor,
+        estimate_snr,
+        local_channel_coherence,
+        multiband_energy_map,
         compute_spectral_attributes_for_file,
         compute_statistics_for_file,
         detect_events_for_file,
@@ -62,14 +70,22 @@ def test_analysis_public_api_imports():
 
     for func in [
         basic_statistics,
+        channel_quality_metrics,
         band_energy,
+        multiband_energy_map,
         spectral_attributes,
         amplitude_envelope,
         sta_lta_ratio,
+        estimate_noise_floor,
+        estimate_snr,
+        local_channel_coherence,
         detect_events_for_file,
         compute_statistics_for_file,
         compute_spectral_attributes_for_file,
         compute_roi_statistics_for_file,
+        compute_quality_report_for_file,
+        compute_multiband_map_for_file,
+        compute_coherence_for_file,
     ]:
         assert callable(func)
 
@@ -77,6 +93,9 @@ def test_analysis_public_api_imports():
 def test_plotting_public_api_imports():
     from das_view.plotting import (
         plot_fk,
+        plot_channel_quality,
+        plot_coherence_map,
+        plot_multiband_energy_map,
         plot_psd,
         plot_rois_on_waterfall,
         plot_spectrum,
@@ -90,6 +109,9 @@ def test_plotting_public_api_imports():
         plot_spectrum,
         plot_psd,
         plot_fk,
+        plot_channel_quality,
+        plot_coherence_map,
+        plot_multiband_energy_map,
         plot_rois_on_waterfall,
     ]:
         assert callable(func)

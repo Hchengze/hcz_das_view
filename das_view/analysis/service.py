@@ -18,6 +18,8 @@ from das_view.analysis.events import (
 )
 from das_view.analysis.fk import FKResult, fk_transform
 from das_view.analysis.fk_filter import FKFilterResult, fk_velocity_filter
+from das_view.analysis.multiband import MultibandFeatureMap, multiband_energy_map, spectral_attribute_map
+from das_view.analysis.qc import DataQualityReport, LocalCoherenceResult, data_quality_report, local_channel_coherence
 from das_view.analysis.roi import ROIAnalysisResult, ROISet, TimeChannelROI
 from das_view.analysis.spectrum import (
     PSDResult,
@@ -52,6 +54,9 @@ AnalysisResult = (
     | STALTARatioResult
     | EventDetectionResult
     | ROIAnalysisResult
+    | DataQualityReport
+    | MultibandFeatureMap
+    | LocalCoherenceResult
 )
 StepLike = PreprocessStep | tuple[str, Mapping[str, Any]] | str
 
@@ -183,6 +188,42 @@ class ROIAnalysisServiceResult:
     reader_name: str | None
     preprocessing_history: tuple[dict[str, Any], ...]
     analysis_kind: str
+
+
+@dataclass(frozen=True, slots=True)
+class QualityReportServiceResult:
+    """Result from a bounded file-level DAS QC report."""
+
+    result: DataQualityReport
+    das_data: DASData
+    reader_name: str
+    metadata: DASMetadata
+    selection: SelectionResult
+    preprocessing_history: tuple[dict[str, Any], ...]
+
+
+@dataclass(frozen=True, slots=True)
+class MultibandMapServiceResult:
+    """Result from a bounded file-level multiband feature map."""
+
+    result: MultibandFeatureMap | dict[str, MultibandFeatureMap]
+    das_data: DASData
+    reader_name: str
+    metadata: DASMetadata
+    selection: SelectionResult
+    preprocessing_history: tuple[dict[str, Any], ...]
+
+
+@dataclass(frozen=True, slots=True)
+class CoherenceServiceResult:
+    """Result from a bounded file-level local channel coherence analysis."""
+
+    result: LocalCoherenceResult
+    das_data: DASData
+    reader_name: str
+    metadata: DASMetadata
+    selection: SelectionResult
+    preprocessing_history: tuple[dict[str, Any], ...]
 
 
 def compute_spectrum_for_file(
@@ -485,6 +526,152 @@ def compute_spectral_attributes_for_file(
         nan_policy=nan_policy,
     )
     return _spectral_attributes_service_result(result=result, das_data=das_data, selection=selection)
+
+
+def compute_quality_report_for_file(
+    path: str | Path,
+    *,
+    channel_slice=None,
+    time_slice=None,
+    max_samples: int = 4096,
+    max_channels: int = 512,
+    downsample: int | tuple[int, int] | None = None,
+    preprocessing_steps: Sequence[StepLike] | None = None,
+    nan_policy: Literal["omit", "raise"] = "omit",
+    clipping_threshold: float | None = None,
+) -> QualityReportServiceResult:
+    """Read a bounded 2-D selection and compute DAS QC metrics."""
+
+    das_data, selection = _read_selection_and_maybe_preprocess(
+        path,
+        channel_slice=channel_slice,
+        time_slice=time_slice,
+        max_samples=max_samples,
+        max_channels=max_channels,
+        downsample=downsample,
+        preprocessing_steps=preprocessing_steps,
+    )
+    result = data_quality_report(
+        das_data,
+        axis=0,
+        nan_policy=nan_policy,
+        clipping_threshold=clipping_threshold,
+    )
+    return _quality_report_service_result(result=result, das_data=das_data, selection=selection)
+
+
+def compute_multiband_map_for_file(
+    path: str | Path,
+    *,
+    bands,
+    window_samples: int,
+    step_samples: int,
+    channel_slice=None,
+    time_slice=None,
+    max_samples: int = 4096,
+    max_channels: int = 512,
+    downsample: int | tuple[int, int] | None = None,
+    preprocessing_steps: Sequence[StepLike] | None = None,
+    normalize: Literal["total", "max"] | None = None,
+    nan_policy: Literal["omit", "raise"] = "raise",
+) -> MultibandMapServiceResult:
+    """Read a bounded 2-D selection and compute a multiband energy map."""
+
+    das_data, selection = _read_selection_and_maybe_preprocess(
+        path,
+        channel_slice=channel_slice,
+        time_slice=time_slice,
+        max_samples=max_samples,
+        max_channels=max_channels,
+        downsample=downsample,
+        preprocessing_steps=preprocessing_steps,
+        require_sample_rate=True,
+    )
+    result = multiband_energy_map(
+        das_data,
+        bands=bands,
+        window_samples=window_samples,
+        step_samples=step_samples,
+        axis=0,
+        normalize=normalize,
+        nan_policy=nan_policy,
+    )
+    return _multiband_map_service_result(result=result, das_data=das_data, selection=selection)
+
+
+def compute_spectral_attribute_map_for_file(
+    path: str | Path,
+    *,
+    window_samples: int,
+    step_samples: int,
+    channel_slice=None,
+    time_slice=None,
+    max_samples: int = 4096,
+    max_channels: int = 512,
+    downsample: int | tuple[int, int] | None = None,
+    preprocessing_steps: Sequence[StepLike] | None = None,
+    frequency_range=None,
+    attributes=("dominant_frequency", "centroid", "bandwidth", "rolloff"),
+    nan_policy: Literal["omit", "raise"] = "raise",
+) -> MultibandMapServiceResult:
+    """Read a bounded 2-D selection and compute spectral attribute maps."""
+
+    das_data, selection = _read_selection_and_maybe_preprocess(
+        path,
+        channel_slice=channel_slice,
+        time_slice=time_slice,
+        max_samples=max_samples,
+        max_channels=max_channels,
+        downsample=downsample,
+        preprocessing_steps=preprocessing_steps,
+        require_sample_rate=True,
+    )
+    result = spectral_attribute_map(
+        das_data,
+        window_samples=window_samples,
+        step_samples=step_samples,
+        axis=0,
+        frequency_range=frequency_range,
+        attributes=attributes,
+        nan_policy=nan_policy,
+    )
+    return _multiband_map_service_result(result=result, das_data=das_data, selection=selection)
+
+
+def compute_coherence_for_file(
+    path: str | Path,
+    *,
+    channel_lag: int = 1,
+    window_samples: int | None = None,
+    step_samples: int | None = None,
+    channel_slice=None,
+    time_slice=None,
+    max_samples: int = 4096,
+    max_channels: int = 512,
+    downsample: int | tuple[int, int] | None = None,
+    preprocessing_steps: Sequence[StepLike] | None = None,
+    nan_policy: Literal["omit", "raise"] = "omit",
+) -> CoherenceServiceResult:
+    """Read a bounded 2-D selection and compute local channel coherence."""
+
+    das_data, selection = _read_selection_and_maybe_preprocess(
+        path,
+        channel_slice=channel_slice,
+        time_slice=time_slice,
+        max_samples=max_samples,
+        max_channels=max_channels,
+        downsample=downsample,
+        preprocessing_steps=preprocessing_steps,
+    )
+    result = local_channel_coherence(
+        das_data,
+        axis=0,
+        channel_lag=channel_lag,
+        window_samples=window_samples,
+        step_samples=step_samples,
+        nan_policy=nan_policy,
+    )
+    return _coherence_service_result(result=result, das_data=das_data, selection=selection)
 
 
 def compute_envelope_for_file(
@@ -903,6 +1090,57 @@ def _spectral_attributes_service_result(
 ) -> SpectralAttributesServiceResult:
     history = _preprocessing_history(das_data)
     return SpectralAttributesServiceResult(
+        result=result,
+        das_data=das_data,
+        reader_name=selection.reader_name,
+        metadata=das_data.metadata,
+        selection=selection,
+        preprocessing_history=history,
+    )
+
+
+def _quality_report_service_result(
+    *,
+    result: DataQualityReport,
+    das_data: DASData,
+    selection: SelectionResult,
+) -> QualityReportServiceResult:
+    history = _preprocessing_history(das_data)
+    return QualityReportServiceResult(
+        result=result,
+        das_data=das_data,
+        reader_name=selection.reader_name,
+        metadata=das_data.metadata,
+        selection=selection,
+        preprocessing_history=history,
+    )
+
+
+def _multiband_map_service_result(
+    *,
+    result: MultibandFeatureMap | dict[str, MultibandFeatureMap],
+    das_data: DASData,
+    selection: SelectionResult,
+) -> MultibandMapServiceResult:
+    history = _preprocessing_history(das_data)
+    return MultibandMapServiceResult(
+        result=result,
+        das_data=das_data,
+        reader_name=selection.reader_name,
+        metadata=das_data.metadata,
+        selection=selection,
+        preprocessing_history=history,
+    )
+
+
+def _coherence_service_result(
+    *,
+    result: LocalCoherenceResult,
+    das_data: DASData,
+    selection: SelectionResult,
+) -> CoherenceServiceResult:
+    history = _preprocessing_history(das_data)
+    return CoherenceServiceResult(
         result=result,
         das_data=das_data,
         reader_name=selection.reader_name,
