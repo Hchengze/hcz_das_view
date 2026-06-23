@@ -47,6 +47,7 @@
       - qc.py
       - multiband.py
       - denoise.py
+      - downsample.py
     - plugins/
       - base.py
       - registry.py
@@ -60,8 +61,10 @@
       - extensions.py
     - gui/
       - app.py
+      - display_backends.py
       - main_window.py
       - models.py
+      - pyqtgraph_canvas.py
       - workers.py
     - utils/
       - slicing.py
@@ -89,7 +92,8 @@
   smoke filtering for DAS 2D wavefield inspection.
 - plotting: Matplotlib plotting helpers independent from GUI widgets, including
   waterfall, waveform, spectrum, spectrogram, FK views, ROI overlays, QC plots,
-  multiband maps, coherence maps, and denoise/moveout attribute plots.
+  multiband maps, coherence maps, denoise/moveout attribute plots, and
+  GUI-independent display downsampling helpers.
 - das_view/processing/denoise.py provides traditional signal-enhancement
   helpers such as common-mode removal, despike, median filtering, channel
   balancing, local normalization, time-space median filtering, robust clipping,
@@ -107,6 +111,13 @@
   and avoid depending on examples/ as package API.
 - gui: optional PyQt5 layer that calls preview, formatting, plotting,
   analysis-service, and export-helper APIs.
+- das_view/gui/display_backends.py contains lazy optional display backend
+  detection and selection metadata. Matplotlib remains the default backend;
+  PyQtGraph and VisPy are optional and are not imported by `import das_view`.
+- das_view/gui/pyqtgraph_canvas.py contains the experimental PyQtGraph
+  waterfall/image preview helper. It is used only by the GUI path and accepts
+  already selected arrays; it does not read DAS files or implement analysis
+  algorithms.
 - das_view/gui/models.py contains PyQt-free GUI parsing, formatting,
   task-state, and selection-memory helpers. These helpers estimate planned GUI
   selections from metadata only and are shared by Waterfall, Waveform,
@@ -176,6 +187,28 @@ Not allowed:
   synthetic data and returns skipped summaries when CuPy is unavailable.
 - `das_view/cli/gpu.py` exposes diagnostics, synthetic benchmark, compare, and
   numeric-validation workflows without requiring real data.
+
+## Optional GUI display backends
+
+- The stable GUI display backend remains Matplotlib. It is used by default for
+  waterfall previews and by the existing waveform, spectrum, FK, and plotting
+  paths.
+- `das_view/gui/display_backends.py` reports backend availability through
+  small metadata objects. Optional packages are imported lazily only inside
+  explicit availability/selection helpers.
+- `pyqtgraph` is an experimental backend for waterfall/image preview only. It
+  uses `ImageItem` through a GUI-only helper and receives NumPy arrays already
+  returned by preview/data-service code.
+- `vispy` and `PyOpenGL` are optional extras for capability detection in this
+  phase. The package does not create an OpenGL context during tests or normal
+  import, and deep tiled/streaming OpenGL display is deferred.
+- `das_view/plotting/downsample.py` provides `downsample_for_display` and
+  `estimate_display_pixels`. These helpers are PyQt-free and PyQtGraph-free,
+  preserve the `(n_samples, n_channels)` convention for 2-D arrays, do not
+  mutate inputs, and cap display arrays by sample/channel limits.
+- Display backend selection affects only GUI waterfall/image preview. It does
+  not affect CLI tools, analysis services, optional GPU compute backend
+  selection, or Matplotlib plotting helpers.
 
 ## Plugin architecture
 

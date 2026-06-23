@@ -272,6 +272,18 @@ CI-equivalent local checks:
   must run normally; CPU/GPU compare and numeric validation return skipped
   summaries when CuPy is unavailable. CI may run `python -m das_view.cli.gpu
   --info`, but it must not require a CUDA device.
+- Optional display backend tests do not require PyQtGraph, VisPy, PyOpenGL, a
+  GPU, or an OpenGL context. Matplotlib availability is treated as the stable
+  default. PyQtGraph and VisPy checks must import optional packages lazily and
+  report unavailable backends without failing CPU-only CI.
+- Display downsampling tests are PyQt-free and verify that display arrays are
+  capped by sample/channel limits without modifying the input. These tests
+  support both the Matplotlib waterfall path and the experimental PyQtGraph
+  waterfall/image path.
+- PyQtGraph widget smoke tests skip cleanly when PyQtGraph or PyQt5 is
+  unavailable. When available, they create a small offscreen-friendly widget
+  and set a synthetic image without requiring real DAS data, screenshots, or an
+  OpenGL display context.
 - Waveform plotting tests also use the Agg backend and write only to pytest tmp_path.
 - GUI smoke tests use pytest.importorskip("PyQt5") and pytest.importorskip("matplotlib"). If PyQt5 is not installed, GUI creation and Qt worker tests skip cleanly while core/io/plotting and PyQt-free GUI model tests continue to run.
 - GUI waveform tests avoid real file dialogs and real DAS data; they only instantiate

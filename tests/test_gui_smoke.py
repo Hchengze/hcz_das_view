@@ -696,6 +696,7 @@ def test_main_window_can_be_created_when_pyqt5_is_available():
     assert window.fk_vmax_input.text() == ""
     assert window.fk_pass_inside_checkbox.isChecked()
     assert window.fk_button.text() == "Run FK"
+    assert window.display_backend_combo.currentData() == "matplotlib"
     assert window.analysis_type_combo.currentText() == "Statistics"
     assert window.analysis_run_button.text() == "Run analysis"
     assert window.analysis_export_json_button.text() == "Export JSON"
@@ -709,6 +710,29 @@ def test_main_window_can_be_created_when_pyqt5_is_available():
     assert window.cancel_button is not None
     assert window.progress_bar.isHidden()
     assert not window.cancel_button.isEnabled()
+    window.close()
+    app.processEvents()
+
+
+def test_main_window_display_backend_combo_when_pyqt5_is_available():
+    pytest.importorskip("PyQt5")
+    matplotlib = pytest.importorskip("matplotlib")
+    matplotlib.use("Agg", force=True)
+
+    from PyQt5 import QtWidgets
+    from das_view.gui.main_window import MainWindow
+
+    app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
+    window = MainWindow()
+
+    assert window.display_backend_combo.currentData() == "matplotlib"
+    values = [
+        window.display_backend_combo.itemData(index)
+        for index in range(window.display_backend_combo.count())
+    ]
+    assert values == ["matplotlib", "pyqtgraph"]
+    assert window._display_backend == "matplotlib"
+    assert window.waterfall_stack.currentWidget() is window.waterfall_matplotlib_panel
     window.close()
     app.processEvents()
 

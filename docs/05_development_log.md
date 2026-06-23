@@ -2844,6 +2844,109 @@ local output files are intended for commit.
 Phase 9B: Optional GPU / OpenGL display backend exploration, or Phase 8C:
 Real-world validation package and release candidate polish.
 
+## Phase 9B: Optional GPU / OpenGL display backend exploration
+
+Phase 9B establishes an optional GUI display backend layer for large-array
+display exploration while keeping Matplotlib as the default and stable GUI
+display path. It does not add readers, analysis algorithms, GPU compute paths,
+deep learning, PyTorch, TensorFlow, mandatory OpenGL dependencies, or real data
+artifacts.
+
+### Files added
+
+- das_view/gui/display_backends.py
+- das_view/gui/pyqtgraph_canvas.py
+- das_view/plotting/downsample.py
+- tests/test_display_backends.py
+- tests/test_display_downsample.py
+- tests/test_pyqtgraph_display_smoke.py
+
+### Files changed
+
+- das_view/gui/main_window.py
+- pyproject.toml
+- tests/test_gui_smoke.py
+- tests/test_packaging.py
+- tools/check_artifacts.py
+- README.md
+- AGENTS.md
+- docs/02_architecture.md
+- docs/06_testing.md
+- docs/07_roadmap.md
+- docs/08_project_handoff.md
+- docs/09_tutorial_user_manual.ipynb
+
+### Optional package installation status
+
+- `pyqtgraph` was installed in the local Anaconda environment for Phase 9B
+  smoke testing.
+- `pyqtgraph` import smoke reported version 0.14.0.
+- `vispy` and `PyOpenGL` were not installed locally in this phase. VisPy/OpenGL
+  support is limited to lazy capability detection and documentation; deep
+  OpenGL display integration remains deferred.
+
+### Display backend architecture
+
+- Added `DisplayBackendInfo`, `is_pyqtgraph_available`,
+  `is_vispy_available`, `get_available_display_backends`,
+  `select_display_backend`, and `format_display_backend_report`.
+- Matplotlib is always available and remains the default backend.
+- PyQtGraph and VisPy are imported lazily only inside explicit display-backend
+  helper calls. Importing `das_view` and `das_view.gui.models` does not import
+  optional display packages.
+- Added optional dependencies:
+  - `display = ["pyqtgraph"]`
+  - `opengl = ["vispy", "PyOpenGL"]`
+  These are not main dependencies and are not required by CI.
+
+### PyQtGraph waterfall exploration
+
+- Added a GUI-only PyQtGraph waterfall/image helper that accepts bounded NumPy
+  arrays and can downsample for display.
+- MainWindow now exposes a lightweight waterfall display backend selector.
+  Matplotlib remains selected by default. PyQtGraph is labeled experimental and
+  falls back to Matplotlib with a user-readable status message when unavailable
+  or when widget setup fails.
+- The optional backend affects only waterfall/image preview. Waveform,
+  spectrum, FK, Analysis tab, CLI tools, and service APIs remain unchanged.
+
+### Display downsampling
+
+- Added `downsample_for_display` and `estimate_display_pixels` as PyQt-free
+  helpers in `das_view/plotting/downsample.py`.
+- The helper supports 1-D and 2-D arrays, does not mutate inputs, preserves the
+  `(n_samples, n_channels)` convention for 2-D data, and caps output shapes by
+  maximum sample/channel limits.
+
+### Tests
+
+- Focused Phase 9B tests:
+  python -B -m pytest -p no:cacheprovider --basetemp .tmp_pytest\phase9b_focused tests/test_display_backends.py tests/test_display_downsample.py tests/test_pyqtgraph_display_smoke.py tests/test_gui_smoke.py tests/test_packaging.py
+  Result: 80 passed.
+- Full Phase 9B result: pending final full-test run in this round.
+- Full Phase 9B tests:
+  python -B -m pytest -p no:cacheprovider --basetemp .tmp_pytest\phase9b_full
+  Result: 620 passed, 1 skipped. The skipped test remains the optional real
+  CuPy GPU numerical-equivalence check on CPU-only/no-CuPy environments. Test
+  count increased from 603 collected in Phase 8D to 621 collected because
+  Phase 9B added optional display backend, display downsampling, PyQtGraph
+  smoke, packaging-extra, and MainWindow backend-selector tests.
+
+### Boundaries and remaining work
+
+- CI does not require PyQtGraph, VisPy, PyOpenGL, GPU hardware, or an OpenGL
+  context.
+- No screenshots, display benchmark outputs, JSON/CSV artifacts, build
+  artifacts, or real DAS data were added.
+- PyQtGraph/VisPy behavior still needs manual validation with real large GUI
+  selections.
+- Deep VisPy/OpenGL tiled or streaming display remains deferred.
+
+Recommended next:
+
+Phase 9C: GPU / display benchmark and manual GUI validation, or Phase 8E: GUI
+manual validation and release-candidate signoff.
+
 ## Phase 8D: GUI analysis integration for QC / Denoise / Moveout
 
 Phase 8D integrates mature service-backed DAS analysis reports into the

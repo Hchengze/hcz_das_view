@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from das_view.core.metadata_format import format_metadata
+from das_view.gui.display_backends import is_pyqtgraph_available
 from das_view.gui.models import (
     AnalysisRequest,
     GUI_DEFAULT_MAX_SELECTION_BYTES,
@@ -34,6 +35,7 @@ from das_view.gui.models import (
     should_apply_task_result,
     task_control_state,
 )
+from das_view.gui.pyqtgraph_canvas import create_pyqtgraph_waterfall_widget
 from das_view.gui.workers import (
     QtAnalysisWorker,
     QtFKWorker,
@@ -106,6 +108,10 @@ class MainWindow(_qt_widgets().QMainWindow):
         self._current_metadata: Any | None = None
         self._current_reader_name: str | None = None
         self._gui_max_selection_bytes = GUI_DEFAULT_MAX_SELECTION_BYTES
+        self._display_backend = "matplotlib"
+        self._pyqtgraph_available = is_pyqtgraph_available()
+        self._pyqtgraph_waterfall_view: Any | None = None
+        self._latest_preview_data: Any | None = None
         self._latest_analysis_result: Any | None = None
         self._latest_analysis_request: AnalysisRequest | None = None
         self._latest_analysis_rows: list[dict[str, Any]] = []
@@ -147,6 +153,25 @@ class MainWindow(_qt_widgets().QMainWindow):
             _create_matplotlib_widgets(self)
         )
         self.fk_figure, self.fk_canvas, self.fk_toolbar = _create_matplotlib_widgets(self)
+
+        self.display_backend_combo = QtWidgets.QComboBox()
+        self.display_backend_combo.addItem("Matplotlib", "matplotlib")
+        pyqtgraph_label = (
+            "PyQtGraph experimental"
+            if self._pyqtgraph_available
+            else "PyQtGraph experimental (install display extra)"
+        )
+        self.display_backend_combo.addItem(pyqtgraph_label, "pyqtgraph")
+        self.display_backend_combo.setCurrentIndex(0)
+        self.display_backend_combo.setToolTip("Waterfall display backend; Matplotlib remains the default")
+        self.display_backend_combo.currentIndexChanged.connect(self._handle_display_backend_changed)
+        self.waterfall_stack = QtWidgets.QStackedWidget()
+        self.waterfall_matplotlib_panel = QtWidgets.QWidget()
+        waterfall_mpl_layout = QtWidgets.QVBoxLayout(self.waterfall_matplotlib_panel)
+        waterfall_mpl_layout.setContentsMargins(0, 0, 0, 0)
+        waterfall_mpl_layout.addWidget(self.toolbar)
+        waterfall_mpl_layout.addWidget(self.canvas)
+        self.waterfall_stack.addWidget(self.waterfall_matplotlib_panel)
 
         self.waveform_channel_input = QtWidgets.QLineEdit("0")
         self.waveform_channel_input.setToolTip("Zero-based channel index, e.g. 10 or 10,20,30")
@@ -354,8 +379,10 @@ class MainWindow(_qt_widgets().QMainWindow):
 
         waterfall_panel = QtWidgets.QWidget()
         waterfall_layout = QtWidgets.QVBoxLayout(waterfall_panel)
-        waterfall_layout.addWidget(self.toolbar)
-        waterfall_layout.addWidget(self.canvas)
+        waterfall_controls = QtWidgets.QFormLayout()
+        waterfall_controls.addRow("Display backend", self.display_backend_combo)
+        waterfall_layout.addLayout(waterfall_controls)
+        waterfall_layout.addWidget(self.waterfall_stack)
 
         waveform_panel = QtWidgets.QWidget()
         waveform_layout = QtWidgets.QVBoxLayout(waveform_panel)
@@ -492,6 +519,7 @@ class MainWindow(_qt_widgets().QMainWindow):
         self.current_path = None
         self._current_metadata = None
         self._current_reader_name = None
+        self._latest_preview_data = None
         self.file_info.setPlainText(f"Path: {path}\nLoading preview...")
         self.metadata_text.setPlainText("Loading preview...")
         self.waveform_info.setPlainText(
@@ -1011,6 +1039,7 @@ class MainWindow(_qt_widgets().QMainWindow):
         )
         self.metadata_text.setPlainText("\n".join(metadata_lines))
         self._draw_preview(result.preview)
+        self._latest_preview_data = result.preview
         self.current_path = path
         self._current_metadata = result.metadata
         self._current_reader_name = result.reader_name
@@ -1183,6 +1212,7 @@ class MainWindow(_qt_widgets().QMainWindow):
             self.open_action.setEnabled(state.open_enabled)
         self.max_samples_input.setEnabled(state.preview_controls_enabled)
         self.max_channels_input.setEnabled(state.preview_controls_enabled)
+        self.display_backend_combo.setEnabled(state.preview_controls_enabled)
         self.waveform_channel_input.setEnabled(state.waveform_controls_enabled)
         self.waveform_time_step_input.setEnabled(state.waveform_controls_enabled)
         self.waveform_button.setEnabled(state.waveform_controls_enabled)
@@ -1214,6 +1244,8 @@ class MainWindow(_qt_widgets().QMainWindow):
             self.progress_bar.setValue(0)
 
     def _clear_waterfall_figure(self) -> None:
+        if self._pyqtgraph_waterfall_view is not None:
+            self._pyqtgraph_waterfall_view.clear()
         self.figure.clear()
         ax = self.figure.add_subplot(111)
         ax.set_title("No preview loaded")
@@ -1251,11 +1283,56 @@ class MainWindow(_qt_widgets().QMainWindow):
         self.analysis_table.setColumnCount(0)
 
     def _draw_preview(self, preview_data) -> None:
+        if self._display_backend == "pyqtgraph":
+            try:
+                view = self._ensure_pyqtgraph_waterfall_view()
+                displayed = view.set_waterfall_image(preview_data)
+            except Exception as exc:  # noqa: BLE001 - GUI boundary reports optional backend errors.
+                message = format_error_message(exc)
+                self.statusBar().showMessage(f"PyQtGraph unavailable, using Matplotlib: {message}")
+                self._set_display_backend("matplotlib")
+            else:
+                self.waterfall_stack.setCurrentWidget(view.widget)
+                self.statusBar().showMessage(
+                    f"PyQtGraph waterfall display: shown shape={displayed.shape}"
+                )
+                return
         self.figure.clear()
         ax = self.figure.add_subplot(111)
         plot_waterfall(preview_data, ax=ax)
         self.figure.tight_layout()
         self.canvas.draw_idle()
+        self.waterfall_stack.setCurrentWidget(self.waterfall_matplotlib_panel)
+
+    def _handle_display_backend_changed(self) -> None:
+        backend = self.display_backend_combo.currentData() or "matplotlib"
+        if backend == self._display_backend:
+            return
+        if backend == "pyqtgraph" and not self._pyqtgraph_available:
+            message = 'PyQtGraph display backend is unavailable. Install with: pip install -e ".[display]"'
+            self.statusBar().showMessage(message)
+            _qt_widgets().QMessageBox.information(self, "DAS View display backend", message)
+            self._set_display_backend("matplotlib")
+            return
+        self._set_display_backend(str(backend))
+        if self._latest_preview_data is not None:
+            self._draw_preview(self._latest_preview_data)
+
+    def _set_display_backend(self, backend: str) -> None:
+        self._display_backend = backend
+        index = self.display_backend_combo.findData(backend)
+        if index >= 0 and self.display_backend_combo.currentIndex() != index:
+            self.display_backend_combo.blockSignals(True)
+            self.display_backend_combo.setCurrentIndex(index)
+            self.display_backend_combo.blockSignals(False)
+        if backend == "matplotlib":
+            self.waterfall_stack.setCurrentWidget(self.waterfall_matplotlib_panel)
+
+    def _ensure_pyqtgraph_waterfall_view(self):
+        if self._pyqtgraph_waterfall_view is None:
+            self._pyqtgraph_waterfall_view = create_pyqtgraph_waterfall_widget(parent=self)
+            self.waterfall_stack.addWidget(self._pyqtgraph_waterfall_view.widget)
+        return self._pyqtgraph_waterfall_view
 
     def _draw_waveform(self, das_data) -> None:
         self.waveform_figure.clear()

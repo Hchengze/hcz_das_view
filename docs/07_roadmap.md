@@ -702,6 +702,40 @@ Boundaries:
 Recommended next: Phase 9B optional GPU/OpenGL display backend exploration, or
 Phase 8C real-world validation package and release-candidate polish.
 
+## Phase 9B: Optional GPU / OpenGL display backend exploration
+
+Status: implemented as an optional display-backend architecture and
+PyQtGraph waterfall exploration layer.
+
+Phase 9B keeps Matplotlib as the default GUI display path. It does not add
+analysis algorithms, readers, deep learning, GPU compute paths, or mandatory
+OpenGL dependencies. The goal is to prepare large-array GUI display work while
+preserving the stable CPU/Matplotlib behavior.
+
+Implemented scope:
+
+- Optional dependency groups for `display` (`pyqtgraph`) and `opengl`
+  (`vispy`, `PyOpenGL`) without adding them to main dependencies.
+- Lazy display backend detection for Matplotlib, PyQtGraph, and VisPy.
+- Experimental PyQtGraph waterfall/image preview helper for bounded arrays.
+- GUI display backend selector for the waterfall preview, defaulting to
+  Matplotlib and falling back when PyQtGraph is unavailable.
+- PyQt-free display downsampling helpers shared by Matplotlib and optional
+  GUI display backends.
+- Tests for backend detection, import boundaries, downsampling, optional
+  PyQtGraph smoke behavior, packaging extras, and MainWindow default state.
+
+Boundaries:
+
+- CI does not require PyQtGraph, VisPy, PyOpenGL, GPU hardware, or an OpenGL
+  context.
+- VisPy/OpenGL deep tiled or streaming display integration remains deferred.
+- Display backend selection does not affect CLI tools, analysis services,
+  plotting APIs, or optional GPU compute backend behavior.
+
+Recommended next: Phase 9C GPU/display benchmark and manual GUI validation, or
+Phase 8E GUI manual validation and release-candidate signoff.
+
 ## Phase 8C: Real-world validation package and release-candidate polish
 
 Status: implemented as a release-candidate readiness layer.

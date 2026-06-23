@@ -68,6 +68,9 @@ Implemented so far:
   boundaries.
 - Release-candidate validation package for local real/quasi-real DAS sample
   checks with bounded selections and path-free summaries.
+- Optional GUI display backend exploration with Matplotlib default,
+  experimental PyQtGraph waterfall/image preview, lazy VisPy detection, and
+  shared display downsampling helpers.
 - Synthetic tests for core readers and preview workflows.
 
 Still intentionally deferred:
@@ -81,6 +84,7 @@ Still intentionally deferred:
 - Full-file preprocessing export.
 - GUI filter parameter panel.
 - SEGY/SAC/TDMS support.
+- Deep VisPy/OpenGL tiled or streaming display integration.
 - Real DAS data committed to the repository.
 
 ## Install
@@ -96,6 +100,17 @@ For development and tests:
 For the optional GUI:
 
     pip install -e .[gui]
+
+For optional experimental GUI display backends:
+
+    pip install -e ".[display]"
+    pip install -e ".[opengl]"
+
+The `display` extra installs PyQtGraph for experimental waterfall/image
+preview acceleration inside the GUI. The `opengl` extra installs VisPy and
+PyOpenGL for capability exploration only. Matplotlib remains the default and
+most stable display backend, and neither optional display extra is required
+for CLI, analysis services, CI, or CPU-only use.
 
 For optional GPU compute experiments, keep the package install CPU-first and
 install the CuPy wheel that matches the local CUDA runtime separately, for
@@ -337,6 +352,31 @@ auxiliary wavefield attributes only. Directional energy is an FK-domain review
 attribute. Event candidates, ROI rows, denoise reports, QC flags, and moveout
 summaries are data-review aids, not location, inversion, velocity-model, or
 geologic interpretation results.
+
+## Optional GUI display backends
+
+The GUI waterfall preview keeps Matplotlib as the default backend. Phase 9B
+adds an optional display-backend layer for future large-array display work:
+
+- `matplotlib` is always selected by default and remains the stable path.
+- `pyqtgraph` is an experimental waterfall/image preview path. It is imported
+  lazily only when the GUI checks or uses that backend.
+- `vispy` is detected lazily for installation/capability reporting only; deep
+  OpenGL display integration is deferred.
+
+Install optional display packages only on machines intended to test the GUI
+display backend:
+
+    pip install -e ".[gui,display]"
+    pip install -e ".[gui,opengl]"
+
+The display backend affects only the waterfall/image preview path. It does not
+change waveform, spectrum, FK, Analysis tab behavior, CLI tools, service APIs,
+or the optional GPU compute backend. If PyQtGraph or VisPy is unavailable, the
+GUI falls back to Matplotlib or reports the optional backend as unavailable.
+Large selections are still downsampled for display through shared
+GUI-independent helpers, and screenshots or display benchmark outputs are local
+artifacts that should not be committed.
 
 For local performance diagnosis on user-owned data, run bounded smoke
 operations:
@@ -727,7 +767,9 @@ are intentionally ignored by git.
 - GPU compute requires a user-installed CuPy wheel matching the local CUDA
   runtime; CPU remains the default.
 - GPU benchmark results are not validated on machines without CuPy/GPU.
-- GPU/OpenGL display acceleration is deferred.
+- Optional PyQtGraph waterfall display is experimental and needs real large-file
+  GUI validation.
+- VisPy/OpenGL deep display acceleration is deferred.
 - Windows exe artifacts are currently unsigned.
 - Plugin APIs still need validation with real third-party packages.
 - Moveout and apparent velocity outputs are auxiliary attributes only, not

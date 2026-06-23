@@ -102,6 +102,16 @@ All internal core arrays must use:
   synthetic data or bounded user-selected real-data windows only. Benchmark
   JSON/CSV/images and local timing outputs are user artifacts and must not be
   committed.
+- Optional GUI display backends must remain optional and lazy. Matplotlib is
+  the default display backend. PyQtGraph, VisPy, and PyOpenGL must not be main
+  dependencies, must not be imported by `import das_view`, and must not affect
+  CLI, service, analysis, or plotting APIs.
+- CI must not require PyQtGraph, VisPy, PyOpenGL, GPU hardware, or an OpenGL
+  context. Optional display tests should skip cleanly when display packages or
+  a usable Qt environment are unavailable.
+- Display exploration must not submit screenshots, display benchmarks, preview
+  images, or local timing artifacts. Deep VisPy/OpenGL tiled or streaming
+  display work belongs to a separate GUI/display phase.
 
 ## Testing requirements
 
@@ -184,6 +194,12 @@ All internal core arrays must use:
 - GUI exports must use shared export helpers, avoid default names derived from
   real absolute paths, and generated output files must not be committed.
 - Real/private paths must not be written into docs or the tutorial notebook.
+- GUI display backend controls must default to Matplotlib. Experimental
+  PyQtGraph views may be offered for bounded waterfall/image previews only,
+  with user-readable fallback when the optional package is unavailable.
+- GUI display helpers may downsample already selected arrays for display, but
+  they must not implement reader internals, analysis algorithms, or GPU compute
+  policy.
 - GUI advanced analysis integration must call existing service-layer helpers
   through GUI workers. GUI code may parse parameters, show summaries/tables,
   and export rows, but it must not implement QC, denoise, multiband, FK, or

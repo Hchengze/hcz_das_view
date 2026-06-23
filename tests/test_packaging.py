@@ -31,8 +31,16 @@ def test_pyproject_has_optional_dependencies_and_entrypoints():
     assert "dev" in optional
     assert "packaging" in optional
     assert "gpu" in optional
+    assert "display" in optional
+    assert "opengl" in optional
     assert optional["gpu"] == []
     assert "PyQt5" in optional["gui"]
+    assert "pyqtgraph" in optional["display"]
+    assert "vispy" in optional["opengl"]
+    assert "PyOpenGL" in optional["opengl"]
+    assert "pyqtgraph" not in project["dependencies"]
+    assert "vispy" not in project["dependencies"]
+    assert "PyOpenGL" not in project["dependencies"]
     assert "build" in optional["packaging"]
     assert "pyinstaller" in {value.lower() for value in optional["packaging"]}
 

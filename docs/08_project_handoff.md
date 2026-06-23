@@ -1029,3 +1029,47 @@ Terminology boundaries:
 
 Remote GitHub Actions status should be confirmed on the GitHub Actions page
 after push.
+
+## 22. Phase 9B status
+
+Phase 9B adds optional GUI display backend exploration without changing the
+stable Matplotlib default. It does not add analysis algorithms, readers,
+mandatory display dependencies, deep learning, new GPU compute paths, or
+OpenGL requirements for CI.
+
+Implemented:
+
+- `das_view/gui/display_backends.py` for lazy Matplotlib/PyQtGraph/VisPy
+  backend detection and readable backend reports.
+- `das_view/plotting/downsample.py` for PyQt-free display downsampling and
+  display pixel estimates.
+- `das_view/gui/pyqtgraph_canvas.py` for an experimental PyQtGraph
+  waterfall/image preview helper that accepts already selected arrays.
+- MainWindow waterfall display backend selector. Matplotlib remains the
+  default; PyQtGraph is labeled experimental and falls back to Matplotlib when
+  unavailable.
+- `pyproject.toml` optional extras: `display = ["pyqtgraph"]` and
+  `opengl = ["vispy", "PyOpenGL"]`. These packages are not main dependencies.
+- Artifact safety now rejects tracked display/screenshot image artifacts.
+
+Local optional package status for this phase:
+
+- PyQtGraph was installed in the local Anaconda environment for smoke testing;
+  import smoke reported version 0.14.0.
+- VisPy and PyOpenGL were not installed locally in this phase; support is
+  limited to lazy detection and documentation, and deep OpenGL integration is
+  deferred.
+
+Testing baseline after Phase 9B: 620 passed, 1 skipped. The skipped test
+remains the optional real CuPy GPU numerical-equivalence check on CPU-only or
+no-CuPy environments. Test count increased because Phase 9B added optional
+display backend, display downsampling, PyQtGraph smoke, packaging-extra, and
+MainWindow backend-selector tests. Optional display tests must skip cleanly
+when PyQtGraph, VisPy, or Qt display support is unavailable.
+
+Remaining risks:
+
+- PyQtGraph/VisPy behavior still needs real large-file GUI manual validation.
+- VisPy/OpenGL tiled or streaming display integration remains deferred.
+- Remote GitHub Actions status should be confirmed on the GitHub Actions page
+  after push.
