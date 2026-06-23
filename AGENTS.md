@@ -162,6 +162,15 @@ All internal core arrays must use:
 - Release smoke workflows may build local wheel/sdist artifacts, but must not
   publish to PyPI or create an official release unless the project owner
   explicitly requests that release step.
+- Release-candidate polish rounds may draft checklists, release notes, and
+  validation workflows, but must not create tags, publish GitHub Releases,
+  upload to PyPI, or stage release-validation outputs unless explicitly
+  requested.
+- Real-world validation package summaries, timing outputs, JSON/CSV files, and
+  private path lists are local artifacts. They must not be committed, and real
+  paths must not be written into docs, notebooks, handoff files, or examples.
+- Release notes should be user-facing summaries, not development chronology or
+  commit-by-commit logs.
 
 ## GUI large-file rules
 

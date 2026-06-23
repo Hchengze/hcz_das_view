@@ -64,12 +64,14 @@ Implemented so far:
 - Tutorial/user manual notebook at docs/09_tutorial_user_manual.ipynb for
   stable user-facing concepts, CLI examples, GUI workflow, and interpretation
   boundaries.
+- Release-candidate validation package for local real/quasi-real DAS sample
+  checks with bounded selections and path-free summaries.
 - Synthetic tests for core readers and preview workflows.
 
 Still intentionally deferred:
 
 - Broader real/quasi-real sample validation coverage beyond the initial local
-  validation set.
+  validation set and beyond the local release-candidate validation package.
 - Full time-frequency analysis platform beyond the current single-channel
   spectrogram smoke path.
 - Remote GitHub Actions result confirmation, signed Windows executables, and
@@ -142,11 +144,39 @@ The GitHub Actions workflows run synthetic-data tests, CLI help smoke, notebook
 safety, artifact safety, and packaging smoke. They do not require real local
 DAS data paths.
 
+## Release candidate readiness
+
+The current version remains `0.1.0.dev0` while the package is in development
+and release-candidate preparation. A suitable next planning label is
+`0.1.0-rc0`; do not create tags, publish GitHub Releases, or upload packages
+until the project owner explicitly requests that release step.
+
+Release candidate readiness checklist:
+
+1. `git status clean` has been confirmed and the branch is synchronized with the intended remote.
+2. Full pytest passes with repository-local temporary directories when needed.
+3. CLI help smoke passes through `python tools/check_cli_help.py`.
+4. Notebook safety passes through `python tools/check_notebook_safety.py`.
+5. Artifact safety passes through `python tools/check_artifacts.py`.
+6. Build smoke passes with `python -m build` when build tooling is installed.
+7. The real-world validation package runs on local user-owned DAS samples.
+8. Bounded performance smoke runs on representative local files.
+9. GPU info smoke runs with `hcz-das-gpu --info` without requiring CuPy.
+10. GUI help smoke runs with `python -m das_view.gui.app --help`.
+11. Manual GUI open-file smoke is checked on at least one small supported file.
+12. Windows PyInstaller smoke is checked if an exe candidate is planned.
+13. GitHub Actions CI status is confirmed on the GitHub Actions page.
+14. Release-smoke workflow status is confirmed when preparing a tag candidate.
+15. Known limitations are current.
+16. Version metadata is checked and the release notes draft is reviewed.
+17. Candidate tag naming is planned but no tag is created automatically.
+
 ## Examples
 
 ## Installed entry points
 
-After installation, the package provides these command names:
+After installation, the package provides these command names. These are the
+stable user-facing entry points:
 
     hcz-das-validate --help
     hcz-das-preview --help
@@ -197,6 +227,25 @@ Examples:
     hcz-das-moveout input.h5 --directional-energy --backend gpu --max-estimated-mb 256
 
 Generated outputs are local user artifacts and should not be committed.
+
+Developer/example scripts are separate from installed CLI entry points. They
+are intended for local validation, smoke checks, and usage examples:
+
+    python examples/validate_file.py input.h5
+    python examples/validate_local_samples.py
+    python examples/real_world_validation_package.py --paths-file local_validation_paths.txt --quick
+    python examples/performance_smoke.py input.h5 --operations preview,statistics,qc
+    python examples/gpu_benchmark.py --info
+    python examples/preview_file.py input.h5 --output preview.png
+    python examples/statistics_file.py input.h5 --output stats.json
+    python examples/spectral_attributes_file.py input.h5 --bands 1 5 5 20
+    python examples/event_detection_file.py input.h5 --method stalta
+    python examples/roi_export_file.py input.h5 --roi 0 1000 0 100
+    python examples/qc_file.py input.h5 --quality-report
+    python examples/denoise_file.py input.h5 --common-mode median
+    python examples/moveout_file.py input.h5 --summary
+
+Use placeholder paths in documentation and keep real path lists local.
 
 ## Optional GPU compute backend
 
@@ -405,6 +454,17 @@ Run bounded local performance smoke checks:
     python examples/performance_smoke.py input.h5 --operations preview,statistics,qc
     python examples/performance_smoke.py input.dat --max-samples 4096 --max-channels 512 --max-estimated-mb 256
 
+Run the release-candidate real-world validation package on a local path list:
+
+    python examples/real_world_validation_package.py --paths-file local_validation_paths.txt --quick
+    python examples/real_world_validation_package.py --paths-file local_validation_paths.txt --include-gpu-info
+    python examples/real_world_validation_package.py --paths-file local_validation_paths.txt --output validation_summary.json
+
+The validation package reads only bounded selections. Its JSON summary records
+sample index, suffix, reader, shape, and operation status, but not full paths
+or file names. `local_validation_paths.txt` and generated validation summaries
+are local artifacts and must stay out of version control.
+
 Plot one or more waveform traces:
 
     python examples/plot_waveform.py input.h5 --channel 10 --output trace.png
@@ -583,7 +643,8 @@ Before tagging or publishing a release:
 10. Update README and `docs/09_tutorial_user_manual.ipynb`.
 11. Confirm no real data, output directories, images, JSON/CSV outputs,
     build/dist artifacts, wheels, archives, or exe files are staged.
-12. Create the release tag and GitHub release notes.
+12. Review the release notes draft and candidate tag name.
+13. Create a release tag only after explicit project-owner approval.
 
 GitHub Actions:
 
@@ -627,6 +688,24 @@ source-specific details in metadata extra_attrs.
 local_validation_paths.txt, validation_outputs/, outputs/, DAS data files,
 generated images, JSON/CSV outputs, and temporary pytest/performance artifacts
 are intentionally ignored by git.
+
+## Known limitations
+
+- Supported file formats currently focus on ZD HDF5 and Puniu DAT.
+- Larger real-world validation across more instruments, durations, and file
+  sizes is still needed.
+- GUI manual user experience still needs more user feedback.
+- GPU compute requires a user-installed CuPy wheel matching the local CUDA
+  runtime; CPU remains the default.
+- GPU benchmark results are not validated on machines without CuPy/GPU.
+- GPU/OpenGL display acceleration is deferred.
+- Windows exe artifacts are currently unsigned.
+- Plugin APIs still need validation with real third-party packages.
+- Moveout and apparent velocity outputs are auxiliary attributes only, not
+  ground-truth velocities, source location, inversion, imaging, or geologic
+  interpretation.
+- Event candidates are screening aids, not localization results.
+- ROI is an analysis window, not an interpretation conclusion.
 
 ## Development principles
 

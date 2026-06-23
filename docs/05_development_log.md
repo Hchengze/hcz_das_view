@@ -2844,6 +2844,94 @@ local output files are intended for commit.
 Phase 9B: Optional GPU / OpenGL display backend exploration, or Phase 8C:
 Real-world validation package and release candidate polish.
 
+## Phase 8C: Real-world validation package and release candidate polish
+
+Phase 8C consolidates the project into a release-candidate preparation state.
+It does not add new analysis algorithms, readers, GPU compute paths, GUI GPU
+display acceleration, PyTorch, TensorFlow, deep learning, source location,
+inversion, or interpretation workflows.
+
+### Added or modified files
+
+- examples/real_world_validation_package.py
+- tests/test_real_world_validation_package.py
+- tests/test_release_candidate_docs.py
+- README.md
+- AGENTS.md
+- docs/02_architecture.md
+- docs/05_development_log.md
+- docs/06_testing.md
+- docs/07_roadmap.md
+- docs/08_project_handoff.md
+- docs/09_tutorial_user_manual.ipynb
+
+### Real-world validation package
+
+- Added a local release-candidate validation entry point for user-owned
+  supported DAS files listed in an ignored local path list.
+- Quick mode runs metadata, preview, waveform, statistics, and QC checks with
+  bounded selections.
+- Full mode additionally runs multiband, denoise-report, and moveout-summary
+  smoke checks.
+- Optional GPU info uses the Phase 9A.1 diagnostics path and remains safe on
+  CPU-only machines.
+- Optional JSON summary output records file index, suffix, reader, shape, and
+  operation status only; it does not record source paths or file names.
+
+### Release-candidate polish
+
+- Added release-candidate readiness checklist, installed CLI inventory,
+  examples inventory, validation workflow notes, version/readiness guidance,
+  release notes draft, and known-limitations polish.
+- Reconfirmed that version metadata remains `0.1.0.dev0` during development
+  and release-candidate preparation. `0.1.0-rc0` is only a planning label until
+  the project owner requests a tag/release.
+
+### Tests
+
+- Added tests for the real-world validation package parser, synthetic small ZD
+  HDF5 quick/full validation, GPU-info fallback, path-free JSON output, and
+  missing path-list behavior.
+- Added release-candidate docs tests for checklist, release notes, known
+  limitations, tutorial inventory, path safety, and interpretation boundaries.
+- Focused Phase 8C tests:
+  python -B -m pytest -p no:cacheprovider --basetemp .tmp_pytest\phase8c_focused2 tests/test_real_world_validation_package.py tests/test_release_candidate_docs.py tests/test_tutorial_notebook.py tests/test_release_validation.py
+  Result: 28 passed.
+- Full test result:
+  python -B -m pytest -p no:cacheprovider --basetemp .tmp_pytest\phase8c_full
+  Result: 588 passed, 1 skipped. The skipped test remains the optional real
+  CuPy GPU numerical-equivalence check on CPU-only/no-CuPy environments. Test
+  count increased from 580 collected in Phase 9A.1 to 589 collected because
+  Phase 8C added validation-package and release-candidate docs tests.
+
+### Old-code migration judgment
+
+No old_code files were copied, imported, modified, or used for implementation.
+This phase adds release-candidate validation workflow and documentation polish
+around existing stable APIs.
+
+### Data and artifact policy confirmation
+
+No real DAS data, generated images, validation_outputs artifacts, private path
+lists, local absolute data paths, benchmark outputs, release validation
+outputs, JSON/CSV outputs, build/dist artifacts, wheels, archives, exe files,
+.tmp_pytest directories, or local output files are intended for commit.
+
+### Not completed
+
+- GitHub Actions final remote status still needs confirmation after push.
+- Windows exe signing remains unresolved.
+- Larger real-world validation coverage is still needed.
+- GPU benchmark execution still needs user CUDA/CuPy hardware validation.
+- GPU/OpenGL display acceleration remains deferred.
+- Plugin APIs still need real third-party package validation.
+- GUI still needs more real user manual experience validation.
+
+### Suggested next round
+
+Phase 9B: Optional GPU / OpenGL display backend exploration, or Phase 8D: GUI
+analysis integration for QC / Denoise / Moveout.
+
 ## Phase 9A.1: Real GPU validation and benchmark workflow
 
 Phase 9A.1 adds diagnostics, synthetic benchmark, numeric validation, and

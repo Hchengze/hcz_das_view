@@ -702,6 +702,32 @@ Boundaries:
 Recommended next: Phase 9B optional GPU/OpenGL display backend exploration, or
 Phase 8C real-world validation package and release-candidate polish.
 
+## Phase 8C: Real-world validation package and release-candidate polish
+
+Status: implemented as a release-candidate readiness layer.
+
+Phase 8C does not add readers, algorithms, GPU compute paths, GUI display
+backends, deep learning, MASW, F-J, dispersion picking, source location,
+inversion, or interpretation workflows. It consolidates validation and release
+readiness around the stable DAS Viewer / DAS Analysis package.
+
+Implemented scope:
+
+- Local real-world validation package for ignored user path lists, bounded
+  selections, quick/full validation matrices, optional GPU info, and path-free
+  JSON summaries.
+- Release-candidate readiness checklist covering clean git state, full pytest,
+  CLI help, notebook/artifact safety, build smoke, performance smoke, GPU info,
+  GUI help/manual open-file smoke, Windows packaging smoke, remote Actions
+  status, version check, release notes draft, and tag planning.
+- CLI and examples inventory in README and tutorial/user manual.
+- Known limitations polish for supported formats, larger real-world coverage,
+  GUI feedback, optional GPU/CuPy validation, unsigned Windows exe, plugin API
+  validation, and interpretation boundaries.
+
+Recommended next: Phase 9B optional GPU/OpenGL display backend exploration, or
+Phase 8D GUI analysis integration for QC / Denoise / Moveout.
+
 ## Phase 9A.1: Real GPU validation and benchmark workflow
 
 Status: implemented as a no-GPU-safe validation and benchmark workflow.

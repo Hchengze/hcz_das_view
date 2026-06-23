@@ -561,3 +561,19 @@ GUI rules:
 - FK tab cancellation reuses the Phase 2D soft-cancel behavior. It cannot
   interrupt synchronous reader/FK service calls already in progress, but stale
   or cancelled results are not applied.
+
+## Release-candidate validation utilities
+
+- `examples/real_world_validation_package.py` is the local release-candidate
+  validation entry point for user-owned real or quasi-real DAS samples.
+- It reads paths from an ignored local path list, but its JSON summary records
+  only file index, suffix, reader name, shape, and operation status.
+- Validation operations call existing reader, preview, data-service, analysis,
+  denoise, moveout, and acceleration diagnostics APIs. The example does not
+  inspect HDF5/DAT internals directly and does not introduce new algorithms.
+- Defaults are bounded by `max_samples`, `max_channels`, and
+  `max_estimated_mb`. Quick mode runs metadata, preview, waveform, statistics,
+  and QC. Full mode adds multiband, denoise-report, and moveout-summary smoke
+  checks.
+- Optional GPU info reports availability only; it does not require CuPy or a
+  CUDA device and does not change the CPU-first backend policy.

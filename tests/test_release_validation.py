@@ -121,6 +121,7 @@ def test_gitignore_covers_release_artifacts():
         "*.whl",
         "*.tar.gz",
         ".tmp_release_venv/",
+        "release_validation_outputs/",
     ]:
         assert pattern in text
 

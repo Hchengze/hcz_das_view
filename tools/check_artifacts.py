@@ -24,6 +24,7 @@ FORBIDDEN_PATTERNS = (
     "dist/*",
     "validation_outputs/*",
     "outputs/*",
+    "release_validation_outputs/*",
     "benchmarks/*",
     "benchmark_outputs/*",
     "gpu_benchmarks/*",

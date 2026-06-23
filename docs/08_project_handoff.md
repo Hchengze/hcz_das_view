@@ -906,3 +906,83 @@ Testing baseline after Phase 9A.1: 579 passed, 1 skipped. The skipped test is
 the optional real CuPy GPU numerical-equivalence check on CPU-only/no-CuPy
 environments. Real GPU benchmark execution remains unverified locally unless
 CuPy/CUDA is installed.
+
+## 20. Phase 8C status
+
+Phase 8C adds a release-candidate validation and polish layer without changing
+the DAS analysis algorithms, readers, GUI architecture, or optional GPU compute
+behavior.
+
+Implemented:
+
+- `examples/real_world_validation_package.py` for local user-owned sample
+  validation from an ignored path list.
+- Quick validation matrix: metadata, preview, waveform selection, statistics,
+  and QC.
+- Full validation matrix: quick checks plus multiband, denoise-report, and
+  moveout-summary smoke checks.
+- Optional GPU info in the validation package, using diagnostics that do not
+  require CuPy or CUDA.
+- Optional JSON summary output with file index, suffix, reader, shape, and
+  operation status only. The summary does not store source paths or file names.
+- Release-candidate checklist, CLI inventory, examples inventory, version
+  readiness guidance, release notes draft, and known-limitations polish.
+
+Testing baseline after Phase 8C: 588 passed, 1 skipped. The test count
+increased because Phase 8C added real-world validation package coverage and
+release-candidate documentation checks.
+
+Remote GitHub Actions status should be confirmed on the GitHub Actions page
+after push. If local `gh` access is unavailable, do not infer remote success.
+
+## Release notes draft
+
+HCZ DAS View is a DAS Viewer / DAS Analysis package focused on supported DAS
+file reading, bounded visualization, service-backed analysis, optional GUI
+interaction, packaging, CI, and safety workflows.
+
+- Core file readers: ZD HDF5 and Puniu DAT readers with unified metadata and
+  internal `(n_samples, n_channels)` data convention.
+- Viewer / GUI: optional PyQt5 GUI for metadata, waterfall preview, waveform,
+  spectrum, FK, and Analysis panel workflows using shared services.
+- CLI tools: installed entry points for validation, preview, statistics,
+  spectrum, event candidates, QC, denoise/enhancement, moveout-assisted
+  attributes, extension inspection, GPU diagnostics, and GUI launch.
+- DAS analysis five-level roadmap: QC, multiband/spectral feature maps,
+  local coherence, traditional denoise/enhancement, and wavefield assisted
+  moveout attributes.
+- QC / multiband / coherence: channel quality flags, noise-floor/SNR aids,
+  multiband energy maps, spectral attribute maps, and local channel coherence.
+- Denoise / enhancement: traditional common-mode removal, despike, median
+  filtering, channel balance, local normalization, robust clipping, and audit
+  reports.
+- Moveout assisted analysis: FK directional energy, apparent slope/velocity
+  attributes, local moveout coherence, and moveout summary reports as review
+  aids only.
+- Large-file safety: metadata-only memory estimates, bounded selections,
+  analysis guards, GUI safe presets, and local performance smoke utilities.
+- GPU optional compute backend: CPU-first lazy CuPy backend for selected
+  numerical paths, with diagnostics, synthetic benchmark, and numeric
+  validation workflows.
+- Packaging / CI / safety workflows: packaging metadata, CLI help smoke,
+  notebook safety, artifact safety, CI, release-smoke, and local release
+  candidate checks.
+
+## Known limitations
+
+- Supported formats currently focus on ZD HDF5 and Puniu DAT.
+- Larger real-world validation across more instruments, durations, and file
+  sizes is still needed.
+- GUI manual experience still needs user feedback.
+- GPU requires user-installed CuPy matching the local CUDA runtime; CPU remains
+  the default.
+- GPU benchmark and numeric performance claims remain unverified on machines
+  without CuPy/GPU.
+- GPU/OpenGL display acceleration is deferred.
+- Windows exe unsigned status remains a release limitation.
+- Plugin API still needs validation with real third-party plugins.
+- Moveout and apparent velocity are auxiliary attributes only, not ground-truth
+  propagation velocity, source location, inversion, imaging, or geologic
+  interpretation.
+- Event candidates are screening aids, not localization results.
+- ROI is an analysis window, not an interpretation conclusion.

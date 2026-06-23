@@ -329,6 +329,16 @@ CI-equivalent local checks:
 - Real-data performance smoke validation is local and bounded. It should use
   examples/validate_local_samples.py and examples/performance_smoke.py with
   user-owned paths, and must not become an automated dependency on private data.
+- Release-candidate real-world validation should use
+  examples/real_world_validation_package.py. Automated tests cover the parser,
+  missing-path behavior, and synthetic small ZD HDF5 quick/full paths. Real
+  DAS files remain local-only and are not required by CI.
+- The release-candidate validation package must keep summaries path-free:
+  output records file index, suffix, reader, shape, and operation status, not
+  private file names or absolute paths.
+- Release-candidate checks should include full pytest, CLI help smoke,
+  notebook safety, artifact safety, build smoke when available, GPU info smoke,
+  bounded performance smoke, and manual GUI open-file smoke.
 - Phase 2E validated five local real/quasi-real samples selected from two
   user-provided directories: three Puniu DAT samples and two ZD HDF5 samples.
   The validation covered metadata, preview, waveform, spectrum, Welch PSD,
