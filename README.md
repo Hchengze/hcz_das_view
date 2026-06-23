@@ -119,6 +119,18 @@ For cache-free agent/development runs:
 
     python -B -m pytest -p no:cacheprovider
 
+CI-equivalent local release checks:
+
+    python -B -m pytest -p no:cacheprovider --basetemp .tmp_pytest\local_full
+    python tools/check_cli_help.py
+    python tools/check_notebook_safety.py
+    python tools/check_artifacts.py
+    python -m build
+
+The GitHub Actions workflows run synthetic-data tests, CLI help smoke, notebook
+safety, artifact safety, and packaging smoke. They do not require real local
+DAS data paths.
+
 ## Examples
 
 ## Installed entry points
@@ -481,10 +493,10 @@ local artifacts and must not be committed.
 Before tagging or publishing a release:
 
 1. Check version metadata in `pyproject.toml`.
-2. Run the full pytest suite.
-3. Run installed CLI `--help` smoke.
-4. Run GUI `--help` smoke and GUI launch smoke.
-5. Run example script `--help` smoke.
+2. Run the full pytest suite or confirm the CI test matrix has passed.
+3. Run CLI `--help` smoke through `python tools/check_cli_help.py`.
+4. Run notebook and artifact safety checks.
+5. Run example script `--help` smoke when examples are changed.
 6. Run real/quasi-real sample smoke validation locally without committing data.
 7. Build wheel and sdist smoke artifacts when the `build` package is available.
 8. Run clean venv editable/install smoke.
@@ -493,6 +505,14 @@ Before tagging or publishing a release:
 11. Confirm no real data, output directories, images, JSON/CSV outputs,
     build/dist artifacts, wheels, archives, or exe files are staged.
 12. Create the release tag and GitHub release notes.
+
+GitHub Actions:
+
+- `.github/workflows/ci.yml` runs ubuntu and Windows tests, CLI help smoke,
+  notebook safety, artifact safety, and packaging smoke.
+- `.github/workflows/release-smoke.yml` runs manually or on `v*` tags. It
+  builds and installs local artifacts for smoke validation only; it does not
+  publish to PyPI or create a GitHub Release.
 
 ## Tutorial notebook
 

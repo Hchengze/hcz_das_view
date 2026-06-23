@@ -1,0 +1,40 @@
+name: Release Smoke
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+env:
+  MPLBACKEND: Agg
+  PYTHONUTF8: "1"
+
+jobs:
+  release-smoke:
+    name: release-smoke
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install package with development dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Run full tests
+        run: python -B -m pytest -p no:cacheprovider
+      - name: Run CLI help smoke
+        run: python tools/check_cli_help.py
+      - name: Run notebook safety check
+        run: python tools/check_notebook_safety.py
+      - name: Run artifact safety check
+        run: python tools/check_artifacts.py
+      - name: Build wheel and source archive
+        run: python -m build
+      - name: Install built wheel smoke
+        shell: bash
+        run: |
+          python -m pip install --force-reinstall --no-deps dist/*.whl
+          python -c "import das_view; print(das_view.__name__)"

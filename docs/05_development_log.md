@@ -2603,3 +2603,90 @@ local output files are intended for commit.
 
 Phase 6D: Release CI planning, or Phase 8B: GUI usability polish and
 large-file UX.
+
+## 2026-06-23: Phase 6D Release CI planning and GitHub Actions hardening
+
+### Goal
+
+Add release CI and quality-gate planning for tests, CLI help smoke, packaging
+metadata, notebook safety, artifact safety, build smoke, import boundaries,
+large-file guard tests, and Windows/Linux CI. This phase does not add analysis
+algorithms, readers, GUI features, deep learning, location, inversion,
+surface-wave imaging, MASW, F-J, or dispersion-picking functionality.
+
+### Added or modified files
+
+- .github/workflows/ci.yml
+- .github/workflows/release-smoke.yml
+- tools/check_artifacts.py
+- tools/check_notebook_safety.py
+- tools/check_cli_help.py
+- tests/test_ci_workflows.py
+- tests/test_release_scripts.py
+- tests/test_tutorial_notebook.py
+- README.md
+- AGENTS.md
+- docs/09_tutorial_user_manual.ipynb
+- docs/02_architecture.md
+- docs/05_development_log.md
+- docs/06_testing.md
+- docs/07_roadmap.md
+- docs/08_project_handoff.md
+
+### CI and release engineering work
+
+- Added a GitHub Actions CI workflow with ubuntu and Windows Python 3.11 test
+  jobs, CLI help smoke, notebook safety, artifact safety, and packaging smoke.
+- Added a release-smoke workflow for manual dispatch or v* tags. It runs full
+  validation and build/install smoke without publishing to PyPI or creating a
+  release.
+- Added helper scripts for tracked artifact safety, tutorial notebook safety,
+  and module-based CLI help smoke.
+- Added tests that validate workflow contents, Windows .tmp_pytest usage,
+  absence of publishing secrets, release-smoke triggers, helper behavior, and
+  notebook safety coverage.
+
+### Tests
+
+- Focused Phase 6D tests:
+  python -B -m pytest -p no:cacheprovider --basetemp .tmp_pytest/phase6d_focused tests/test_ci_workflows.py tests/test_release_scripts.py tests/test_tutorial_notebook.py tests/test_packaging.py tests/test_cli_entrypoints.py -q
+  Result: 37 passed.
+- Full test result:
+  python -B -m pytest -p no:cacheprovider --basetemp .tmp_pytest/phase6d_full
+  Result: 529 passed. Test count increased from 519 to 529 because Phase 6D
+  added GitHub Actions workflow, release helper, notebook safety, artifact
+  safety, and CI/release validation coverage tests.
+- Local smoke checks:
+  python tools/check_cli_help.py, python tools/check_notebook_safety.py, and
+  python tools/check_artifacts.py passed.
+- Local build smoke:
+  python -m build was deferred in the current local environment because the
+  build module is not installed. The CI packaging-smoke workflow installs build
+  before running python -m build.
+
+### Old-code migration judgment
+
+No old_code files were copied, imported, modified, or used for implementation.
+This phase adds CI/release workflow hardening and helper scripts.
+
+### Data and artifact policy confirmation
+
+No real DAS data, generated images, validation_outputs artifacts,
+local_validation_paths.txt, local absolute data paths, JSON/CSV outputs,
+build/dist artifacts, wheels, archives, exe files, .tmp_pytest directories, or
+local output files are intended for commit.
+
+### Not completed
+
+- GitHub Actions actual remote run status still needs confirmation after push.
+- Windows exe signing is not implemented.
+- Larger real-data coverage remains future work.
+- Moveout and apparent velocity attributes need further real-data validation.
+- Plugin API still needs validation with real third-party plugin packages.
+- The tutorial notebook should continue to be maintained as stable features
+  mature.
+
+### Suggested next round
+
+Phase 8B: GUI usability polish and large-file UX, or Phase 8C: Real-world
+validation package and release candidate polish.

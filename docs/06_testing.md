@@ -199,6 +199,10 @@ Current coverage:
   readable errors, metadata full-array size display, performance_smoke parser
   and synthetic HDF5 smoke output, and Matplotlib figure cleanup after plotting
   tests.
+- Phase 6D release CI tests cover GitHub Actions workflow presence, ubuntu and
+  Windows matrix targets, full test commands, CLI help smoke, packaging/build
+  smoke, artifact safety, notebook safety, release-smoke workflow_dispatch/tag
+  triggers, absence of PyPI publishing secrets, and helper-script behavior.
 - FK analysis tests cover synthetic plane-wave peak frequency/wavenumber
   detection, amplitude/power shapes, DASData metadata sample-rate/dx handling,
   invalid sample_rate_hz/dx/nfft/dimensionality/NaN/Inf/too-short inputs, and
@@ -244,6 +248,14 @@ For cache-free runs during agent work:
 
     python -B -m pytest -p no:cacheprovider
 
+CI-equivalent local checks:
+
+    python -B -m pytest -p no:cacheprovider --basetemp .tmp_pytest/local_full
+    python tools/check_cli_help.py
+    python tools/check_notebook_safety.py
+    python tools/check_artifacts.py
+    python -m build
+
 ## Optional dependency strategy
 
 - h5py tests use pytest.importorskip("h5py").
@@ -276,6 +288,11 @@ For cache-free runs during agent work:
   dependencies such as numpy and scipy. The temporary venv, build outputs,
   wheels, source archives, exe files, and generated JSON/CSV/image files must
   not be committed.
+- GitHub Actions CI runs ubuntu and Windows test jobs, packaging smoke,
+  artifact safety, notebook safety, and CLI help smoke. Windows CI uses
+  repository-local `.tmp_pytest` to avoid default TEMP permission issues.
+- Release smoke is a validation workflow only. It builds and installs local
+  wheel/sdist artifacts in CI but does not publish to PyPI or create a release.
 - Phase 4D GUI FK parser tests verify that transform mode allows empty
   velocity limits, velocity-filter mode requires at least one limit, invalid
   vmin/vmax values fail early, and pass/reject status text is user-facing.

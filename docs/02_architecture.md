@@ -208,6 +208,22 @@ Compatibility policy:
   `.tmp_release_venv/` for clean editable-install smoke checks. These
   environments are not package inputs and should not be committed.
 
+## CI and release engineering
+
+- `.github/workflows/ci.yml` defines ubuntu and Windows test jobs, packaging
+  smoke, artifact safety, CLI help smoke, and notebook safety checks.
+- `.github/workflows/release-smoke.yml` runs manually or on `v*` tags. It
+  validates tests, CLI help, notebook safety, artifact safety, and wheel/sdist
+  build/install smoke without publishing artifacts.
+- `tools/check_cli_help.py` runs module-based CLI help smoke, including GUI
+  help without starting a Qt event loop.
+- `tools/check_notebook_safety.py` checks the tutorial notebook for private
+  paths and copied process logs.
+- `tools/check_artifacts.py` checks tracked files for forbidden data, image,
+  output, and build artifacts.
+- CI does not depend on real DAS data or private local paths. Real-data
+  validation remains a local, bounded, non-committed workflow.
+
 ## Reader design
 
 Readers implement BaseDASReader and return DASData.

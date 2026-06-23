@@ -20,16 +20,15 @@ phases.
 - Development model: the new das_view/ package is being rebuilt after auditing
   legacy material under old_code/.
 - New runtime code must not depend on, import, or call old_code.
-- Latest project state: current HEAD after Phase 8A real-data performance and
-  large-file workflow hardening.
-- Current phase: Phase 8A, large-file workflow hardening: metadata-only memory
-  estimates, optional selection-size guards, CLI --max-estimated-mb limits,
-  GUI metadata size hints, bounded performance smoke diagnostics, and refreshed
-  local real/quasi-real validation.
-- Current expected test result after Phase 8A: 519 passed with no Matplotlib
-  open-figure warning. The count increased from the Phase 7D baseline because
-  Phase 8A added memory utility, selection guard, CLI limit, performance
-  smoke, metadata display, tutorial, and figure-cleanup coverage.
+- Latest project state: current HEAD after Phase 6D release CI planning and
+  GitHub Actions hardening.
+- Current phase: Phase 6D, release CI / quality gates: GitHub Actions CI,
+  release-smoke workflow, CLI help smoke helper, notebook safety helper,
+  artifact safety helper, workflow tests, and release documentation.
+- Current expected test result after Phase 6D: 529 passed. The count increased
+  from the Phase 8A baseline of 519 because Phase 6D added CI workflow,
+  release helper, notebook safety, artifact safety, and release validation
+  coverage tests.
 
 ## 2. Repository and environment
 
@@ -302,6 +301,11 @@ Key modules:
   --max-estimated-mb options, GUI metadata full-array size hints, a bounded
   performance smoke utility, local real/quasi-real validation refresh, and
   Matplotlib plotting-test figure cleanup.
+- Phase 6D: added GitHub Actions CI and release-smoke workflow planning,
+  ubuntu/Windows test jobs, CLI help smoke, notebook safety, artifact safety,
+  packaging build/install smoke, helper scripts under tools/, workflow tests,
+  and documentation. Release smoke validates locally built artifacts only and
+  does not publish to PyPI or create a release.
 
 ## 7. Current supported capabilities
 
@@ -653,29 +657,28 @@ No old_code files are imported by the new runtime package.
 
 ## 13. Recommended next phases
 
-### Option A: Phase 6D Release CI planning
-
-Goal:
-
-      Add maintainable release CI planning for tests, packaging smoke, and
-      artifact safety checks.
-
-Status:
-
-      Not implemented. This is the recommended next release-hardening step.
-
-### Option B: Phase 8B GUI usability polish and large-file UX
+### Option A: Phase 8B GUI usability polish and large-file UX
 
 Goal:
 
       Polish GUI-facing large-file prompts, selection-size warnings, and
-      usability around bounded preview/analysis workflows.
+      bounded workflow usability.
 
 Status:
 
-      Not implemented. Phase 8A added the base service/CLI/metadata guard
-      layer; Phase 8B can improve user-facing GUI ergonomics without adding
-      algorithms.
+      Not implemented. This is the recommended next UX hardening step.
+
+### Option B: Phase 8C real-world validation package and release candidate polish
+
+Goal:
+
+      Package a repeatable real-world validation checklist and polish release
+      candidate docs without committing private data or generated outputs.
+
+Status:
+
+      Not implemented. This follows naturally after the CI and large-file
+      workflow baselines.
 
 ### Option C: Phase 2E real sample validation refresh
 

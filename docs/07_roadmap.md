@@ -316,6 +316,25 @@ Status:
 
 Recommended next: Phase 6D.
 
+### Phase 6D: Release CI planning and GitHub Actions hardening
+
+Goal:
+
+    Add maintainable GitHub Actions quality gates for tests, CLI help smoke,
+    notebook safety, artifact safety, build smoke, and release-smoke
+    validation.
+
+Status:
+
+- Completed in Phase 6D for the baseline CI/release-smoke layer. Added
+  `.github/workflows/ci.yml`, `.github/workflows/release-smoke.yml`, helper
+  scripts under tools/, and local tests for workflow content and safety checks.
+- CI covers ubuntu and Windows Python 3.11 test jobs, CLI help smoke, notebook
+  safety, artifact safety, and packaging build/install smoke. Release smoke is
+  validation-only and does not publish to PyPI.
+
+Recommended next: Phase 8B or Phase 8C.
+
 ### Phase 7A: API stability and documentation cleanup
 
 Goal:

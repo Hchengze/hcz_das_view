@@ -145,8 +145,10 @@ def test_tutorial_notebook_release_sections_are_user_facing():
     forbidden = [
         "E:\\HczDocument",
         "development log",
-        "pytest",
         "commit",
+        "test session starts",
+        " passed in ",
+        " failed in ",
     ]
     for needle in forbidden:
         assert needle.lower() not in text.lower()

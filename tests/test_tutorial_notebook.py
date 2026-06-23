@@ -73,12 +73,22 @@ def test_tutorial_notebook_contains_user_manual_keywords():
     assert "GUI large-file usage" in text
     assert "Performance smoke utility" in text
     assert "examples/performance_smoke.py" in text
+    assert "Local release quality checks" in text
+    assert "CLI help smoke" in text
+    assert "Build smoke" in text
+    assert "Artifact safety" in text
+    assert "Notebook safety" in text
+    assert "Release checklist" in text
+    assert "tools/check_cli_help.py" in text
 
 
 def test_tutorial_notebook_avoids_local_paths_and_development_content():
     text = NOTEBOOK.read_text(encoding="utf-8")
+    lowered = text.lower()
 
     assert "E:\\HczDocument" not in text
-    assert "development log" not in text.lower()
-    assert "commit" not in text.lower()
-    assert "pytest" not in text.lower()
+    assert "development log" not in lowered
+    assert "commit" not in lowered
+    assert "test session starts" not in lowered
+    assert " passed in " not in lowered
+    assert " failed in " not in lowered

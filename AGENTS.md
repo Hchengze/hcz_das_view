@@ -132,6 +132,16 @@ All internal core arrays must use:
   GUI help/launch smoke, example help smoke, clean venv install smoke,
   wheel/sdist build smoke, Windows packaging smoke where practical,
   README/notebook freshness, and staged artifact safety.
+- CI workflows must not depend on real/private local data paths.
+- CI workflows must not upload, commit, or publish real data or local
+  validation outputs.
+- Windows CI should use a repository-local `.tmp_pytest` directory to avoid
+  default TEMP permission issues.
+- Notebook safety, artifact safety, CLI help smoke, import-boundary tests, and
+  packaging metadata checks should remain part of release quality gates.
+- Release smoke workflows may build local wheel/sdist artifacts, but must not
+  publish to PyPI or create an official release unless the project owner
+  explicitly requests that release step.
 
 ## Plugin and extension rules
 
