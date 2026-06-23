@@ -49,6 +49,10 @@ old_code/
 # Generated figures and image outputs
 validation_outputs/
 outputs/
+benchmarks/
+benchmark_outputs/
+gpu_benchmarks/
+gpu_benchmark_outputs/
 *.png
 *.jpg
 *.jpeg

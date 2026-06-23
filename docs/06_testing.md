@@ -267,6 +267,11 @@ CI-equivalent local checks:
   tests verify that CPU and auto modes run without importing CuPy, that
   `backend="gpu"` raises a clear ImportError when CuPy is unavailable, and that
   real GPU numerical comparisons skip cleanly on CPU-only machines.
+- GPU diagnostics, synthetic benchmark, numeric validation, `hcz-das-gpu`, and
+  `examples/gpu_benchmark.py` tests run in CPU-only CI. CPU benchmark paths
+  must run normally; CPU/GPU compare and numeric validation return skipped
+  summaries when CuPy is unavailable. CI may run `python -m das_view.cli.gpu
+  --info`, but it must not require a CUDA device.
 - Waveform plotting tests also use the Agg backend and write only to pytest tmp_path.
 - GUI smoke tests use pytest.importorskip("PyQt5") and pytest.importorskip("matplotlib"). If PyQt5 is not installed, GUI creation and Qt worker tests skip cleanly while core/io/plotting and PyQt-free GUI model tests continue to run.
 - GUI waveform tests avoid real file dialogs and real DAS data; they only instantiate

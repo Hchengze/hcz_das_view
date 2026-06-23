@@ -35,6 +35,7 @@ hcz-das-extensions = "das_view.cli.extensions:main"
 hcz-das-qc = "das_view.cli.qc:main"
 hcz-das-denoise = "das_view.cli.denoise:main"
 hcz-das-moveout = "das_view.cli.moveout:main"
+hcz-das-gpu = "das_view.cli.gpu:main"
 
 [project.entry-points."das_view.plugins"]
 hcz_das_view_builtins = "das_view.plugins.builtins:list_builtin_extensions"

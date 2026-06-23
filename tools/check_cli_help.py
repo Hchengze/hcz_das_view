@@ -17,6 +17,7 @@ CLI_MODULES = (
     ("hcz-das-qc", "das_view.cli.qc", ["--help"]),
     ("hcz-das-denoise", "das_view.cli.denoise", ["--help"]),
     ("hcz-das-moveout", "das_view.cli.moveout", ["--help"]),
+    ("hcz-das-gpu", "das_view.cli.gpu", ["--help"]),
     ("hcz-das-extensions", "das_view.cli.extensions", ["--help"]),
     ("hcz-das-view", "das_view.gui.app", ["hcz-das-view", "--help"]),
 )

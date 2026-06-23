@@ -157,6 +157,7 @@ After installation, the package provides these command names:
     hcz-das-qc --help
     hcz-das-denoise --help
     hcz-das-moveout --help
+    hcz-das-gpu --help
     hcz-das-view --help
 
 The command-line tools use bounded service-layer workflows and do not read
@@ -183,6 +184,10 @@ Examples:
     hcz-das-moveout input.h5 --directional-energy --output direction.json
     hcz-das-moveout input.h5 --apparent-moveout --channel-lag 1 --window-samples 1024 --step-samples 512 --output moveout.json
     hcz-das-moveout input.h5 --summary --channel-lag 1 --output moveout_summary.json
+    hcz-das-gpu --info
+    hcz-das-gpu --benchmark --backend cpu --shape 4096 512
+    hcz-das-gpu --compare --shape 4096 512
+    hcz-das-gpu --validate-numeric --shape 1024 128
     hcz-das-stats input.h5 --max-estimated-mb 256
     hcz-das-stats input.h5 --backend gpu --max-estimated-mb 256
     hcz-das-qc input.h5 --quality-report --max-estimated-mb 256
@@ -216,6 +221,23 @@ not installed, `--backend gpu` reports a user-readable error; use
 `--backend cpu` for the stable default. Phase 9A is compute-only and does not
 add PyQtGraph, VisPy, OpenGL, PyTorch, TensorFlow, or deep-learning workflows.
 
+Phase 9A.1 adds GPU diagnostics and synthetic benchmark workflows:
+
+    hcz-das-gpu --info
+    hcz-das-gpu --benchmark --backend cpu --shape 4096 512
+    hcz-das-gpu --benchmark --backend gpu --shape 4096 512
+    hcz-das-gpu --compare --shape 4096 512
+    hcz-das-gpu --validate-numeric --shape 1024 128
+    python examples/gpu_benchmark.py --info
+    python examples/gpu_benchmark.py --benchmark --backend cpu --shape 4096 512
+
+`hcz-das-gpu --info` succeeds on CPU-only machines and reports that CuPy/GPU is
+unavailable when appropriate. `--compare` and `--validate-numeric` skip GPU
+work cleanly without CuPy. Explicit `--benchmark --backend gpu` requires CuPy
+and reports a readable error if it is unavailable. Synthetic benchmark timings
+are diagnostic only; they do not represent all real large-file IO, slicing, or
+plotting costs.
+
 ## Large-file workflow
 
 Large DAS files should be opened through bounded selections rather than full
@@ -243,6 +265,8 @@ operations:
 
     python examples/performance_smoke.py input.h5 --max-samples 4096 --max-channels 512
     python examples/performance_smoke.py input.dat --operations preview,statistics,qc --max-estimated-mb 256
+    python examples/performance_smoke.py input.h5 --backend cpu --operations statistics,qc
+    python examples/performance_smoke.py input.h5 --gpu-info --compare-backends --operations statistics
 
 The smoke utility prints operation name, elapsed seconds, selection shape, and
 estimated memory. Optional JSON timing output is a local artifact and should

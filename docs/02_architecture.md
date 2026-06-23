@@ -154,7 +154,9 @@ Not allowed:
 
 - `das_view/acceleration/` provides a CPU-first array backend layer with
   `get_acceleration_backend`, `get_array_module`, `as_backend_array`,
-  `to_numpy`, `is_cupy_available`, and `describe_acceleration`.
+  `to_numpy`, `is_cupy_available`, `describe_acceleration`,
+  `format_acceleration_report`, GPU memory estimates, synthetic benchmarks,
+  and CPU/GPU numeric validation helpers.
 - NumPy is the default backend. `backend="auto"` resolves to CPU in Phase 9A so
   existing API, service, CLI, and GUI behavior does not change.
 - CuPy is optional and imported lazily only when callers explicitly request
@@ -168,6 +170,12 @@ Not allowed:
   and FK directional-energy summaries. GPU display backends are deferred.
 - The acceleration layer is not a deep-learning backend and must not introduce
   PyTorch, TensorFlow, model training, or interpretation workflows into core.
+- `das_view/acceleration/benchmark.py` runs synthetic CPU/GPU timing
+  operations only; it does not read real DAS files or write output files.
+- `das_view/acceleration/validation.py` compares selected CPU/GPU outputs on
+  synthetic data and returns skipped summaries when CuPy is unavailable.
+- `das_view/cli/gpu.py` exposes diagnostics, synthetic benchmark, compare, and
+  numeric-validation workflows without requiring real data.
 
 ## Plugin architecture
 

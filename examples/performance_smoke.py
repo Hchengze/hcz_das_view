@@ -9,6 +9,7 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Callable
 
+from das_view.acceleration import format_acceleration_report, is_cupy_available
 from das_view.analysis.service import (
     compute_multiband_map_for_file,
     compute_quality_report_for_file,
@@ -27,6 +28,7 @@ class OperationTiming:
     selection_shape: tuple[int, int] | None
     estimated_mb: float | None
     status: str
+    backend: str = "cpu"
     message: str | None = None
 
 
@@ -57,6 +59,9 @@ def build_parser() -> argparse.ArgumentParser:
         default=256.0,
         help="Reject analysis selections estimated above this MiB limit.",
     )
+    parser.add_argument("--backend", choices=("cpu", "gpu", "auto"), default="cpu")
+    parser.add_argument("--compare-backends", action="store_true", help="Run CPU plus GPU when CuPy is available")
+    parser.add_argument("--gpu-info", action="store_true", help="Print optional GPU backend diagnostics")
     parser.add_argument("--output-json", type=Path, default=None, help="Optional JSON timing output")
     return parser
 
@@ -65,23 +70,29 @@ def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     operations = _parse_operations(args.operations)
     max_bytes = _max_estimated_bytes(args.max_estimated_mb)
+    if args.gpu_info:
+        print(format_acceleration_report(args.backend, as_text=True))
     timings: list[OperationTiming] = []
-    for operation in operations:
-        timing = _time_operation(
-            operation,
-            lambda op=operation: _run_operation(
-                op,
-                args.input,
-                max_samples=args.max_samples,
-                max_channels=args.max_channels,
-                max_estimated_bytes=max_bytes,
-                bands=_parse_band_pairs(args.multiband),
-                window_samples=args.window_samples,
-                step_samples=args.step_samples,
-            ),
-        )
-        timings.append(timing)
-        _print_timing(timing)
+    backends = _requested_backends(args.backend, compare_backends=args.compare_backends)
+    for backend in backends:
+        for operation in operations:
+            timing = _time_operation(
+                operation,
+                backend,
+                lambda op=operation, selected_backend=backend: _run_operation(
+                    op,
+                    args.input,
+                    max_samples=args.max_samples,
+                    max_channels=args.max_channels,
+                    max_estimated_bytes=max_bytes,
+                    bands=_parse_band_pairs(args.multiband),
+                    window_samples=args.window_samples,
+                    step_samples=args.step_samples,
+                    backend=selected_backend,
+                ),
+            )
+            timings.append(timing)
+            _print_timing(timing)
     if args.output_json is not None:
         args.output_json.write_text(json.dumps(to_jsonable([asdict(item) for item in timings]), indent=2), encoding="utf-8")
         print(f"saved_output: {args.output_json}")
@@ -115,6 +126,7 @@ def _run_operation(
     bands: tuple[tuple[float, float], ...],
     window_samples: int,
     step_samples: int,
+    backend: str,
 ):
     if operation == "preview":
         return create_preview(path, max_samples=max_samples, max_channels=max_channels)
@@ -124,31 +136,33 @@ def _run_operation(
         "max_estimated_bytes": max_estimated_bytes,
     }
     if operation == "statistics":
-        return compute_statistics_for_file(path, **kwargs)
+        return compute_statistics_for_file(path, backend=backend, **kwargs)
     if operation == "qc":
-        return compute_quality_report_for_file(path, **kwargs)
+        return compute_quality_report_for_file(path, backend=backend, **kwargs)
     if operation == "multiband":
         return compute_multiband_map_for_file(
             path,
             bands=bands,
             window_samples=window_samples,
             step_samples=step_samples,
+            backend=backend,
             **kwargs,
         )
     raise ValueError(f"unsupported operation: {operation}")
 
 
-def _time_operation(operation: str, callback: Callable[[], object]) -> OperationTiming:
+def _time_operation(operation: str, backend: str, callback: Callable[[], object]) -> OperationTiming:
     started = time.perf_counter()
     try:
         result = callback()
-    except (ReaderError, ValueError) as exc:
+    except (ImportError, ReaderError, ValueError) as exc:
         return OperationTiming(
             operation=operation,
             elapsed_seconds=time.perf_counter() - started,
             selection_shape=None,
             estimated_mb=None,
             status="error",
+            backend=backend,
             message=str(exc),
         )
     elapsed = time.perf_counter() - started
@@ -169,6 +183,7 @@ def _time_operation(operation: str, callback: Callable[[], object]) -> Operation
         selection_shape=shape,
         estimated_mb=estimated_mb,
         status="ok",
+        backend=backend,
     )
 
 
@@ -176,7 +191,7 @@ def _print_timing(timing: OperationTiming) -> None:
     shape = "N/A" if timing.selection_shape is None else str(timing.selection_shape)
     estimated = "N/A" if timing.estimated_mb is None else format_nbytes(int(timing.estimated_mb * 1024 * 1024))
     print(
-        f"operation={timing.operation} status={timing.status} "
+        f"operation={timing.operation} backend={timing.backend} status={timing.status} "
         f"elapsed={timing.elapsed_seconds:.4f}s selection_shape={shape} estimated={estimated}"
     )
     if timing.message:
@@ -189,6 +204,15 @@ def _max_estimated_bytes(value: float | None) -> int | None:
     if value < 0:
         raise ValueError("--max-estimated-mb must be non-negative")
     return int(value * 1024 * 1024)
+
+
+def _requested_backends(backend: str, *, compare_backends: bool) -> tuple[str, ...]:
+    if not compare_backends:
+        return (backend,)
+    if is_cupy_available():
+        return ("cpu", "gpu")
+    print("compare_backends: CuPy is not available; GPU run skipped.")
+    return ("cpu",)
 
 
 if __name__ == "__main__":

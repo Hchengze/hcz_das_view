@@ -27,6 +27,8 @@ jobs:
         run: python -B -m pytest -p no:cacheprovider
       - name: Run CLI help smoke
         run: python tools/check_cli_help.py
+      - name: Run GPU diagnostics smoke without requiring GPU
+        run: python -m das_view.cli.gpu --info
       - name: Run notebook safety check
         run: python tools/check_notebook_safety.py
 
@@ -52,6 +54,9 @@ jobs:
       - name: Run CLI help smoke
         shell: pwsh
         run: python tools/check_cli_help.py
+      - name: Run GPU diagnostics smoke without requiring GPU
+        shell: pwsh
+        run: python -m das_view.cli.gpu --info
       - name: Run notebook safety check
         shell: pwsh
         run: python tools/check_notebook_safety.py

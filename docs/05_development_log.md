@@ -2843,3 +2843,110 @@ local output files are intended for commit.
 
 Phase 9B: Optional GPU / OpenGL display backend exploration, or Phase 8C:
 Real-world validation package and release candidate polish.
+
+## Phase 9A.1: Real GPU validation and benchmark workflow
+
+Phase 9A.1 adds diagnostics, synthetic benchmark, numeric validation, and
+bounded real-data smoke workflow support around the optional GPU backend. It
+does not add new analysis algorithms, new readers, GUI GPU display
+acceleration, PyQtGraph, VisPy, OpenGL, PyTorch, TensorFlow, deep learning,
+source location, inversion, or interpretation workflows.
+
+### Added or modified files
+
+- das_view/acceleration/backend.py
+- das_view/acceleration/device.py
+- das_view/acceleration/benchmark.py
+- das_view/acceleration/validation.py
+- das_view/acceleration/__init__.py
+- das_view/cli/gpu.py
+- examples/gpu_benchmark.py
+- examples/performance_smoke.py
+- tools/check_cli_help.py
+- tools/check_artifacts.py
+- .github/workflows/ci.yml
+- .github/workflows/release-smoke.yml
+- .gitignore
+- pyproject.toml
+- tests/test_acceleration_diagnostics.py
+- tests/test_acceleration_benchmark.py
+- tests/test_acceleration_validation.py
+- tests/test_gpu_cli.py
+- tests/test_gpu_examples.py
+- tests/test_ci_workflows.py
+- tests/test_cli_entrypoints.py
+- tests/test_release_validation.py
+- README.md
+- AGENTS.md
+- docs/02_architecture.md
+- docs/05_development_log.md
+- docs/06_testing.md
+- docs/07_roadmap.md
+- docs/08_project_handoff.md
+- docs/09_tutorial_user_manual.ipynb
+
+### GPU diagnostics and benchmark workflow
+
+- Added GPU diagnostics helpers for CuPy availability, CuPy version, CUDA
+  runtime/driver version fields when available, device count/name, GPU memory
+  fields when available, fallback behavior, and installation guidance.
+- Added `estimate_gpu_array_memory` for synthetic array memory estimates and
+  available-memory comparison when GPU memory can be queried.
+- Added synthetic benchmark helpers for mean, std, RMS, energy, time-axis FFT,
+  2D FFT, and band-power-like operations.
+- Added CPU/GPU benchmark comparison that returns a skipped summary when CuPy
+  is unavailable unless GPU is explicitly required.
+- Added CPU/GPU numeric consistency validation for statistics, band energy,
+  multiband energy map, and FK transform on synthetic data. Without CuPy, it
+  returns skipped summaries.
+
+### CLI, examples, and local smoke workflow
+
+- Added `hcz-das-gpu` with `--info`, `--benchmark`, `--compare`,
+  `--validate-numeric`, and optional `--json-output`.
+- Added `examples/gpu_benchmark.py` for synthetic diagnostics without real DAS
+  data.
+- Extended `examples/performance_smoke.py` with `--backend`,
+  `--compare-backends`, and `--gpu-info`. Defaults remain CPU and all real-data
+  work remains bounded by the existing selection guards.
+- Added CLI help and CI smoke coverage for `hcz-das-gpu`; CI runs GPU
+  diagnostics without requiring CuPy or a CUDA device.
+
+### Tests
+
+- Focused Phase 9A.1 tests:
+  python -B -m pytest -p no:cacheprovider --basetemp .tmp_pytest\phase9a1_focused tests/test_acceleration_diagnostics.py tests/test_acceleration_benchmark.py tests/test_acceleration_validation.py tests/test_gpu_cli.py tests/test_gpu_examples.py tests/test_cli_entrypoints.py tests/test_ci_workflows.py tests/test_release_validation.py tests/test_performance_smoke_example.py
+  Result: 69 passed.
+- Full test result:
+  python -B -m pytest -p no:cacheprovider --basetemp .tmp_pytest\phase9a1_full
+  Result: 579 passed, 1 skipped. The skipped test is the optional real CuPy
+  GPU numerical-equivalence check on CPU-only/no-CuPy environments. Test count
+  increased from 554 collected in Phase 9A to 580 collected because Phase 9A.1
+  added diagnostics, benchmark, validation, GPU CLI, example, and CI safety
+  tests.
+
+### Old-code migration judgment
+
+No old_code files were copied, imported, modified, or used for implementation.
+This phase adds new diagnostics and benchmark workflow around Phase 9A's
+optional acceleration layer.
+
+### Data and artifact policy confirmation
+
+No real DAS data, generated images, validation_outputs artifacts,
+local_validation_paths.txt, local absolute data paths, benchmark outputs,
+JSON/CSV outputs, build/dist artifacts, wheels, archives, exe files,
+.tmp_pytest directories, or local output files are intended for commit.
+
+### Not completed
+
+- Real GPU benchmark execution remains unverified unless a user CUDA/CuPy
+  environment is available.
+- GPU/OpenGL display acceleration remains deferred.
+- Real large-data GPU performance still needs local validation on user-owned
+  data.
+
+### Suggested next round
+
+Phase 9B: Optional GPU / OpenGL display backend exploration, or Phase 8C:
+Real-world validation package and release candidate polish.

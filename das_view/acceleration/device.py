@@ -2,7 +2,15 @@
 
 from __future__ import annotations
 
-from das_view.acceleration.backend import describe_acceleration, get_acceleration_backend
+from das_view.acceleration.backend import (
+    describe_acceleration,
+    estimate_gpu_array_memory,
+    format_acceleration_report,
+    get_acceleration_backend,
+    get_cupy_build_info,
+    get_gpu_device_info,
+    validate_gpu_backend,
+)
 
 
 def selected_device_name(backend: str = "auto") -> str:
@@ -14,4 +22,13 @@ def selected_device_name(backend: str = "auto") -> str:
     return "gpu:cupy"
 
 
-__all__ = ["describe_acceleration", "get_acceleration_backend", "selected_device_name"]
+__all__ = [
+    "describe_acceleration",
+    "estimate_gpu_array_memory",
+    "format_acceleration_report",
+    "get_acceleration_backend",
+    "get_cupy_build_info",
+    "get_gpu_device_info",
+    "selected_device_name",
+    "validate_gpu_backend",
+]

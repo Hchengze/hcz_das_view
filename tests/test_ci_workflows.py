@@ -24,6 +24,7 @@ def test_ci_workflow_runs_tests_and_cli_help_smoke():
     assert "python tools/check_cli_help.py" in text
     assert "python tools/check_notebook_safety.py" in text
     assert "python tools/check_artifacts.py" in text
+    assert "python -m das_view.cli.gpu --info" in text
     assert "python -m build" in text
     assert "dist/*.whl" in text
 
@@ -55,4 +56,5 @@ def test_release_smoke_has_manual_and_tag_triggers():
     assert "python tools/check_cli_help.py" in text
     assert "python tools/check_notebook_safety.py" in text
     assert "python tools/check_artifacts.py" in text
+    assert "python -m das_view.cli.gpu --info" in text
     assert "python -m build" in text

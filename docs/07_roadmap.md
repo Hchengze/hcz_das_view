@@ -701,3 +701,31 @@ Boundaries:
 
 Recommended next: Phase 9B optional GPU/OpenGL display backend exploration, or
 Phase 8C real-world validation package and release-candidate polish.
+
+## Phase 9A.1: Real GPU validation and benchmark workflow
+
+Status: implemented as a no-GPU-safe validation and benchmark workflow.
+
+Implemented scope:
+
+- GPU diagnostics report with CuPy/CUDA/device availability fields,
+  installation guidance, fallback behavior, and memory estimate helpers.
+- Synthetic CPU/GPU benchmark helpers for mean, std, RMS, energy, FFT, FFT2,
+  and band-power-like operations.
+- CPU/GPU numeric consistency validation for selected existing optional GPU
+  paths on synthetic data.
+- `hcz-das-gpu` CLI for `--info`, `--benchmark`, `--compare`, and
+  `--validate-numeric`.
+- `examples/gpu_benchmark.py` for synthetic local diagnostics.
+- `examples/performance_smoke.py` backend selection, GPU info, and
+  compare-backends support for bounded real-data smoke workflows.
+
+Boundaries:
+
+- No new analysis algorithms, readers, GUI GPU display, PyTorch, TensorFlow,
+  or deep-learning workflows.
+- CI remains no-GPU-safe. Real GPU numerical and performance validation still
+  requires a user CUDA/CuPy environment.
+
+Recommended next: Phase 9B optional GPU/OpenGL display backend exploration, or
+Phase 8C real-world validation package and release-candidate polish.

@@ -6,6 +6,7 @@ import pytest
 CLI_MODULES = [
     "das_view.cli.denoise",
     "das_view.cli.validate",
+    "das_view.cli.gpu",
     "das_view.cli.preview",
     "das_view.cli.statistics",
     "das_view.cli.spectrum",

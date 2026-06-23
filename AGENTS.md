@@ -98,6 +98,10 @@ All internal core arrays must use:
   deep-learning denoising into the core package. Phase 9A-style GPU work is
   compute acceleration only; GPU/OpenGL display acceleration belongs to a
   separate GUI/display phase.
+- GPU diagnostics, numeric validation, and benchmark workflows must use
+  synthetic data or bounded user-selected real-data windows only. Benchmark
+  JSON/CSV/images and local timing outputs are user artifacts and must not be
+  committed.
 
 ## Testing requirements
 
@@ -107,6 +111,8 @@ All internal core arrays must use:
 - Run python -m pytest after meaningful code changes when pytest is available.
 - GPU optional tests must pass without CuPy or GPU hardware. Tests for real
   GPU numerical equivalence should skip cleanly when CuPy is unavailable.
+- CLI and CI smoke may run GPU diagnostics such as `hcz-das-gpu --info`, but
+  they must not require CUDA devices or CuPy installation.
 
 ## Documentation requirements
 
@@ -141,6 +147,7 @@ All internal core arrays must use:
 - Do not add CUDA-specific CuPy wheels to main dependencies. If optional GPU
   installation is documented, tell users to install the CuPy package matching
   their CUDA runtime, such as `cupy-cuda12x`.
+- Release and artifact checks should keep benchmark outputs out of Git.
 - Release rounds should check version metadata, full pytest, CLI help smoke,
   GUI help/launch smoke, example help smoke, clean venv install smoke,
   wheel/sdist build smoke, Windows packaging smoke where practical,

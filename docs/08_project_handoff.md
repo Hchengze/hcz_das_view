@@ -879,3 +879,30 @@ Recommended next:
 
 - Phase 9B: Optional GPU / OpenGL display backend exploration.
 - Phase 8C: Real-world validation package and release candidate polish.
+
+## 19. Phase 9A.1 status
+
+Phase 9A.1 adds validation and benchmark workflow around the optional GPU
+compute backend without adding new analysis algorithms or GPU display
+acceleration.
+
+Implemented:
+
+- GPU diagnostics: CuPy availability, CuPy version, CUDA runtime/driver fields
+  when available, device count/name, free/total memory when available,
+  fallback behavior, and installation guidance.
+- Synthetic benchmark helpers and `hcz-das-gpu --benchmark` /
+  `--compare` workflows. CPU benchmark always runs; GPU benchmark only runs
+  when explicitly selected and CuPy is available.
+- CPU/GPU numeric consistency helper and `hcz-das-gpu --validate-numeric`.
+  Without CuPy, this returns a skipped summary rather than failing.
+- `examples/gpu_benchmark.py` for synthetic diagnostics and
+  `examples/performance_smoke.py` options for `--backend`, `--gpu-info`, and
+  `--compare-backends`.
+- CI/help smoke updates for `hcz-das-gpu --help` and `python -m
+  das_view.cli.gpu --info`; CI still does not require GPU hardware or CuPy.
+
+Testing baseline after Phase 9A.1: 579 passed, 1 skipped. The skipped test is
+the optional real CuPy GPU numerical-equivalence check on CPU-only/no-CuPy
+environments. Real GPU benchmark execution remains unverified locally unless
+CuPy/CUDA is installed.
