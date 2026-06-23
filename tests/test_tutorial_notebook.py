@@ -51,6 +51,14 @@ def test_tutorial_notebook_contains_user_manual_keywords():
     assert "Local channel coherence" in text
     assert "Five-level DAS Analysis roadmap" in text
     assert "hcz-das-qc" in text
+    assert "Level 4 traditional signal enhancement" in text
+    assert "Common-mode removal" in text
+    assert "Despike and median filtering" in text
+    assert "Channel balancing" in text
+    assert "local normalization" in text.lower()
+    assert "robust clipping" in text.lower()
+    assert "Denoise workflow reports" in text
+    assert "hcz-das-denoise" in text
 
 
 def test_tutorial_notebook_avoids_local_paths_and_development_content():

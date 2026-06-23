@@ -2293,3 +2293,111 @@ intended for commit.
 
 Phase 6D: Release CI planning, or Phase 7C: Traditional robust denoising and
 wavefield enhancement planning.
+
+## 2026-06-23: Phase 7C Traditional robust denoising and wavefield enhancement
+
+### Goal
+
+Implement Level 4 traditional, explainable, low-dependency DAS signal
+enhancement helpers while staying out of deep-learning denoising, source
+location, inversion, surface-wave imaging, MASW, F-J, and dispersion-picking
+workflows.
+
+### Added or modified files
+
+- pyproject.toml
+- README.md
+- AGENTS.md
+- das_view/processing/denoise.py
+- das_view/processing/__init__.py
+- das_view/analysis/service.py
+- das_view/analysis/__init__.py
+- das_view/cli/denoise.py
+- das_view/cli/__init__.py
+- das_view/plotting/denoise.py
+- das_view/plotting/__init__.py
+- das_view/plugins/builtins.py
+- examples/denoise_file.py
+- tests/test_denoise_processing.py
+- tests/test_denoise_service.py
+- tests/test_denoise_cli.py
+- tests/test_denoise_plotting.py
+- tests/test_cli_entrypoints.py
+- tests/test_packaging.py
+- tests/test_public_api_stability.py
+- tests/test_plugins_builtins.py
+- tests/test_tutorial_notebook.py
+- docs/09_tutorial_user_manual.ipynb
+- docs/02_architecture.md
+- docs/05_development_log.md
+- docs/06_testing.md
+- docs/07_roadmap.md
+- docs/08_project_handoff.md
+
+### Processing and service work
+
+- Added common_mode_removal, despike, running_median_filter, channel_balance,
+  local_normalize, time_space_median_filter, robust_clip, and
+  apply_denoise_workflow.
+- Added DenoiseResult, DenoiseStep, and EnhancementReport. Workflow reports
+  record input/output shape, per-step history, and before/after RMS, energy,
+  and finite-count metrics.
+- Added bounded file-level compute_denoised_selection_for_file and
+  compute_enhancement_report_for_file services. They read through
+  read_selection, optionally apply apply_preprocess, then call the traditional
+  denoise workflow.
+- Added hcz-das-denoise and examples/denoise_file.py for bounded user
+  workflows and optional JSON enhancement reports.
+- Added Matplotlib-only before/after waterfall and enhancement-metric plotting
+  helpers.
+- Updated built-in plugin metadata for Level 4 processing and plotting
+  capabilities.
+
+### Five-level DAS Analysis roadmap
+
+- Level 4 core traditional denoising/enhancement helpers are now implemented.
+- Level 5 wavefield decomposition and apparent moveout assisted analysis remain
+  deferred.
+- Deep-learning denoising remains deferred future experimental/plugin work.
+
+### Tests
+
+- Focused denoise tests:
+  python -B -m pytest -p no:cacheprovider --basetemp .tmp_pytest/phase7c_focused tests/test_denoise_processing.py tests/test_denoise_service.py tests/test_denoise_cli.py tests/test_denoise_plotting.py tests/test_plugins_builtins.py tests/test_cli_entrypoints.py tests/test_packaging.py tests/test_public_api_stability.py -q
+  Result: 51 passed.
+- Full test result:
+  python -B -m pytest -p no:cacheprovider --basetemp .tmp_pytest/phase7c_full
+  Result: 481 passed. Test count increased from 458 to 481 because Phase 7C
+  added denoise processing, service, CLI, plotting, plugin metadata,
+  entrypoint, API boundary, public API, release validation, and tutorial
+  coverage tests.
+
+### Old-code migration judgment
+
+No old_code files were copied, imported, modified, or used for implementation.
+This phase adds new traditional DAS signal-enhancement helpers under the new
+package interfaces.
+
+### Data and artifact policy confirmation
+
+No real DAS data, generated images, validation_outputs artifacts,
+local_validation_paths.txt, local absolute data paths, JSON/CSV outputs,
+build/dist artifacts, wheels, archives, exe files, or local output files are
+intended for commit.
+
+### Not completed
+
+- Larger real-data validation remains future work.
+- Automated release CI is not implemented.
+- Windows exe signing is not implemented.
+- Level 5 wavefield decomposition and apparent moveout analysis are deferred.
+- Deep-learning denoising is deferred and should remain future experimental
+  plugin work.
+- Plugin API still needs validation with real third-party plugin packages.
+- The tutorial notebook should continue to be maintained as stable features
+  mature.
+
+### Suggested next round
+
+Phase 6D: Release CI planning, or Phase 7D: Wavefield decomposition and
+apparent moveout planning.

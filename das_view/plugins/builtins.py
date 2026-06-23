@@ -94,6 +94,14 @@ def list_builtin_extensions() -> list[object]:
                 ("bandpass", "Band-pass filter", "das_view.processing.filters"),
                 ("bandstop", "Band-stop filter", "das_view.processing.filters"),
                 ("notch", "Notch filter", "das_view.processing.filters"),
+                ("common_mode_removal", "Remove sample-wise common mode", "das_view.processing.denoise"),
+                ("despike", "Replace robust outlier spikes", "das_view.processing.denoise"),
+                ("running_median_filter", "Centered running median filter", "das_view.processing.denoise"),
+                ("channel_balance", "Balance channel amplitudes", "das_view.processing.denoise"),
+                ("local_normalize", "Normalize by local amplitude scale", "das_view.processing.denoise"),
+                ("time_space_median_filter", "Small time-space median filter", "das_view.processing.denoise"),
+                ("robust_clip", "Percentile winsorization", "das_view.processing.denoise"),
+                ("denoise_workflow", "Traditional denoise workflow", "das_view.processing.denoise"),
             ]
         ],
         *[
@@ -296,6 +304,20 @@ def list_builtin_extensions() -> list[object]:
                     "das_view.plotting.multiband",
                     "das_view.plotting.multiband.plot_coherence_map",
                     "LocalCoherenceResult",
+                ),
+                (
+                    "before_after_waterfall",
+                    "Before/after enhancement waterfall plot",
+                    "das_view.plotting.denoise",
+                    "das_view.plotting.denoise.plot_before_after_waterfall",
+                    "DASData",
+                ),
+                (
+                    "enhancement_metrics",
+                    "Enhancement report metrics plot",
+                    "das_view.plotting.denoise",
+                    "das_view.plotting.denoise.plot_enhancement_metrics",
+                    "EnhancementReport",
                 ),
             ]
         ],

@@ -179,6 +179,13 @@ Current coverage:
   coherence, multiband energy maps, spectral attribute maps, service-layer
   bounded reads, preprocessing history, hcz-das-qc CLI JSON/CSV outputs,
   Matplotlib QC/map plots, plugin metadata, and entrypoint declarations.
+- Phase 7C denoise/enhancement tests cover common-mode removal, despike,
+  running median filtering, channel balancing, local normalization,
+  time-space median filtering, robust clipping, DASData input, NaN policy,
+  no in-place mutation, apply_denoise_workflow history/report metrics,
+  bounded service reads, preprocessing and denoise history, hcz-das-denoise
+  CLI report output, Matplotlib before/after and enhancement-metric plots,
+  plugin metadata, public API imports, and entrypoint declarations.
 - FK analysis tests cover synthetic plane-wave peak frequency/wavenumber
   detection, amplitude/power shapes, DASData metadata sample-rate/dx handling,
   invalid sample_rate_hz/dx/nfft/dimensionality/NaN/Inf/too-short inputs, and

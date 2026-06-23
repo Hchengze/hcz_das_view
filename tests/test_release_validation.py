@@ -34,6 +34,7 @@ def test_release_metadata_and_entrypoints_are_declared():
         "hcz-das-events",
         "hcz-das-extensions",
         "hcz-das-qc",
+        "hcz-das-denoise",
     }
     assert project["gui-scripts"]["hcz-das-view"] == "das_view.gui.app:main"
 
@@ -56,6 +57,7 @@ def test_package_import_does_not_pull_in_pyqt5():
         "das_view.cli.events",
         "das_view.cli.extensions",
         "das_view.cli.qc",
+        "das_view.cli.denoise",
     ],
 )
 def test_cli_modules_have_help_smoke(module_name, capsys):

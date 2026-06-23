@@ -20,6 +20,7 @@
     - processing/
       - preprocess.py
       - filters.py
+      - denoise.py
       - service.py
     - analysis/
       - spectrum.py
@@ -40,6 +41,7 @@
       - roi.py
       - qc.py
       - multiband.py
+      - denoise.py
     - plugins/
       - base.py
       - registry.py
@@ -67,7 +69,8 @@
 - io: data readers, metadata readers, format registry, GUI-independent preview
   workflow, bounded data selection services, and JSON/CSV export helpers.
 - processing: GUI-independent preprocessing operations such as demean, linear
-  detrend, taper, normalization, standardization, clipping, and later filtering/resampling.
+  detrend, taper, normalization, standardization, clipping, filtering, and
+  traditional denoising/enhancement helpers.
 - analysis: GUI-independent DAS analysis. Current support includes basic
   statistics, spectral attributes, envelope/STA-LTA event candidates,
   amplitude spectrum, power spectrum, periodogram PSD, Welch PSD,
@@ -78,6 +81,16 @@
 - plotting: Matplotlib plotting helpers independent from GUI widgets, including
   waterfall, waveform, spectrum, spectrogram, FK views, ROI overlays, QC plots,
   multiband maps, and coherence maps.
+- das_view/processing/denoise.py provides traditional signal-enhancement
+  helpers such as common-mode removal, despike, median filtering, channel
+  balancing, local normalization, time-space median filtering, robust clipping,
+  and apply_denoise_workflow. These functions preserve input shape, do not
+  modify inputs in place, and do not produce interpretation results.
+- das_view/analysis/service.py also provides compute_denoised_selection_for_file
+  and compute_enhancement_report_for_file. They read bounded 2-D selections
+  through read_selection, optionally apply apply_preprocess, then call the
+  traditional denoise workflow and return enhancement history/report metadata.
+  They do not inspect HDF5/DAT internal paths and do not depend on GUI code.
 - plugins: lightweight extension metadata, extension wrappers, registry, built-in
   capability metadata, and optional Python entry point discovery. It does not
   replace existing services or trigger plugin scans at package import time.
@@ -379,6 +392,9 @@ Reader responsibilities:
 - das_view/processing/service.py applies named preprocessing steps to DASData,
   returns a new DASData, preserves metadata, and appends preprocessing_history
   in metadata.extra_attrs.
+- das_view/processing/denoise.py applies traditional Level 4 enhancement steps
+  on numpy arrays or DASData. apply_denoise_workflow records per-step
+  before/after RMS, energy, and finite-count metrics in an EnhancementReport.
 - The service accepts simple step definitions such as ("demean", {"axis": 0})
   and is the intended integration point for future GUI or CLI workflows.
 - Phase 3A/3B processing examples are preview-level and in-memory only. They do

@@ -79,6 +79,7 @@ def test_cli_module_imports_do_not_start_gui_event_loop():
         "das_view.cli.events",
         "das_view.cli.extensions",
         "das_view.cli.qc",
+        "das_view.cli.denoise",
     ]:
         module = importlib.import_module(module_name)
         assert callable(module.main)

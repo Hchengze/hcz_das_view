@@ -372,9 +372,37 @@ Status:
 
 Recommended next: Phase 6D or Phase 7C.
 
+### Phase 7C: Traditional robust denoising and wavefield enhancement
+
+Goal:
+
+    Add Level 4 traditional, explainable, low-dependency signal-enhancement
+    helpers for bounded DAS selections without adding deep learning, source
+    location, inversion, MASW, F-J, dispersion picking, or GUI expansion.
+
+Scope:
+
+- Implement common-mode removal, despike, running median filtering, channel
+  balancing, local normalization, time-space median filtering, and robust
+  clipping.
+- Add apply_denoise_workflow with before/after RMS, energy, finite-count
+  metrics, and per-step history.
+- Add bounded service functions, hcz-das-denoise, example wrapper, Matplotlib
+  before/after and report-metric plotting helpers, plugin metadata, tests, and
+  tutorial updates.
+- Keep Level 5 wavefield decomposition / apparent moveout as deferred planning.
+
+Status:
+
+- Completed in Phase 7C for the core Level 4 traditional denoising and
+  enhancement helpers. Outputs are signal-enhancement and data-review aids
+  only, not geologic interpretation results.
+
+Recommended next: Phase 6D or Phase 7D.
+
 ## DAS Analysis capability roadmap
 
-## Five-level DAS Analysis roadmap
+## Five-level / 五级 DAS Analysis roadmap
 
 ### Level 1: DAS data quality / QC analysis
 
@@ -433,8 +461,8 @@ perform velocity inversion, source location, or geologic interpretation.
 
 ### Level 4: Robust denoising / enhancement using traditional methods
 
-Deferred until Levels 1-3 are stable. Prefer interpretable, testable, low
-dependency methods.
+Core traditional methods are implemented as of Phase 7C. Continue to prefer
+interpretable, testable, low-dependency methods.
 
 - common-mode removal
 - median filter
@@ -446,8 +474,12 @@ dependency methods.
 - directional FK-domain pass / reject polish
 - simple wavefield enhancement helpers
 
-Deep-learning denoising is not part of the current mainline and should remain
-future experimental/plugin work.
+The implemented core covers common-mode removal, despike, running median
+filtering, channel balancing, local normalization, time-space median filtering,
+robust clipping, workflow history, service, CLI, and plotting helpers. More
+directional wavefield enhancement remains future work. Deep-learning denoising
+is not part of the current mainline and should remain future experimental/plugin
+work.
 
 ### Level 5: Wavefield decomposition / apparent moveout assisted analysis
 

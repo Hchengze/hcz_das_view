@@ -150,6 +150,8 @@ Examples:
     hcz-das-qc input.h5 --bad-channels --output bad_channels.csv
     hcz-das-qc input.h5 --multiband 1 5 5 20 20 80 --window-samples 1024 --step-samples 512 --output multiband.json
     hcz-das-qc input.h5 --coherence --channel-lag 1 --output coherence.json
+    hcz-das-denoise input.h5 --common-mode median --output-report denoise_report.json
+    hcz-das-denoise input.h5 --despike --z-threshold 8.0 --channel-balance rms --output-report enhancement_report.json
 
 Generated outputs are local user artifacts and should not be committed.
 
@@ -173,6 +175,26 @@ feature workflows:
 These outputs are DAS data-quality and feature summaries. They are not
 earthquake/source locations, velocity inversions, MASW, F-J, dispersion picking,
 surface-wave imaging, or geologic interpretation results.
+
+## Traditional DAS denoising and enhancement
+
+The Phase 7C processing layer adds Level 4 traditional signal-enhancement
+helpers for bounded DAS selections:
+
+- `common_mode_removal` subtracts per-sample common mode across channels.
+- `despike` replaces robust outliers with median-baseline values.
+- `running_median_filter` and `time_space_median_filter` provide small
+  median-based smoothing helpers.
+- `channel_balance` scales channels toward comparable RMS, STD, or max-abs
+  levels.
+- `local_normalize` normalizes by a local running RMS/STD/max-abs scale.
+- `robust_clip` performs percentile winsorization.
+- `apply_denoise_workflow` records step history and before/after RMS, energy,
+  and finite-count metrics.
+
+These helpers are traditional signal-enhancement tools. They do not perform
+deep-learning denoising, source location, inversion, MASW, F-J, dispersion
+picking, surface-wave imaging, or geologic interpretation.
 
 ## Extension architecture
 

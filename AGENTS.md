@@ -68,6 +68,12 @@ All internal core arrays must use:
   algorithms must remain deferred experimental/plugin work unless the project
   owner explicitly changes the roadmap.
 - Do not present specialized algorithms as the mainline package direction.
+- Level 4 denoising/enhancement work must use traditional, explainable,
+  low-dependency methods only.
+- Do not introduce training models, PyTorch, TensorFlow, or deep-learning
+  denoising into the core package.
+- Denoising/enhancement outputs must be described as signal enhancement or
+  data-review aids, not geologic interpretation results.
 
 ## Testing requirements
 

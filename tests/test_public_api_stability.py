@@ -19,15 +19,22 @@ def test_processing_public_api_imports():
         apply_preprocess,
         bandpass,
         bandstop,
+        channel_balance,
         clip,
+        common_mode_removal,
         demean,
+        despike,
         detrend_linear,
         highpass,
+        local_normalize,
         lowpass,
         normalize,
         notch,
+        robust_clip,
+        running_median_filter,
         standardize,
         taper,
+        time_space_median_filter,
     )
 
     for func in [
@@ -42,6 +49,13 @@ def test_processing_public_api_imports():
         bandpass,
         bandstop,
         notch,
+        common_mode_removal,
+        despike,
+        running_median_filter,
+        channel_balance,
+        local_normalize,
+        time_space_median_filter,
+        robust_clip,
         apply_preprocess,
     ]:
         assert callable(func)
@@ -54,6 +68,8 @@ def test_analysis_public_api_imports():
         basic_statistics,
         channel_quality_metrics,
         compute_coherence_for_file,
+        compute_denoised_selection_for_file,
+        compute_enhancement_report_for_file,
         compute_multiband_map_for_file,
         compute_quality_report_for_file,
         compute_roi_statistics_for_file,
@@ -86,6 +102,8 @@ def test_analysis_public_api_imports():
         compute_quality_report_for_file,
         compute_multiband_map_for_file,
         compute_coherence_for_file,
+        compute_denoised_selection_for_file,
+        compute_enhancement_report_for_file,
     ]:
         assert callable(func)
 
@@ -95,6 +113,8 @@ def test_plotting_public_api_imports():
         plot_fk,
         plot_channel_quality,
         plot_coherence_map,
+        plot_before_after_waterfall,
+        plot_enhancement_metrics,
         plot_multiband_energy_map,
         plot_psd,
         plot_rois_on_waterfall,
@@ -111,6 +131,8 @@ def test_plotting_public_api_imports():
         plot_fk,
         plot_channel_quality,
         plot_coherence_map,
+        plot_before_after_waterfall,
+        plot_enhancement_metrics,
         plot_multiband_energy_map,
         plot_rois_on_waterfall,
     ]:

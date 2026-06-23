@@ -40,6 +40,7 @@ from das_view.analysis.spectral_attributes import (
 from das_view.analysis.statistics import StatisticsResult, basic_statistics
 from das_view.core.data_model import DASData, DASMetadata
 from das_view.io.data_service import SelectionResult, read_selection, read_trace
+from das_view.processing.denoise import DenoiseResult, EnhancementReport, apply_denoise_workflow
 from das_view.processing.service import PreprocessStep, apply_preprocess
 
 AnalysisKind = Literal["amplitude", "power", "periodogram", "welch", "spectrogram"]
@@ -57,8 +58,11 @@ AnalysisResult = (
     | DataQualityReport
     | MultibandFeatureMap
     | LocalCoherenceResult
+    | DenoiseResult
+    | EnhancementReport
 )
 StepLike = PreprocessStep | tuple[str, Mapping[str, Any]] | str
+DenoiseStepLike = tuple[str, Mapping[str, Any]] | str
 
 
 @dataclass(frozen=True, slots=True)
@@ -224,6 +228,32 @@ class CoherenceServiceResult:
     metadata: DASMetadata
     selection: SelectionResult
     preprocessing_history: tuple[dict[str, Any], ...]
+
+
+@dataclass(frozen=True, slots=True)
+class DenoiseServiceResult:
+    """Result from a bounded file-level denoise/enhancement workflow."""
+
+    result: DenoiseResult
+    das_data: DASData
+    reader_name: str
+    metadata: DASMetadata
+    selection: SelectionResult
+    preprocessing_history: tuple[dict[str, Any], ...]
+    denoise_history: tuple[dict[str, Any], ...]
+
+
+@dataclass(frozen=True, slots=True)
+class EnhancementReportServiceResult:
+    """Result from a bounded file-level enhancement report workflow."""
+
+    result: EnhancementReport
+    das_data: DASData
+    reader_name: str
+    metadata: DASMetadata
+    selection: SelectionResult
+    preprocessing_history: tuple[dict[str, Any], ...]
+    denoise_history: tuple[dict[str, Any], ...]
 
 
 def compute_spectrum_for_file(
@@ -827,6 +857,69 @@ def detect_events_for_file(
     return _event_detection_service_result(result=result, das_data=das_data, selection=selection)
 
 
+def compute_denoised_selection_for_file(
+    path: str | Path,
+    *,
+    channel_slice=None,
+    time_slice=None,
+    max_samples: int = 4096,
+    max_channels: int = 512,
+    downsample: int | tuple[int, int] | None = None,
+    denoise_steps: Sequence[DenoiseStepLike] | None = None,
+    preprocessing_steps: Sequence[StepLike] | None = None,
+) -> DenoiseServiceResult:
+    """Read a bounded selection and apply traditional signal enhancement."""
+
+    das_data, selection = _read_selection_and_maybe_preprocess(
+        path,
+        channel_slice=channel_slice,
+        time_slice=time_slice,
+        max_samples=max_samples,
+        max_channels=max_channels,
+        downsample=downsample,
+        preprocessing_steps=preprocessing_steps,
+        require_sample_rate=False,
+    )
+    result = apply_denoise_workflow(das_data, denoise_steps or (), axis=0, return_report=True)
+    if not isinstance(result, DenoiseResult):
+        raise TypeError("apply_denoise_workflow returned an unexpected result")
+    return _denoise_service_result(result=result, source_data=das_data, selection=selection)
+
+
+def compute_enhancement_report_for_file(
+    path: str | Path,
+    *,
+    channel_slice=None,
+    time_slice=None,
+    max_samples: int = 4096,
+    max_channels: int = 512,
+    downsample: int | tuple[int, int] | None = None,
+    denoise_steps: Sequence[DenoiseStepLike] | None = None,
+    preprocessing_steps: Sequence[StepLike] | None = None,
+) -> EnhancementReportServiceResult:
+    """Read a bounded selection and return only the enhancement report."""
+
+    service_result = compute_denoised_selection_for_file(
+        path,
+        channel_slice=channel_slice,
+        time_slice=time_slice,
+        max_samples=max_samples,
+        max_channels=max_channels,
+        downsample=downsample,
+        denoise_steps=denoise_steps,
+        preprocessing_steps=preprocessing_steps,
+    )
+    return EnhancementReportServiceResult(
+        result=service_result.result.report,
+        das_data=service_result.das_data,
+        reader_name=service_result.reader_name,
+        metadata=service_result.metadata,
+        selection=service_result.selection,
+        preprocessing_history=service_result.preprocessing_history,
+        denoise_history=service_result.denoise_history,
+    )
+
+
 def compute_roi_statistics_for_file(
     path: str | Path,
     rois,
@@ -1147,6 +1240,48 @@ def _coherence_service_result(
         metadata=das_data.metadata,
         selection=selection,
         preprocessing_history=history,
+    )
+
+
+def _denoise_service_result(
+    *,
+    result: DenoiseResult,
+    source_data: DASData,
+    selection: SelectionResult,
+) -> DenoiseServiceResult:
+    preprocessing_history = _preprocessing_history(source_data)
+    denoise_history = tuple(result.report.steps)
+    extra_attrs = dict(source_data.metadata.extra_attrs)
+    existing = extra_attrs.get("denoise_history", [])
+    if isinstance(existing, list):
+        history = [*existing, *denoise_history]
+    elif isinstance(existing, dict):
+        history = [existing, *denoise_history]
+    else:
+        history = [*denoise_history]
+    extra_attrs["denoise_history"] = history
+    metadata = DASMetadata(
+        n_samples=int(result.data.shape[0]),
+        n_channels=int(result.data.shape[1]) if result.data.ndim > 1 else 1,
+        sample_rate_hz=source_data.metadata.sample_rate_hz,
+        dt_s=source_data.metadata.dt_s,
+        dx_m=source_data.metadata.dx_m,
+        gauge_length_m=source_data.metadata.gauge_length_m,
+        start_channel=source_data.metadata.start_channel,
+        start_time=source_data.metadata.start_time,
+        source_format=source_data.metadata.source_format,
+        source_path=source_data.metadata.source_path,
+        extra_attrs=extra_attrs,
+    )
+    output_data = DASData(data=result.data, metadata=metadata)
+    return DenoiseServiceResult(
+        result=result,
+        das_data=output_data,
+        reader_name=selection.reader_name,
+        metadata=metadata,
+        selection=selection,
+        preprocessing_history=preprocessing_history,
+        denoise_history=denoise_history,
     )
 
 

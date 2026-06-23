@@ -20,15 +20,16 @@ phases.
 - Development model: the new das_view/ package is being rebuilt after auditing
   legacy material under old_code/.
 - New runtime code must not depend on, import, or call old_code.
-- Latest project state: current HEAD after Phase 7B advanced DAS QC and
-  multiband feature analysis.
-- Current phase: Phase 7B, DAS QC/channel quality, noise-floor and SNR
-  estimates, multiband feature maps, local channel coherence, hcz-das-qc, and
-  documentation of the five-level DAS Analysis roadmap.
-- Current expected test result after Phase 7B: 458 passed. The count increased
-  from the Phase 7A baseline of 430 because Phase 7B added 28 QC, multiband,
-  service, CLI, plotting, plugin metadata, entrypoint, and tutorial coverage
-  tests.
+- Latest project state: current HEAD after Phase 7C traditional DAS denoising
+  and enhancement.
+- Current phase: Phase 7C, Level 4 traditional signal-enhancement helpers:
+  common-mode removal, despike, running median filtering, channel balancing,
+  local normalization, time-space median filtering, robust clipping,
+  hcz-das-denoise, and enhancement reports.
+- Current expected test result after Phase 7C: 481 passed. The count increased
+  from the Phase 7B baseline of 458 because Phase 7C added denoise processing,
+  service, CLI, plotting, plugin metadata, entrypoint, public API, and tutorial
+  coverage tests.
 
 ## 2. Repository and environment
 
@@ -88,8 +89,9 @@ phases.
   exceptions.
 - das_view/io/: file readers, reader registry, preview generation, and data
   selection services.
-- das_view/processing/: pure preprocessing functions, scipy-based filters, and
-  DASData-level processing service.
+- das_view/processing/: pure preprocessing functions, scipy-based filters,
+  traditional denoising/enhancement helpers, and DASData-level processing
+  service.
 - das_view/analysis/: spectrum, spectrogram, PSD/Welch, spectral attributes,
   envelope/STA-LTA event candidates, ROI/annotation helpers, DAS QC/channel
   quality, multiband feature maps, local channel coherence, FK visualization,
@@ -97,13 +99,15 @@ phases.
 - das_view/io/export.py: JSON/CSV export helpers for event candidates, ROIs,
   annotations, and ROI analysis summaries.
 - das_view/plotting/: Matplotlib plotting helpers independent of PyQt5,
-  including QC and multiband/coherence map plots.
+  including QC, multiband/coherence map plots, and denoise before/after/report
+  plots.
 - das_view/plugins/: lightweight extension metadata, extension wrappers,
   registry helpers, built-in capability metadata, and optional on-demand entry
   point discovery.
 - das_view/cli/: installed command-line wrappers for validation, preview,
   statistics, spectrum/PSD/spectrogram, event-candidate workflows, extension
-  inspection, and QC/multiband/coherence workflows.
+  inspection, QC/multiband/coherence workflows, and traditional denoise
+  workflows.
 - das_view/gui/: optional PyQt5 application, main window, models, and worker
   scaffolding.
 - das_view/utils/: shared utilities, including slicing helpers.
@@ -126,18 +130,20 @@ Stable public API:
   helpers, including `create_preview`, `read_selection`, `read_trace`,
   `save_json`, and `save_csv_rows`.
 - `das_view.processing`: documented preprocessing and filter functions plus
-  `apply_preprocess`.
+  `apply_preprocess`, traditional denoise/enhancement helpers, and
+  `apply_denoise_workflow`.
 - `das_view.analysis`: documented numerical helpers and bounded file-level
   services for statistics, spectral attributes, events, ROI summaries, QC,
-  multiband feature maps, local coherence, spectrum/PSD/spectrogram, and FK
-  smoke workflows.
+  multiband feature maps, local coherence, denoise/enhancement reports,
+  spectrum/PSD/spectrogram, and FK smoke workflows.
 - `das_view.plotting`: documented Matplotlib helpers for waterfall, waveform,
   spectrum, PSD, spectrogram, FK, ROI overlays, QC plots, multiband maps, and
   coherence maps.
 - `das_view.plugins`: lightweight extension metadata, registry helpers,
   built-in metadata registration, and explicit entry point discovery.
 - Installed CLI commands such as `hcz-das-validate`, `hcz-das-stats`,
-  `hcz-das-events`, `hcz-das-extensions`, `hcz-das-qc`, and `hcz-das-view`.
+  `hcz-das-events`, `hcz-das-extensions`, `hcz-das-qc`,
+  `hcz-das-denoise`, and `hcz-das-view`.
 
 Experimental API:
 
@@ -178,6 +184,9 @@ Key modules:
 - Processing:
   - preprocess.py: demean, detrend, taper, normalize, standardize, clipping.
   - filters.py: lowpass, highpass, bandpass, bandstop, notch.
+  - denoise.py: common-mode removal, despike, running median filter,
+    channel balancing, local normalization, time-space median filter, robust
+    clipping, and denoise workflow reports.
   - service.py: ordered preprocessing/filter steps on DASData with history.
 - Analysis:
   - statistics.py: FiniteSummary, StatisticsResult, finite_summary,
@@ -272,6 +281,11 @@ Key modules:
   Matplotlib QC/map plots, plugin metadata, tests, and tutorial updates. Level
   4 traditional denoising and Level 5 wavefield/apparent-moveout work remain
   roadmap-only.
+- Phase 7C: added Level 4 traditional denoising/enhancement helpers,
+  apply_denoise_workflow reports, bounded denoise service functions,
+  hcz-das-denoise, Matplotlib before/after and enhancement-metric plots,
+  plugin metadata, tests, and tutorial updates. Level 5 wavefield/apparent
+  moveout remains deferred.
 
 ## 7. Current supported capabilities
 
@@ -301,6 +315,7 @@ Key modules:
 - hcz-das-events.
 - hcz-das-extensions.
 - hcz-das-qc.
+- hcz-das-denoise.
 - hcz-das-view.
 - das-view-gui remains as a compatibility GUI script.
 
@@ -316,6 +331,8 @@ Key modules:
 - Channel quality and bad-channel plots.
 - Multiband energy map plots.
 - Local coherence map plots.
+- Denoise before/after waterfall plots.
+- Enhancement report metric plots.
 
 ### GUI
 
@@ -348,6 +365,14 @@ Key modules:
 - bandstop.
 - notch.
 - apply_preprocess with preprocessing/filter history in metadata.extra_attrs.
+- common_mode_removal.
+- despike.
+- running_median_filter.
+- channel_balance.
+- local_normalize.
+- time_space_median_filter.
+- robust_clip.
+- apply_denoise_workflow with enhancement history and before/after metrics.
 
 ### Analysis
 
@@ -400,6 +425,8 @@ Key modules:
 - compute_multiband_map_for_file.
 - compute_spectral_attribute_map_for_file.
 - compute_coherence_for_file.
+- compute_denoised_selection_for_file.
+- compute_enhancement_report_for_file.
 
 ### Plugins and extensions
 
@@ -443,6 +470,8 @@ Key modules:
   ROIs, export events/ROIs as JSON/CSV, and export ROI statistics summaries.
 - examples/qc_file.py: run bounded DAS QC reports, bad-channel CSV export,
   multiband feature maps, and local coherence summaries.
+- examples/denoise_file.py: run bounded traditional denoising/enhancement
+  workflows and optional JSON enhancement reports.
 - examples/fk_file.py: compute bounded FK amplitude or power plots, optionally
   after a filter step.
 - examples/fk_filter_file.py: apply a minimal bounded FK velocity fan filter
@@ -454,6 +483,8 @@ Key modules:
   as package API.
 - hcz-das-extensions lists built-in extension metadata by kind and can emit
   JSON for tooling.
+- hcz-das-denoise runs bounded traditional signal-enhancement workflows and can
+  export an enhancement report JSON.
 - packaging/README_windows_packaging.md documents Windows Conda setup, GUI
   launch, PyInstaller build, artifact policy, and exe validation.
 - packaging/build_windows.ps1 runs the local PyInstaller packaging smoke path.
@@ -507,12 +538,17 @@ Current coverage includes:
   channel coherence, multiband energy maps, spectral attribute maps, service
   bounded reads, hcz-das-qc JSON/CSV output, plotting helpers, plugin metadata,
   and entrypoint declarations.
+- Denoise/enhancement tests for common-mode removal, despike, running median
+  filtering, channel balancing, local normalization, time-space median
+  filtering, robust clipping, workflow history/report metrics, bounded service
+  reads, hcz-das-denoise JSON reports, plotting helpers, plugin metadata,
+  public API imports, and entrypoint declarations.
 
 Current full test command and expected result:
 
       python -B -m pytest -p no:cacheprovider
 
-      458 passed
+      481 passed
 
 ## 10. Old code migration status
 
@@ -591,18 +627,18 @@ Status:
 
       Not implemented. This is the recommended next release-hardening step.
 
-### Option B: Phase 7C Traditional robust denoising and wavefield enhancement planning
+### Option B: Phase 7D Wavefield decomposition and apparent moveout planning
 
 Goal:
 
-      Plan traditional robust denoising, enhancement, and wavefield-assistance
-      helpers without adding deep learning, location, inversion, MASW, F-J, or
-      dispersion-picking workflows.
+      Plan Level 5 wavefield decomposition / apparent moveout assistance
+      without adding location, inversion, MASW, F-J, or dispersion-picking
+      workflows.
 
 Status:
 
       Not implemented. This is the recommended analysis-roadmap planning option
-      after Phase 7B.
+      after Phase 7C.
 
 ### Option C: Phase 2E real sample validation refresh
 
@@ -633,18 +669,20 @@ Status:
    Includes adjacent-channel correlation, local channel coherence, channel-lag
    coherence, windowed spatial-continuity score, and coherence maps.
 4. Level 4: Robust denoising / enhancement using traditional methods.
-   Deferred. Candidate future helpers include common-mode removal, median
-   filtering, despike, channel balancing, local normalization, time-space 2D
-   median filtering, robust clipping, and directional FK-domain polish.
+   Core traditional helpers are implemented in Phase 7C: common-mode removal,
+   median filtering, despike, channel balancing, local normalization,
+   time-space 2D median filtering, robust clipping, workflow reports, service,
+   CLI, plotting, and plugin metadata. Directional FK-domain polish remains
+   future work.
 5. Level 5: Wavefield decomposition / apparent moveout assisted analysis.
    Deferred. Candidate future helpers include apparent slope/velocity
    attributes, directional energy ratio, directional wavefield energy helpers,
    FK directional energy summary, and event moveout auxiliary attributes.
 
-Levels 1-3 are general DAS data-quality and feature-analysis layers. Levels 4
-and 5 are roadmap-only after Phase 7B. None of the levels imply surface-wave
-imaging, MASW, F-J, dispersion picking, source location, inversion, or geologic
-interpretation.
+Levels 1-4 now have core general DAS data-quality, feature-analysis, and
+traditional enhancement support. Level 5 remains deferred after Phase 7C. None
+of the levels imply surface-wave imaging, MASW, F-J, dispersion picking, source
+location, inversion, or geologic interpretation.
 
 ### Basic statistics
 
