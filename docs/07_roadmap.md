@@ -654,3 +654,18 @@ does not mean geologic inversion or specialized imaging.
 
 These projects are target-alignment references only. No external project code is
 copied, and this roadmap does not add new dependencies.
+
+## Phase 8B: GUI usability polish and large-file UX
+
+Status: implemented in the GUI/model layer.
+
+Phase 8B keeps the existing algorithms and readers unchanged while improving
+large-file usability in the optional GUI. It adds metadata-only selection
+memory estimates, clearer file summaries, safe-selection hints, run-before
+checks for heavier tabs, consistent busy/cancel/stale-result behavior, and
+Analysis export-state cleanup.
+
+Next recommended rounds:
+
+- Phase 8C: Real-world validation package and release candidate polish.
+- Phase 8D: GUI analysis integration for QC / Denoise / Moveout.

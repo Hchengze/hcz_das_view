@@ -2690,3 +2690,56 @@ local output files are intended for commit.
 
 Phase 8B: GUI usability polish and large-file UX, or Phase 8C: Real-world
 validation package and release candidate polish.
+
+## Phase 8B: GUI usability polish and large-file UX
+
+Phase 8B focuses on GUI user experience, large-file selection safety, clearer
+status messages, and export-state behavior. It does not add analysis
+algorithms, readers, deep learning, surface-wave imaging, MASW, F-J,
+dispersion picking, location, inversion, or geologic interpretation features.
+
+### Added or modified files
+
+- das_view/gui/models.py
+- das_view/gui/main_window.py
+- tests/test_gui_large_file_models.py
+- tests/test_gui_smoke.py
+- README.md
+- AGENTS.md
+- docs/02_architecture.md
+- docs/05_development_log.md
+- docs/06_testing.md
+- docs/07_roadmap.md
+- docs/08_project_handoff.md
+- docs/09_tutorial_user_manual.ipynb
+
+### GUI large-file UX work
+
+- Added PyQt-free GUI selection-memory helpers for metadata-only estimates,
+  user-readable warnings, file-summary lines, and safe selection presets.
+- Expanded file summaries with reader, shape, sample rate, duration, dt, dx,
+  estimated full array size, recommended preview/analysis selections, FK safe
+  default, and large-file warning text.
+- Added run-before memory checks for Waveform, Spectrum, FK, and Analysis tab
+  actions before background workers are dispatched.
+- Kept busy/cancel/stale-result behavior service-backed and added export-state
+  cleanup so stale or cancelled Analysis results are not exported by mistake.
+- Analysis JSON/CSV export buttons are disabled until current exportable results
+  are available, and default export names avoid source-path-derived names.
+
+### Tests
+
+- Focused Phase 8B tests:
+  python -B -m pytest -p no:cacheprovider --basetemp .tmp_pytest/phase8b_focused tests/test_gui_large_file_models.py tests/test_gui_smoke.py -q
+  Result: 69 passed.
+- Full test result:
+  python -B -m pytest -p no:cacheprovider --basetemp .tmp_pytest/phase8b_full
+  Result: 541 passed. Test count increased from 529 to 541 because Phase 8B
+  added GUI large-file model coverage and expanded GUI smoke coverage for file
+  summaries, safe-selection hints, and export-state behavior.
+
+### Old-code migration judgment
+
+No old_code files were copied, imported, modified, or used for implementation.
+This phase only polishes GUI safety and workflow behavior around existing
+service-layer capabilities.

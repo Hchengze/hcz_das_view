@@ -143,6 +143,19 @@ All internal core arrays must use:
   publish to PyPI or create an official release unless the project owner
   explicitly requests that release step.
 
+## GUI large-file rules
+
+- GUI workflows must not default to full-array reads for large DAS files.
+- GUI file summaries should use metadata-only memory estimates and safe
+  preview/analysis hints before users run heavier operations.
+- GUI selection checks should be shared through PyQt-free model helpers where
+  practical, then dispatched to service/data-service workers.
+- GUI code may show user-readable warnings or block oversized selections, but
+  it must not implement DAS analysis algorithms or reader internals.
+- GUI exports must use shared export helpers, avoid default names derived from
+  real absolute paths, and generated output files must not be committed.
+- Real/private paths must not be written into docs or the tutorial notebook.
+
 ## Plugin and extension rules
 
 - Plugin core code must not depend on PyQt5.

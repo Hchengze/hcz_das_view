@@ -100,6 +100,10 @@
   and avoid depending on examples/ as package API.
 - gui: optional PyQt5 layer that calls preview, formatting, plotting,
   analysis-service, and export-helper APIs.
+- das_view/gui/models.py contains PyQt-free GUI parsing, formatting,
+  task-state, and selection-memory helpers. These helpers estimate planned GUI
+  selections from metadata only and are shared by Waterfall, Waveform,
+  Spectrum, FK, and Analysis UI paths.
 - utils: validation, slicing, memory estimation, logging, and shared small
   helpers.
 - docs/09_tutorial_user_manual.ipynb: stable user tutorial and operation
@@ -275,6 +279,14 @@ Reader responsibilities:
 - GUI metadata displays full-file shape and estimated full array size, while
   preview/waveform/spectrum/FK/analysis workflows continue to call bounded
   service APIs.
+- Phase 8B adds GUI run-before checks that estimate selection memory before
+  dispatching Waveform, Spectrum, FK, and Analysis background tasks. Oversized
+  selections are stopped with user-readable messages; compatible service
+  defaults remain unchanged.
+- GUI safe-selection presets are UI guidance only: small preview is about 2000
+  samples x 256 channels, analysis is about 4096 samples x 512 channels, and
+  FK is about 2048 samples x 256 channels. They do not introduce new reader or
+  analysis algorithms.
 - examples/performance_smoke.py is a local diagnostic utility for bounded
   timing checks. It is not an automated real-data test and generated JSON
   timing files must not be committed.
@@ -488,6 +500,10 @@ GUI rules:
 - Phase 2D cancellation is cooperative. It cannot forcibly interrupt synchronous
   reader IO already in progress, but cancelled or stale task results are not
   applied to the GUI.
+- Phase 8B keeps this busy/cancel/stale-result model and adds clearer large-file
+  UX: file summaries include reader/shape/duration/spacing/full-array estimate,
+  tab actions run metadata-only memory checks before worker dispatch, and
+  Analysis export buttons are disabled until current exportable results exist.
 - Phase 3E adds a minimal Spectrum tab. It parses a single channel plus nfft,
   nperseg, noverlap, analysis type, and PSD dB display options in GUI model
   helpers, then starts a QThread-backed spectrum worker.

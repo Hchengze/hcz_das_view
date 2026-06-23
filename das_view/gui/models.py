@@ -10,6 +10,7 @@ import numpy as np
 
 from das_view.analysis.roi import TimeChannelROI, rois_from_event_candidates
 from das_view.io.export import analysis_summary_to_rows, event_candidates_to_rows, rois_to_rows
+from das_view.utils.memory import estimate_array_nbytes, estimate_selection_nbytes, format_nbytes
 
 SpectrumAnalysisType = Literal[
     "amplitude",
@@ -18,6 +19,16 @@ SpectrumAnalysisType = Literal[
     "psd_welch",
     "spectrogram",
 ]
+GUI_DEFAULT_MAX_SELECTION_BYTES = 256 * 1024 * 1024
+GUI_LARGE_FILE_BYTES = 512 * 1024 * 1024
+
+
+GUI_SAFE_SELECTION_PRESETS: dict[str, tuple[int, int]] = {
+    "small_preview": (2000, 256),
+    "medium_preview": (4096, 512),
+    "analysis": (4096, 512),
+    "fk": (2048, 256),
+}
 FKMode = Literal["transform", "velocity_filter"]
 FKOutputMode = Literal["amplitude", "power"]
 AnalysisType = Literal[
@@ -89,6 +100,17 @@ class TaskControlState:
     progress_visible: bool
     progress_minimum: int
     progress_maximum: int
+
+
+@dataclass(frozen=True, slots=True)
+class GUISelectionEstimate:
+    """Display-ready estimate for a planned GUI read or analysis selection."""
+
+    estimated_bytes: int
+    formatted_size: str
+    max_bytes: int | None
+    within_limit: bool
+    message: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -247,6 +269,187 @@ def should_apply_task_result(
     """Return whether a worker result still belongs to the active GUI task."""
 
     return active_task_id == task_id and not was_cancelled
+
+
+def estimate_gui_selection_memory(
+    metadata: Any,
+    *,
+    time_start: int | None = None,
+    time_stop: int | None = None,
+    time_step: int | None = None,
+    channel_start: int | None = None,
+    channel_stop: int | None = None,
+    channel_step: int | None = None,
+    downsample: int | tuple[int, int] | None = None,
+    dtype: str | np.dtype[Any] = "float64",
+) -> int:
+    """Estimate GUI selection memory from metadata without reading data."""
+
+    n_samples = _metadata_dimension(metadata, "n_samples")
+    n_channels = _metadata_dimension(metadata, "n_channels")
+    normalized_time_step = 1 if time_step is None else _positive_int(time_step, name="time_step")
+    normalized_channel_step = (
+        1 if channel_step is None else _positive_int(channel_step, name="channel_step")
+    )
+    if downsample is None:
+        normalized_downsample = (1, 1)
+    elif isinstance(downsample, int):
+        step = _positive_int(downsample, name="downsample")
+        normalized_downsample = (step, step)
+    else:
+        if len(downsample) != 2:
+            raise ValueError("downsample must be an int or a (time_step, channel_step) tuple")
+        normalized_downsample = (
+            _positive_int(downsample[0], name="downsample time_step"),
+            _positive_int(downsample[1], name="downsample channel_step"),
+        )
+    return estimate_selection_nbytes(
+        n_samples=n_samples,
+        n_channels=n_channels,
+        time_slice=_selection_slice(
+            time_start,
+            time_stop,
+            normalized_time_step,
+            axis_name="time",
+        ),
+        channel_slice=_selection_slice(
+            channel_start,
+            channel_stop,
+            normalized_channel_step,
+            axis_name="channel",
+        ),
+        downsample=normalized_downsample,
+        dtype=dtype,
+    )
+
+
+def format_gui_selection_warning(
+    estimated_bytes: int,
+    *,
+    max_bytes: int | None = None,
+    operation_name: str | None = None,
+) -> str:
+    """Return a user-facing GUI message for a planned selection."""
+
+    operation = str(operation_name or "Selection").strip() or "Selection"
+    estimated = int(estimated_bytes)
+    if estimated < 0:
+        raise ValueError("estimated_bytes must be non-negative")
+    if max_bytes is None:
+        return f"{operation} estimated memory: {format_nbytes(estimated)}."
+    limit = int(max_bytes)
+    if limit < 0:
+        raise ValueError("max_bytes must be non-negative")
+    if estimated <= limit:
+        return (
+            f"{operation} estimated memory: {format_nbytes(estimated)} "
+            f"(limit {format_nbytes(limit)})."
+        )
+    return (
+        f"{operation} selection is large: estimated {format_nbytes(estimated)} "
+        f"exceeds the {format_nbytes(limit)} limit. Use bounded time/channel "
+        "selection before running heavy analysis."
+    )
+
+
+def gui_selection_estimate(
+    metadata: Any,
+    *,
+    max_bytes: int | None = GUI_DEFAULT_MAX_SELECTION_BYTES,
+    operation_name: str | None = None,
+    **selection: Any,
+) -> GUISelectionEstimate:
+    """Build a display-ready estimate for GUI run-before checks."""
+
+    estimated = estimate_gui_selection_memory(metadata, **selection)
+    within_limit = True if max_bytes is None else estimated <= int(max_bytes)
+    return GUISelectionEstimate(
+        estimated_bytes=estimated,
+        formatted_size=format_nbytes(estimated),
+        max_bytes=max_bytes,
+        within_limit=within_limit,
+        message=format_gui_selection_warning(
+            estimated,
+            max_bytes=max_bytes,
+            operation_name=operation_name,
+        ),
+    )
+
+
+def gui_large_file_warning(
+    metadata: Any,
+    *,
+    max_bytes: int = GUI_LARGE_FILE_BYTES,
+    dtype: str | np.dtype[Any] = "float64",
+) -> str | None:
+    """Return a large-file hint based on metadata-only full-array size."""
+
+    n_samples = _metadata_dimension(metadata, "n_samples")
+    n_channels = _metadata_dimension(metadata, "n_channels")
+    estimated = estimate_array_nbytes(n_samples, n_channels, dtype=dtype)
+    if estimated <= int(max_bytes):
+        return None
+    return (
+        "This file is large. Use bounded time/channel selection before running "
+        "heavy analysis."
+    )
+
+
+def format_gui_file_summary(
+    metadata: Any,
+    *,
+    reader_name: str | None = None,
+    max_preview_samples: int = 2000,
+    max_preview_channels: int = 500,
+    dtype: str | np.dtype[Any] = "float64",
+) -> list[str]:
+    """Return GUI file-summary lines with large-file and safe-selection hints."""
+
+    n_samples = _metadata_dimension(metadata, "n_samples")
+    n_channels = _metadata_dimension(metadata, "n_channels")
+    full_bytes = estimate_array_nbytes(n_samples, n_channels, dtype=dtype)
+    sample_rate_hz = getattr(metadata, "sample_rate_hz", None)
+    dt_s = getattr(metadata, "dt_s", None)
+    dx_m = getattr(metadata, "dx_m", None)
+    duration = None
+    if sample_rate_hz:
+        duration = n_samples / float(sample_rate_hz)
+    elif dt_s:
+        duration = n_samples * float(dt_s)
+
+    presets = gui_safe_selection_presets()
+    lines = [
+        f"Reader: {reader_name or 'unknown'}",
+        f"n_samples: {n_samples}",
+        f"n_channels: {n_channels}",
+        f"sample_rate_hz: {_unknown_if_none(sample_rate_hz)}",
+        f"duration_seconds: {_unknown_if_none(duration)}",
+        f"dt_s: {_unknown_if_none(dt_s)}",
+        f"dx_m: {_unknown_if_none(dx_m)}",
+        f"estimated full array size: {format_nbytes(full_bytes)}",
+        (
+            "recommended preview selection: "
+            f"up to {int(max_preview_samples)} samples x {int(max_preview_channels)} channels"
+        ),
+        (
+            "recommended analysis selection: "
+            f"up to {presets['analysis'][0]} samples x {presets['analysis'][1]} channels"
+        ),
+        (
+            "FK safe default: "
+            f"up to {presets['fk'][0]} samples x {presets['fk'][1]} channels"
+        ),
+    ]
+    warning = gui_large_file_warning(metadata, dtype=dtype)
+    if warning:
+        lines.append(f"large-file warning: {warning}")
+    return lines
+
+
+def gui_safe_selection_presets() -> dict[str, tuple[int, int]]:
+    """Return stable safe-selection presets for GUI labels and tests."""
+
+    return dict(GUI_SAFE_SELECTION_PRESETS)
 
 
 def parse_preview_limits(max_samples: Any, max_channels: Any) -> PreviewLimits:
@@ -984,6 +1187,24 @@ def _optional_slice(start: int | None, stop: int | None, *, name: str) -> slice 
     return slice(start, stop)
 
 
+def _selection_slice(
+    start: int | None,
+    stop: int | None,
+    step: int,
+    *,
+    axis_name: str,
+) -> slice | None:
+    if start is None and stop is None and step == 1:
+        return None
+    if start is not None and int(start) < 0:
+        raise ValueError(f"{axis_name}_start must be non-negative")
+    if stop is not None and int(stop) < 0:
+        raise ValueError(f"{axis_name}_stop must be non-negative")
+    if start is not None and stop is not None and int(start) >= int(stop):
+        raise ValueError(f"{axis_name}_start must be smaller than {axis_name}_stop")
+    return slice(start, stop, step)
+
+
 def _parse_analysis_axis(value: str | None) -> int | None:
     normalized = "global" if value is None else str(value).strip().lower()
     if normalized in {"global", "none", ""}:
@@ -1058,6 +1279,24 @@ def _format_slice(value: Any) -> str:
         return f"{value.start}:{value.stop}:{value.step}"
     if value is None:
         return "None"
+    return str(value)
+
+
+def _metadata_dimension(metadata: Any, name: str) -> int:
+    try:
+        value = int(getattr(metadata, name))
+    except (TypeError, ValueError, AttributeError) as exc:
+        raise ValueError(f"metadata.{name} must be a positive integer") from exc
+    if value <= 0:
+        raise ValueError(f"metadata.{name} must be a positive integer")
+    return value
+
+
+def _unknown_if_none(value: Any) -> str:
+    if value is None:
+        return "unknown"
+    if isinstance(value, float):
+        return f"{value:.6g}"
     return str(value)
 
 

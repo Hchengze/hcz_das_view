@@ -72,8 +72,8 @@ Still intentionally deferred:
   validation set.
 - Full time-frequency analysis platform beyond the current single-channel
   spectrogram smoke path.
-- Automated release CI, signed Windows executables, and broader
-  clean-environment release validation across more machines.
+- Remote GitHub Actions result confirmation, signed Windows executables, and
+  broader clean-environment release validation across more machines.
 - Full-file preprocessing export.
 - GUI filter parameter panel.
 - SEGY/SAC/TDMS support.
@@ -190,6 +190,16 @@ too large for the intended workflow.
 The GUI metadata panel displays sample count, channel count, duration, spacing,
 and estimated full array size. This estimate is derived from metadata and does
 not read the full data matrix.
+
+The GUI also applies the same large-file principle before heavier tab actions:
+Waterfall preview uses bounded `max_samples` / `max_channels`, Waveform,
+Spectrum, FK, and Analysis estimate planned selection memory before running,
+and oversized selections are stopped with a user-readable message. Safe working
+presets are intentionally conservative: small preview is about 2000 samples x
+256 channels, medium/analysis selection is about 4096 samples x 512 channels,
+and FK starts from about 2048 samples x 256 channels. Export buttons stay
+disabled until a current Analysis result exists; generated JSON/CSV files are
+local user artifacts and should not be committed.
 
 For local performance diagnosis on user-owned data, run bounded smoke
 operations:
@@ -456,6 +466,14 @@ In the GUI, open a supported file first, then use the Waveform tab to enter a
 zero-based channel index such as 10 or comma-separated indices such as
 10,20,30. The GUI calls the shared data service; it does not read format
 internals directly.
+
+For large files, review the file-summary panel before running tab operations.
+It shows reader name, sample/channel counts, sample spacing when available,
+estimated full array size, safe preview/analysis hints, and a large-file
+warning when the dense array would be too large for blind full reads.
+Waterfall, Waveform, Spectrum, FK, and Analysis actions run a metadata-only
+selection estimate before dispatching background work; reduce the time/channel
+range or increase downsampling when the warning appears.
 
 The Analysis tab runs bounded service-backed tasks for statistics, band energy,
 spectral attributes, STA/LTA event candidates, envelope-threshold event

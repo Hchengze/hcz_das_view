@@ -4,6 +4,7 @@ from das_view.gui.models import (
     AnalysisRequest,
     PreviewDisplayInfo,
     candidates_to_table_rows,
+    format_gui_file_summary,
     format_error_message,
     format_analysis_summary,
     format_fk_status,
@@ -28,6 +29,7 @@ from das_view.gui.models import (
 )
 from das_view.analysis.events import EventCandidate
 from das_view.analysis.roi import TimeChannelROI
+from das_view.core.data_model import DASMetadata
 from das_view.gui.workers import AnalysisWorker, FKWorker, PreviewWorker, SpectrumWorker, WaveformWorker
 
 
@@ -49,6 +51,17 @@ def test_gui_display_info_and_error_formatting_are_pyqt_free():
     assert "synthetic" in "\n".join(info.as_lines())
     assert info.loaded_status() == "Loaded: synthetic | preview=(10, 4) | downsample=(2, 3)"
     assert format_error_message(ValueError("bad file")) == "ValueError: bad file"
+
+
+def test_gui_file_summary_includes_memory_and_safe_selection():
+    metadata = DASMetadata(n_samples=4096, n_channels=512, sample_rate_hz=100.0, dx_m=2.0)
+
+    lines = format_gui_file_summary(metadata, reader_name="synthetic")
+
+    text = "\n".join(lines)
+    assert "estimated full array size" in text
+    assert "recommended preview selection" in text
+    assert "recommended analysis selection" in text
 
 
 def test_gui_task_status_helpers_are_pyqt_free():
@@ -687,6 +700,8 @@ def test_main_window_can_be_created_when_pyqt5_is_available():
     assert window.analysis_run_button.text() == "Run analysis"
     assert window.analysis_export_json_button.text() == "Export JSON"
     assert window.analysis_export_csv_button.text() == "Export CSV"
+    assert not window.analysis_export_json_button.isEnabled()
+    assert not window.analysis_export_csv_button.isEnabled()
     assert window.analysis_clear_button.text() == "Clear results"
     assert window.analysis_time_step_input.value() == 1
     assert window.analysis_channel_step_input.value() == 1
@@ -915,6 +930,9 @@ def test_main_window_analysis_results_clear_when_pyqt5_is_available():
     window._latest_analysis_request = AnalysisRequest("statistics")
     window._latest_analysis_rows = [{"mean": 1.0}]
     window._latest_event_candidates = (object(),)
+    window._update_analysis_export_state()
+    assert window.analysis_export_json_button.isEnabled()
+    assert window.analysis_export_csv_button.isEnabled()
     window.analysis_table.setColumnCount(1)
     window.analysis_table.setRowCount(1)
 
@@ -926,5 +944,7 @@ def test_main_window_analysis_results_clear_when_pyqt5_is_available():
     assert window._latest_event_candidates == ()
     assert window.analysis_table.rowCount() == 0
     assert "Load a file" in window.analysis_info.toPlainText()
+    assert not window.analysis_export_json_button.isEnabled()
+    assert not window.analysis_export_csv_button.isEnabled()
     window.close()
     app.processEvents()

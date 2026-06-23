@@ -278,6 +278,14 @@ CI-equivalent local checks:
   check parser/model helpers, analysis worker construction/cancellation flags,
   table-row/export mapping, and construction/state transitions for the minimal
   Analysis tab; they do not automate a real asynchronous analysis computation.
+- Phase 8B GUI large-file model tests cover metadata-only selection memory
+  estimates, file-summary formatting, large-selection warnings, safe preset
+  values, invalid selection errors, and the no-PyQt5 import boundary for GUI
+  model helpers.
+- Phase 8B GUI smoke coverage verifies that the MainWindow still instantiates,
+  file-summary helpers expose estimated full array size and safe-selection text,
+  Analysis export controls start disabled, export controls enable only when a
+  current result exists, and clearing results disables stale exports.
 - Packaging smoke should include `python -m build` when the `build` package is
   available, plus `pip check`, `pip show hcz-das-view` when installed, and CLI
   `--help` checks for installed entry points. Build artifacts under build/ and

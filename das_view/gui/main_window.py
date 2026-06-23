@@ -8,13 +8,17 @@ from typing import Any
 from das_view.core.metadata_format import format_metadata
 from das_view.gui.models import (
     AnalysisRequest,
+    GUI_DEFAULT_MAX_SELECTION_BYTES,
     PreviewDisplayInfo,
     candidates_to_table_rows,
     format_analysis_summary,
     format_error_message,
     format_fk_status,
+    format_gui_file_summary,
     format_spectrum_status,
     format_task_status,
+    gui_selection_estimate,
+    gui_safe_selection_presets,
     parse_channel_indices,
     parse_analysis_request,
     parse_fk_request,
@@ -70,6 +74,14 @@ def _create_matplotlib_widgets(parent):
     return figure, canvas, toolbar
 
 
+def _channels_to_slice(channels: tuple[int, ...]) -> slice:
+    """Return a conservative contiguous slice covering requested channels."""
+
+    if not channels:
+        return slice(0, 0)
+    return slice(min(channels), max(channels) + 1)
+
+
 class MainWindow(_qt_widgets().QMainWindow):
     """Small GUI that opens a file and displays metadata plus waterfall preview."""
 
@@ -85,6 +97,9 @@ class MainWindow(_qt_widgets().QMainWindow):
         self._next_task_id = 0
         self._task_cancel_requested = False
         self._task_kind: str | None = None
+        self._current_metadata: Any | None = None
+        self._current_reader_name: str | None = None
+        self._gui_max_selection_bytes = GUI_DEFAULT_MAX_SELECTION_BYTES
         self._latest_analysis_result: Any | None = None
         self._latest_analysis_request: AnalysisRequest | None = None
         self._latest_analysis_rows: list[dict[str, Any]] = []
@@ -95,7 +110,14 @@ class MainWindow(_qt_widgets().QMainWindow):
         self.file_info = QtWidgets.QPlainTextEdit()
         self.file_info.setReadOnly(True)
         self.file_info.setMaximumHeight(150)
-        self.file_info.setPlainText("No file loaded.")
+        presets = gui_safe_selection_presets()
+        self.file_info.setPlainText(
+            "No file loaded.\n"
+            f"Safe preview: {presets['small_preview'][0]} samples x "
+            f"{presets['small_preview'][1]} channels.\n"
+            f"Analysis safe default: {presets['analysis'][0]} samples x "
+            f"{presets['analysis'][1]} channels."
+        )
 
         self.max_samples_input = QtWidgets.QSpinBox()
         self.max_samples_input.setRange(1, 10_000_000)
@@ -131,7 +153,9 @@ class MainWindow(_qt_widgets().QMainWindow):
         self.waveform_info = QtWidgets.QPlainTextEdit()
         self.waveform_info.setReadOnly(True)
         self.waveform_info.setMaximumHeight(120)
-        self.waveform_info.setPlainText("Load a file, then plot one or more channels.")
+        self.waveform_info.setPlainText(
+            "Load a file, then plot one or more channels. Large files should use a time step."
+        )
 
         self.spectrum_channel_input = QtWidgets.QLineEdit("0")
         self.spectrum_channel_input.setToolTip("Zero-based single channel index")
@@ -153,7 +177,9 @@ class MainWindow(_qt_widgets().QMainWindow):
         self.spectrum_info = QtWidgets.QPlainTextEdit()
         self.spectrum_info.setReadOnly(True)
         self.spectrum_info.setMaximumHeight(140)
-        self.spectrum_info.setPlainText("Load a file, then run a single-channel spectrum analysis.")
+        self.spectrum_info.setPlainText(
+            "Load a file, then run a bounded single-channel spectrum analysis."
+        )
 
         self.fk_time_start_input = QtWidgets.QLineEdit("")
         self.fk_time_start_input.setToolTip("Optional zero-based start sample; blank means 0")
@@ -187,7 +213,10 @@ class MainWindow(_qt_widgets().QMainWindow):
         self.fk_info = QtWidgets.QPlainTextEdit()
         self.fk_info.setReadOnly(True)
         self.fk_info.setMaximumHeight(150)
-        self.fk_info.setPlainText("Load a file, then run a bounded FK task.")
+        self.fk_info.setPlainText(
+            f"Load a file, then run a bounded FK task. Safe default: "
+            f"{presets['fk'][0]} samples x {presets['fk'][1]} channels."
+        )
 
         self.analysis_time_start_input = QtWidgets.QLineEdit("")
         self.analysis_time_start_input.setToolTip("Optional zero-based start sample")
@@ -260,7 +289,10 @@ class MainWindow(_qt_widgets().QMainWindow):
         self.analysis_info = QtWidgets.QPlainTextEdit()
         self.analysis_info.setReadOnly(True)
         self.analysis_info.setMaximumHeight(180)
-        self.analysis_info.setPlainText("Load a file, then run a bounded analysis task.")
+        self.analysis_info.setPlainText(
+            f"Load a file, then run a bounded analysis task. Safe default: "
+            f"{presets['analysis'][0]} samples x {presets['analysis'][1]} channels."
+        )
         self.analysis_table = QtWidgets.QTableWidget()
         self.analysis_table.setAlternatingRowColors(True)
         self.analysis_table.setSortingEnabled(False)
@@ -403,6 +435,7 @@ class MainWindow(_qt_widgets().QMainWindow):
         self._clear_fk_figure()
         self._update_analysis_parameter_state()
         self._apply_task_control_state(is_running=False)
+        self._update_analysis_export_state()
         self.statusBar().showMessage("Ready")
 
     def open_file_dialog(self) -> None:
@@ -423,11 +456,21 @@ class MainWindow(_qt_widgets().QMainWindow):
             self.statusBar().showMessage("A background task is already running")
             return
         self.current_path = None
+        self._current_metadata = None
+        self._current_reader_name = None
         self.file_info.setPlainText(f"Path: {path}\nLoading preview...")
         self.metadata_text.setPlainText("Loading preview...")
-        self.waveform_info.setPlainText("Load a file, then plot one or more channels.")
-        self.spectrum_info.setPlainText("Load a file, then run a single-channel spectrum analysis.")
-        self.fk_info.setPlainText("Load a file, then run a bounded FK task.")
+        self.waveform_info.setPlainText(
+            "Load a file, then plot one or more channels. Large files should use a time step."
+        )
+        self.spectrum_info.setPlainText(
+            "Load a file, then run a bounded single-channel spectrum analysis."
+        )
+        presets = gui_safe_selection_presets()
+        self.fk_info.setPlainText(
+            f"Load a file, then run a bounded FK task. Safe default: "
+            f"{presets['fk'][0]} samples x {presets['fk'][1]} channels."
+        )
         self.clear_analysis_results()
         self._clear_waterfall_figure()
         self._clear_waveform_figure()
@@ -446,6 +489,8 @@ class MainWindow(_qt_widgets().QMainWindow):
             self.spectrum_info.setPlainText(f"Spectrum unavailable.\n\n{message}")
             self.fk_info.setPlainText(f"FK unavailable.\n\n{message}")
             self.analysis_info.setPlainText(f"Analysis unavailable.\n\n{message}")
+            self._current_metadata = None
+            self._current_reader_name = None
             self._clear_waterfall_figure()
             self._clear_waveform_figure()
             self._clear_spectrum_figure()
@@ -523,7 +568,19 @@ class MainWindow(_qt_widgets().QMainWindow):
             self.statusBar().showMessage(f"Error: {message}")
             _qt_widgets().QMessageBox.critical(self, "DAS View analysis error", message)
             return
+        if not self._check_selection_memory(
+            "Analysis",
+            time_slice=request.bounded_time_slice(),
+            channel_slice=request.bounded_channel_slice(),
+            downsample=request.downsample,
+            info_widget=self.analysis_info,
+        ):
+            return
 
+        self._latest_analysis_result = None
+        self._latest_analysis_request = None
+        self._latest_analysis_rows = []
+        self._update_analysis_export_state()
         self.analysis_info.setPlainText(f"Loading analysis...\n\nAnalysis: {request.label}")
         self._clear_analysis_table()
         self.statusBar().showMessage(format_task_status("analysis", "loading"))
@@ -564,6 +621,13 @@ class MainWindow(_qt_widgets().QMainWindow):
             self._clear_waveform_figure()
             self.statusBar().showMessage(f"Error: {message}")
             _qt_widgets().QMessageBox.critical(self, "DAS View waveform error", message)
+            return
+        if not self._check_selection_memory(
+            "Waveform",
+            channel_slice=_channels_to_slice(channels),
+            downsample=(time_step, 1),
+            info_widget=self.waveform_info,
+        ):
             return
 
         self.waveform_info.setPlainText("Loading waveform...")
@@ -611,6 +675,13 @@ class MainWindow(_qt_widgets().QMainWindow):
             self._clear_spectrum_figure()
             self.statusBar().showMessage(f"Error: {message}")
             _qt_widgets().QMessageBox.critical(self, "DAS View spectrum error", message)
+            return
+        if not self._check_selection_memory(
+            "Spectrum",
+            time_slice=slice(0, request.max_samples),
+            channel_slice=slice(request.channel, request.channel + 1),
+            info_widget=self.spectrum_info,
+        ):
             return
 
         self.spectrum_info.setPlainText(f"Loading spectrum...\n\nAnalysis: {request.label}")
@@ -663,6 +734,14 @@ class MainWindow(_qt_widgets().QMainWindow):
             self.statusBar().showMessage(f"Error: {message}")
             _qt_widgets().QMessageBox.critical(self, "DAS View FK error", message)
             return
+        if not self._check_selection_memory(
+            "FK",
+            time_slice=request.bounded_time_slice(),
+            channel_slice=request.bounded_channel_slice(),
+            downsample=request.downsample,
+            info_widget=self.fk_info,
+        ):
+            return
 
         self.fk_info.setPlainText(f"Loading FK...\n\nMode: {request.label}")
         self.statusBar().showMessage(format_task_status("fk", "loading"))
@@ -681,14 +760,14 @@ class MainWindow(_qt_widgets().QMainWindow):
         """Export the latest analysis result using shared JSON helpers."""
 
         if self._latest_analysis_result is None or self._latest_analysis_request is None:
-            message = "Run an analysis before exporting JSON."
+            message = "No analysis result to export. Run a bounded analysis first."
             self.statusBar().showMessage(message)
             _qt_widgets().QMessageBox.information(self, "DAS View analysis export", message)
             return
         path, _ = _qt_widgets().QFileDialog.getSaveFileName(
             self,
             "Export analysis JSON",
-            "",
+            "analysis_result.json",
             "JSON files (*.json);;All files (*)",
         )
         if not path:
@@ -706,14 +785,14 @@ class MainWindow(_qt_widgets().QMainWindow):
         """Export the latest analysis table rows using shared CSV helpers."""
 
         if not self._latest_analysis_rows:
-            message = "Run an analysis that produces table rows before exporting CSV."
+            message = "No analysis table rows to export. Run an analysis that produces rows first."
             self.statusBar().showMessage(message)
             _qt_widgets().QMessageBox.information(self, "DAS View analysis export", message)
             return
         path, _ = _qt_widgets().QFileDialog.getSaveFileName(
             self,
             "Export analysis CSV",
-            "",
+            "analysis_rows.csv",
             "CSV files (*.csv);;All files (*)",
         )
         if not path:
@@ -734,8 +813,13 @@ class MainWindow(_qt_widgets().QMainWindow):
         self._latest_analysis_request = None
         self._latest_analysis_rows = []
         self._latest_event_candidates = ()
-        self.analysis_info.setPlainText("Load a file, then run a bounded analysis task.")
+        presets = gui_safe_selection_presets()
+        self.analysis_info.setPlainText(
+            f"Load a file, then run a bounded analysis task. Safe default: "
+            f"{presets['analysis'][0]} samples x {presets['analysis'][1]} channels."
+        )
         self._clear_analysis_table()
+        self._update_analysis_export_state()
 
     def _build_menu(self) -> None:
         file_menu = self.menuBar().addMenu("&File")
@@ -860,11 +944,30 @@ class MainWindow(_qt_widgets().QMainWindow):
             return
         display = PreviewDisplayInfo.from_preview_result(result)
         lines = display.as_lines()
+        lines.extend(
+            format_gui_file_summary(
+                result.metadata,
+                reader_name=result.reader_name,
+                max_preview_samples=self.max_samples_input.value(),
+                max_preview_channels=self.max_channels_input.value(),
+            )
+        )
         lines.extend(f"Warning: {warning}" for warning in result.warnings)
         self.file_info.setPlainText("\n".join(lines))
-        self.metadata_text.setPlainText(format_metadata(result.metadata))
+        metadata_lines = [format_metadata(result.metadata), "", "GUI large-file summary:"]
+        metadata_lines.extend(
+            format_gui_file_summary(
+                result.metadata,
+                reader_name=result.reader_name,
+                max_preview_samples=self.max_samples_input.value(),
+                max_preview_channels=self.max_channels_input.value(),
+            )
+        )
+        self.metadata_text.setPlainText("\n".join(metadata_lines))
         self._draw_preview(result.preview)
         self.current_path = path
+        self._current_metadata = result.metadata
+        self._current_reader_name = result.reader_name
         self.statusBar().showMessage(display.loaded_status())
 
     def _handle_waveform_finished(self, result: Any, *, task_id: int) -> None:
@@ -941,6 +1044,7 @@ class MainWindow(_qt_widgets().QMainWindow):
             self._latest_event_candidates = tuple(result.result.candidates)
         self.analysis_info.setPlainText("\n".join(format_analysis_summary(result, request)))
         self._populate_analysis_table(rows)
+        self._update_analysis_export_state()
         self.statusBar().showMessage(
             f"Loaded analysis: {request.label} | rows={len(rows)}"
         )
@@ -959,6 +1063,8 @@ class MainWindow(_qt_widgets().QMainWindow):
             self.spectrum_info.setPlainText(f"Spectrum unavailable.\n\n{message}")
             self.fk_info.setPlainText(f"FK unavailable.\n\n{message}")
             self.current_path = None
+            self._current_metadata = None
+            self._current_reader_name = None
             self._clear_waterfall_figure()
             self._clear_waveform_figure()
             self._clear_spectrum_figure()
@@ -979,6 +1085,10 @@ class MainWindow(_qt_widgets().QMainWindow):
         else:
             self.analysis_info.setPlainText(f"Failed to run analysis.\n\n{message}")
             self._clear_analysis_table()
+            self._latest_analysis_result = None
+            self._latest_analysis_request = None
+            self._latest_analysis_rows = []
+            self._update_analysis_export_state()
             title = "DAS View analysis error"
         self.statusBar().showMessage(format_task_status(task_kind, "error", message))
         _qt_widgets().QMessageBox.critical(self, title, message)
@@ -1006,6 +1116,10 @@ class MainWindow(_qt_widgets().QMainWindow):
         elif task_kind == "analysis":
             self.analysis_info.setPlainText("Analysis task cancelled.")
             self._clear_analysis_table()
+            self._latest_analysis_result = None
+            self._latest_analysis_request = None
+            self._latest_analysis_rows = []
+            self._update_analysis_export_state()
 
     def _cleanup_task(self, *, task_id: int) -> None:
         if self._active_task_id != task_id:
@@ -1196,15 +1310,16 @@ class MainWindow(_qt_widgets().QMainWindow):
             self.analysis_channel_step_input,
             self.analysis_type_combo,
             self.analysis_run_button,
-            self.analysis_export_json_button,
-            self.analysis_export_csv_button,
             self.analysis_clear_button,
         ]
         for widget in widgets:
             widget.setEnabled(enabled)
         if enabled:
             self._update_analysis_parameter_state()
+            self._update_analysis_export_state()
         else:
+            self.analysis_export_json_button.setEnabled(False)
+            self.analysis_export_csv_button.setEnabled(False)
             for widget in [
                 self.analysis_axis_combo,
                 self.analysis_percentiles_input,
@@ -1229,6 +1344,58 @@ class MainWindow(_qt_widgets().QMainWindow):
                 self.analysis_max_rois_input,
             ]:
                 widget.setEnabled(False)
+
+    def _update_analysis_export_state(self) -> None:
+        if not hasattr(self, "analysis_export_json_button"):
+            return
+        idle = self._active_task_id is None
+        has_result = self._latest_analysis_result is not None and self._latest_analysis_request is not None
+        self.analysis_export_json_button.setEnabled(idle and has_result)
+        self.analysis_export_csv_button.setEnabled(idle and bool(self._latest_analysis_rows))
+
+    def _check_selection_memory(
+        self,
+        operation_name: str,
+        *,
+        time_slice: slice | None = None,
+        channel_slice: slice | None = None,
+        downsample: int | tuple[int, int] | None = None,
+        info_widget: Any | None = None,
+    ) -> bool:
+        if self._current_metadata is None:
+            return True
+        try:
+            estimate = gui_selection_estimate(
+                self._current_metadata,
+                time_start=None if time_slice is None else time_slice.start,
+                time_stop=None if time_slice is None else time_slice.stop,
+                time_step=None if time_slice is None else time_slice.step,
+                channel_start=None if channel_slice is None else channel_slice.start,
+                channel_stop=None if channel_slice is None else channel_slice.stop,
+                channel_step=None if channel_slice is None else channel_slice.step,
+                downsample=downsample,
+                max_bytes=self._gui_max_selection_bytes,
+                operation_name=operation_name,
+            )
+        except Exception as exc:  # noqa: BLE001 - GUI boundary should catch and display all errors.
+            message = format_error_message(exc)
+            if info_widget is not None:
+                info_widget.setPlainText(f"Selection check failed.\n\n{message}")
+            self.statusBar().showMessage(f"Error: {message}")
+            _qt_widgets().QMessageBox.critical(self, f"DAS View {operation_name} error", message)
+            return False
+        if estimate.within_limit:
+            self.statusBar().showMessage(estimate.message)
+            return True
+        if info_widget is not None:
+            info_widget.setPlainText(estimate.message)
+        self.statusBar().showMessage(estimate.message)
+        _qt_widgets().QMessageBox.warning(
+            self,
+            f"DAS View {operation_name} selection",
+            estimate.message,
+        )
+        return False
 
     def _analysis_rows_for_result(self, result: Any, request: AnalysisRequest) -> list[dict[str, Any]]:
         if request.analysis_type in {"events_stalta", "events_envelope"}:

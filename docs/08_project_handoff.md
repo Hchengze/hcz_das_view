@@ -816,3 +816,32 @@ Copy this into the next Codex conversation:
 或频散拾取软件。
     如果继续发布工程化工作，则建议进入：
     Phase 6D: Release CI planning
+
+## 17. Phase 8B status
+
+Phase 8B polished GUI large-file usability without adding algorithms, readers,
+or GUI-side analysis implementations.
+
+Implemented:
+
+- PyQt-free GUI model helpers for metadata-only selection memory estimates,
+  warning text, file-summary lines, and safe-selection presets.
+- MainWindow file summaries now show reader, sample/channel counts, sample
+  rate, duration, dt, dx, estimated full array size, recommended
+  preview/analysis selections, FK safe default, and large-file warning text.
+- Waveform, Spectrum, FK, and Analysis actions run a metadata-only memory check
+  before dispatching background workers. Oversized selections are blocked with
+  user-readable messages.
+- Busy/cancel/stale-result behavior remains cooperative: old or cancelled task
+  results are not applied, opening a new file clears current metadata/results,
+  and failed/cancelled Analysis tasks do not leave stale exportable rows.
+- Analysis JSON/CSV export buttons start disabled, enable only when current
+  exportable results exist, and use generic default file names instead of
+  source-path-derived names.
+
+Testing baseline after Phase 8B: 541 passed. Test count increased from 529 to
+541 because Phase 8B added GUI large-file model coverage and expanded GUI smoke
+coverage for file summaries, safe-selection hints, and export-state behavior.
+
+Remote GitHub Actions results still need confirmation on the GitHub page after
+push.
