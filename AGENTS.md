@@ -184,6 +184,17 @@ All internal core arrays must use:
 - GUI exports must use shared export helpers, avoid default names derived from
   real absolute paths, and generated output files must not be committed.
 - Real/private paths must not be written into docs or the tutorial notebook.
+- GUI advanced analysis integration must call existing service-layer helpers
+  through GUI workers. GUI code may parse parameters, show summaries/tables,
+  and export rows, but it must not implement QC, denoise, multiband, FK, or
+  moveout algorithms.
+- GUI advanced analysis must keep bounded selections and run-before memory
+  checks. Heavier summaries such as multiband, moveout, and directional energy
+  should use conservative selection limits.
+- GUI wording for moveout/apparent velocity must remain cautious: apparent
+  velocity is an auxiliary attribute, directional energy is an FK-domain review
+  attribute, and neither should be presented as location, inversion, imaging,
+  or interpretation output.
 
 ## Plugin and extension rules
 

@@ -295,6 +295,17 @@ CI-equivalent local checks:
   file-summary helpers expose estimated full array size and safe-selection text,
   Analysis export controls start disabled, export controls enable only when a
   current result exists, and clearing results disables stale exports.
+- Phase 8D GUI advanced analysis tests cover PyQt-free parsers and formatters
+  for QC, bad-channel, multiband, denoise-report, moveout-summary, and
+  directional-energy Analysis types.
+- Phase 8D GUI smoke tests verify that MainWindow exposes the advanced
+  Analysis entries, export controls remain disabled until current results
+  exist, advanced parameter widgets enable only for relevant analysis types,
+  and AnalysisWorker can run the new service-backed paths on small synthetic ZD
+  HDF5 selections without real DAS data.
+- Advanced GUI analysis tests intentionally exercise service integration on
+  bounded synthetic selections. They do not automate a real asynchronous GUI
+  event-loop workflow or require private local data.
 - Packaging smoke should include `python -m build` when the `build` package is
   available, plus `pip check`, `pip show hcz-das-view` when installed, and CLI
   `--help` checks for installed entry points. Build artifacts under build/ and

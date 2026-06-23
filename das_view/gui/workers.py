@@ -6,18 +6,28 @@ from pathlib import Path
 
 from das_view.analysis.service import (
     BandEnergyServiceResult,
+    DirectionalEnergyServiceResult,
+    EnhancementReportServiceResult,
     EventDetectionServiceResult,
     FKFilterServiceResult,
     FKServiceResult,
+    MoveoutSummaryServiceResult,
+    MultibandMapServiceResult,
+    QualityReportServiceResult,
     ROIAnalysisServiceResult,
     SpectrumServiceResult,
     SpectralAttributesServiceResult,
     StatisticsServiceResult,
     compute_band_energy_for_file,
-    compute_roi_statistics_for_file,
+    compute_directional_energy_for_file,
+    compute_enhancement_report_for_file,
     compute_fk_filter_for_file,
     compute_fk_for_file,
+    compute_moveout_summary_for_file,
+    compute_multiband_map_for_file,
     compute_psd_for_file,
+    compute_quality_report_for_file,
+    compute_roi_statistics_for_file,
     compute_spectral_attributes_for_file,
     compute_spectrogram_for_file,
     compute_spectrum_for_file,
@@ -201,6 +211,11 @@ class AnalysisWorker:
         | SpectralAttributesServiceResult
         | EventDetectionServiceResult
         | ROIAnalysisServiceResult
+        | QualityReportServiceResult
+        | MultibandMapServiceResult
+        | EnhancementReportServiceResult
+        | DirectionalEnergyServiceResult
+        | MoveoutSummaryServiceResult
     ):
         request = self.request
         common = {
@@ -225,6 +240,46 @@ class AnalysisWorker:
                 bands=request.bands,
                 average_channels=request.average_channels,
                 nan_policy=request.nan_policy,
+            )
+        if request.analysis_type in {"qc_report", "bad_channels"}:
+            return compute_quality_report_for_file(
+                self.path,
+                **common,
+                nan_policy=request.nan_policy,
+                backend="cpu",
+            )
+        if request.analysis_type == "multiband_summary":
+            return compute_multiband_map_for_file(
+                self.path,
+                **common,
+                bands=request.bands,
+                window_samples=request.window_samples,
+                step_samples=request.step_samples,
+                nan_policy=request.nan_policy,
+                backend="cpu",
+            )
+        if request.analysis_type == "denoise_report":
+            return compute_enhancement_report_for_file(
+                self.path,
+                **common,
+                denoise_steps=request.denoise_steps,
+            )
+        if request.analysis_type == "moveout_summary":
+            return compute_moveout_summary_for_file(
+                self.path,
+                **common,
+                channel_lag=request.channel_lag,
+                window_samples=request.window_samples,
+                step_samples=request.step_samples,
+                nan_policy=request.nan_policy,
+                backend="cpu",
+            )
+        if request.analysis_type == "directional_energy":
+            return compute_directional_energy_for_file(
+                self.path,
+                **common,
+                nan_policy=request.nan_policy,
+                backend="cpu",
             )
         if request.analysis_type == "spectral_attributes":
             return compute_spectral_attributes_for_file(

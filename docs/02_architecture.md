@@ -561,6 +561,23 @@ GUI rules:
 - FK tab cancellation reuses the Phase 2D soft-cancel behavior. It cannot
   interrupt synchronous reader/FK service calls already in progress, but stale
   or cancelled results are not applied.
+- Phase 8D extends the Analysis tab with service-backed advanced analysis
+  entries for QC reports, bad-channel tables, multiband map summaries,
+  denoise/enhancement reports, moveout summaries, and directional energy.
+- GUI model helpers parse advanced-analysis parameters and format summary/table
+  rows without importing PyQt5. MainWindow owns only widget state, run-before
+  memory checks, table display, and JSON/CSV export dispatch.
+- AnalysisWorker / QtAnalysisWorker call existing das_view.analysis.service
+  functions such as compute_quality_report_for_file,
+  compute_multiband_map_for_file, compute_enhancement_report_for_file,
+  compute_moveout_summary_for_file, and compute_directional_energy_for_file.
+  They do not inspect HDF5/DAT internal paths and do not implement algorithms.
+- Advanced GUI analysis keeps the same cooperative cancel/stale-result model as
+  earlier tabs. Opening a new file, cancelling, or failing a task clears stale
+  Analysis export state.
+- Multiband, moveout, and directional-energy GUI runs use the existing
+  metadata-only selection memory estimate with a more conservative limit than
+  simple reductions.
 
 ## Release-candidate validation utilities
 

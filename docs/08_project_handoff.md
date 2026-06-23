@@ -986,3 +986,46 @@ interaction, packaging, CI, and safety workflows.
   interpretation.
 - Event candidates are screening aids, not localization results.
 - ROI is an analysis window, not an interpretation conclusion.
+
+## 21. Phase 8D status
+
+Phase 8D integrates mature service-backed QC, denoise, multiband, and moveout
+analysis reports into the optional GUI Analysis tab. It does not add new
+analysis algorithms, readers, GPU/OpenGL display acceleration, deep learning,
+source location, inversion, imaging, or interpretation workflows.
+
+Implemented:
+
+- GUI Analysis types for QC report, bad channels, multiband map summary,
+  denoise report, moveout summary, and directional energy.
+- PyQt-free GUI model parsers and formatters for advanced analysis requests,
+  summary text, and current table rows.
+- AnalysisWorker / QtAnalysisWorker integration with existing service helpers:
+  compute_quality_report_for_file, compute_multiband_map_for_file,
+  compute_enhancement_report_for_file, compute_moveout_summary_for_file, and
+  compute_directional_energy_for_file.
+- MainWindow parameter controls for multiband/moveout window and step samples,
+  moveout channel lag, and compact denoise workflow strings.
+- Shared Analysis JSON/CSV export reuse for advanced analysis summary and rows.
+  Export buttons remain disabled until a current result exists and are cleared
+  after cancel, failure, or explicit clear.
+- Large-file safety reuse through metadata-only selection memory estimates.
+  Multiband, moveout, and directional-energy GUI runs use a more conservative
+  limit than simple reductions.
+
+Testing baseline after Phase 8D: 602 passed, 1 skipped. The skipped test
+remains the optional real CuPy GPU numerical-equivalence check on CPU-only or
+no-CuPy environments. Test count increased because Phase 8D added advanced GUI
+parser, formatter, worker service smoke, and MainWindow control-state tests.
+
+Terminology boundaries:
+
+- QC and bad-channel rows are data-quality review aids.
+- Denoise/enhancement reports are signal-review aids.
+- Moveout and apparent velocity are auxiliary wavefield attributes only.
+- Directional energy is an FK-domain review attribute.
+- Event candidates are not localization results.
+- ROI is an analysis window, not an interpretation conclusion.
+
+Remote GitHub Actions status should be confirmed on the GitHub Actions page
+after push.

@@ -8,6 +8,7 @@ from typing import Any, Literal
 
 import numpy as np
 
+from das_view.analysis.qc import channel_quality_rows
 from das_view.analysis.roi import TimeChannelROI, rois_from_event_candidates
 from das_view.io.export import analysis_summary_to_rows, event_candidates_to_rows, rois_to_rows
 from das_view.utils.memory import estimate_array_nbytes, estimate_selection_nbytes, format_nbytes
@@ -38,6 +39,12 @@ AnalysisType = Literal[
     "events_stalta",
     "events_envelope",
     "roi_statistics",
+    "qc_report",
+    "bad_channels",
+    "multiband_summary",
+    "denoise_report",
+    "moveout_summary",
+    "directional_energy",
 ]
 
 
@@ -188,6 +195,12 @@ class AnalysisRequest:
     padding_samples: int = 0
     padding_channels: int = 0
     max_rois: int | None = None
+    window_samples: int = 256
+    step_samples: int = 128
+    channel_lag: int = 1
+    denoise_steps: tuple[tuple[str, dict[str, Any]], ...] = (
+        ("common_mode_removal", {"method": "median"}),
+    )
 
     @property
     def label(self) -> str:
@@ -755,6 +768,10 @@ def parse_analysis_request(
     padding_samples: Any = 0,
     padding_channels: Any = 0,
     max_rois_text: Any = "",
+    window_samples: Any = 256,
+    step_samples: Any = 128,
+    channel_lag: Any = 1,
+    denoise_workflow: str = "common_mode_removal:method=median",
 ) -> AnalysisRequest:
     """Validate Analysis-tab controls before starting a background task."""
 
@@ -817,6 +834,28 @@ def parse_analysis_request(
         else None
     )
     rois = parse_roi_text(roi_text) if parsed_type == "roi_statistics" else ()
+    parsed_window_samples = (
+        _positive_int(window_samples, name="window_samples")
+        if parsed_type in {"multiband_summary", "moveout_summary"}
+        else 256
+    )
+    parsed_step_samples = (
+        _positive_int(step_samples, name="step_samples")
+        if parsed_type in {"multiband_summary", "moveout_summary"}
+        else 128
+    )
+    if parsed_type in {"multiband_summary", "moveout_summary"} and parsed_step_samples > parsed_window_samples:
+        raise ValueError("step_samples must be less than or equal to window_samples")
+    parsed_channel_lag = (
+        _positive_int(channel_lag, name="channel_lag")
+        if parsed_type == "moveout_summary"
+        else 1
+    )
+    parsed_denoise_steps = (
+        parse_denoise_workflow(denoise_workflow)
+        if parsed_type == "denoise_report"
+        else (("common_mode_removal", {"method": "median"}),)
+    )
 
     return AnalysisRequest(
         analysis_type=parsed_type,
@@ -828,7 +867,9 @@ def parse_analysis_request(
         axis=_parse_analysis_axis(axis),
         percentiles=parsed_percentiles,
         nan_policy=parsed_nan_policy,  # type: ignore[arg-type]
-        bands=parse_band_ranges(bands_text) if parsed_type == "band_energy" else ((1.0, 5.0),),
+        bands=parse_band_ranges(bands_text)
+        if parsed_type in {"band_energy", "multiband_summary"}
+        else ((1.0, 5.0),),
         frequency_range=parse_frequency_range(frequency_range_text)
         if parsed_type == "spectral_attributes"
         else None,
@@ -852,7 +893,81 @@ def parse_analysis_request(
         if parsed_type == "roi_statistics"
         else 0,
         max_rois=parsed_max_rois,
+        window_samples=parsed_window_samples,
+        step_samples=parsed_step_samples,
+        channel_lag=parsed_channel_lag,
+        denoise_steps=parsed_denoise_steps,
     )
+
+
+def parse_qc_request(**kwargs: Any) -> AnalysisRequest:
+    """Build a QC report request from GUI-style keyword arguments."""
+
+    return parse_analysis_request(analysis_type="QC report", **kwargs)
+
+
+def parse_multiband_request(**kwargs: Any) -> AnalysisRequest:
+    """Build a multiband summary request from GUI-style keyword arguments."""
+
+    return parse_analysis_request(analysis_type="Multiband map summary", **kwargs)
+
+
+def parse_denoise_request(**kwargs: Any) -> AnalysisRequest:
+    """Build a denoise report request from GUI-style keyword arguments."""
+
+    return parse_analysis_request(analysis_type="Denoise report", **kwargs)
+
+
+def parse_moveout_request(**kwargs: Any) -> AnalysisRequest:
+    """Build a moveout summary request from GUI-style keyword arguments."""
+
+    return parse_analysis_request(analysis_type="Moveout summary", **kwargs)
+
+
+def parse_denoise_workflow(text: Any) -> tuple[tuple[str, dict[str, Any]], ...]:
+    """Parse a compact GUI denoise workflow string.
+
+    Accepted examples:
+    ``common_mode_removal:method=median`` or
+    ``common_mode_removal:method=median;channel_balance:target=rms``.
+    """
+
+    raw = "common_mode_removal:method=median" if text is None or str(text).strip() == "" else str(text)
+    steps: list[tuple[str, dict[str, Any]]] = []
+    allowed = {
+        "common_mode_removal",
+        "despike",
+        "running_median_filter",
+        "channel_balance",
+        "local_normalize",
+        "time_space_median_filter",
+        "robust_clip",
+    }
+    for item in raw.split(";"):
+        entry = item.strip()
+        if not entry:
+            continue
+        if ":" in entry:
+            name, params_text = entry.split(":", 1)
+        else:
+            name, params_text = entry, ""
+        normalized_name = name.strip().lower().replace("-", "_").replace(" ", "_")
+        if normalized_name not in allowed:
+            raise ValueError(f"unsupported denoise step: {name.strip()!r}")
+        params: dict[str, Any] = {}
+        if params_text.strip():
+            for pair in params_text.split(","):
+                if "=" not in pair:
+                    raise ValueError("denoise workflow parameters must use key=value pairs")
+                key, value = pair.split("=", 1)
+                key = key.strip()
+                if not key:
+                    raise ValueError("denoise workflow parameter names must not be empty")
+                params[key] = _parse_denoise_value(value.strip())
+        steps.append((normalized_name, params))
+    if not steps:
+        raise ValueError("denoise workflow must contain at least one step")
+    return tuple(steps)
 
 
 def normalize_analysis_type(value: str) -> AnalysisType:
@@ -871,6 +986,15 @@ def normalize_analysis_type(value: str) -> AnalysisType:
         "event candidates envelope threshold": "events_envelope",
         "events envelope": "events_envelope",
         "roi statistics": "roi_statistics",
+        "qc report": "qc_report",
+        "bad channels": "bad_channels",
+        "bad channel detection": "bad_channels",
+        "multiband map summary": "multiband_summary",
+        "multiband summary": "multiband_summary",
+        "denoise report": "denoise_report",
+        "enhancement report": "denoise_report",
+        "moveout summary": "moveout_summary",
+        "directional energy": "directional_energy",
     }
     try:
         return mapping[normalized]
@@ -886,6 +1010,12 @@ def analysis_type_label(value: str) -> str:
         "events_stalta": "Event candidates - STA/LTA",
         "events_envelope": "Event candidates - Envelope threshold",
         "roi_statistics": "ROI statistics",
+        "qc_report": "QC report",
+        "bad_channels": "Bad channels",
+        "multiband_summary": "Multiband map summary",
+        "denoise_report": "Denoise report",
+        "moveout_summary": "Moveout summary",
+        "directional_energy": "Directional energy",
     }
     return labels.get(str(value), str(value))
 
@@ -963,6 +1093,16 @@ def format_analysis_summary(service_result: Any, request: AnalysisRequest) -> li
                 "ROI statistics are bounded data summaries, not interpretation results.",
             ]
         )
+    elif request.analysis_type in {"qc_report", "bad_channels"}:
+        lines.extend(format_qc_summary(service_result))
+    elif request.analysis_type == "multiband_summary":
+        lines.extend(format_multiband_summary(service_result))
+    elif request.analysis_type == "denoise_report":
+        lines.extend(format_denoise_report_summary(service_result))
+    elif request.analysis_type == "moveout_summary":
+        lines.extend(format_moveout_summary(service_result))
+    elif request.analysis_type == "directional_energy":
+        lines.extend(format_directional_energy_summary(service_result))
     history = getattr(service_result, "preprocessing_history", ())
     if history:
         lines.append(f"Preprocessing steps: {len(history)}")
@@ -979,6 +1119,220 @@ def rois_to_table_rows(rois) -> list[dict[str, Any]]:
 
 def roi_statistics_to_table_rows(summary) -> list[dict[str, Any]]:
     return analysis_summary_to_rows(summary)
+
+
+def format_qc_summary(service_result: Any) -> list[str]:
+    report = service_result.result
+    metrics = report.channel_metrics
+    summary = report.global_summary
+    return [
+        f"n_channels: {summary.get('n_channels', metrics.n_channels)}",
+        f"bad channel count: {len(report.bad_channel_indices)}",
+        f"dead channel count: {int(np.sum(metrics.dead_channel))}",
+        f"noisy channel count: {int(np.sum(metrics.noisy_channel))}",
+        f"low-energy channel count: {int(np.sum(metrics.low_energy_channel))}",
+        f"mean quality score: {_compact_value(summary.get('mean_quality_score', np.mean(metrics.quality_score)))}",
+        f"nan fraction mean: {_compact_value(np.mean(metrics.nan_fraction))}",
+        f"inf fraction mean: {_compact_value(np.mean(metrics.inf_fraction))}",
+        f"clipping fraction mean: {_compact_value(np.mean(metrics.clipping_fraction))}",
+        f"spike count total: {int(np.sum(metrics.spike_count))}",
+        "QC and bad-channel flags are data-quality review aids.",
+    ]
+
+
+def format_bad_channel_rows(report: Any) -> list[dict[str, Any]]:
+    data_report = report.result if hasattr(report, "result") else report
+    rows = []
+    for row in channel_quality_rows(data_report):
+        flags = _qc_flags(row)
+        if bool(row.get("bad_channel")):
+            rows.append(
+                {
+                    "channel": row["channel"],
+                    "reason": "|".join(flags) if flags else "bad_channel",
+                    "quality_score": row["quality_score"],
+                    "rms": row["rms"],
+                    "std": row["std"],
+                    "spike_count": row["spike_count"],
+                    "clipping_fraction": row["clipping_fraction"],
+                }
+            )
+    return rows
+
+
+def format_qc_rows(report: Any) -> list[dict[str, Any]]:
+    data_report = report.result if hasattr(report, "result") else report
+    rows = []
+    for row in channel_quality_rows(data_report):
+        rows.append(
+            {
+                "channel": row["channel"],
+                "rms": row["rms"],
+                "std": row["std"],
+                "energy": row["energy"],
+                "nan_fraction": row["nan_fraction"],
+                "inf_fraction": row["inf_fraction"],
+                "zero_fraction": row["zero_fraction"],
+                "clipping_fraction": row["clipping_fraction"],
+                "spike_count": row["spike_count"],
+                "quality_score": row["quality_score"],
+                "flags": "|".join(_qc_flags(row)),
+            }
+        )
+    return rows
+
+
+def format_multiband_summary(service_result: Any) -> list[str]:
+    result = service_result.result
+    values = np.asarray(result.values, dtype=float)
+    return [
+        f"bands: {result.metadata.get('bands', result.feature_names)}",
+        f"window_samples: {result.window_samples}",
+        f"step_samples: {result.step_samples}",
+        f"n_windows: {values.shape[0] if values.ndim >= 1 else 0}",
+        f"n_channels: {values.shape[1] if values.ndim >= 2 else 0}",
+        f"n_bands: {values.shape[2] if values.ndim >= 3 else len(result.feature_names)}",
+    ]
+
+
+def format_multiband_rows(service_result: Any) -> list[dict[str, Any]]:
+    result = service_result.result
+    values = np.asarray(result.values, dtype=float)
+    if values.ndim == 2:
+        values = values[:, :, np.newaxis]
+    total = np.sum(values, axis=2, keepdims=True)
+    ratios = np.divide(values, total, out=np.zeros_like(values), where=total > 0)
+    rows = []
+    for index, name in enumerate(result.feature_names):
+        band_values = values[:, :, index]
+        band_ratios = ratios[:, :, index]
+        rows.append(
+            {
+                "band": name,
+                "mean_energy": float(np.nanmean(band_values)) if band_values.size else 0.0,
+                "max_energy": float(np.nanmax(band_values)) if band_values.size else 0.0,
+                "mean_ratio": float(np.nanmean(band_ratios)) if band_ratios.size else 0.0,
+            }
+        )
+    return rows
+
+
+def format_denoise_report_summary(service_result: Any) -> list[str]:
+    report = service_result.result
+    before = report.before
+    after = report.after
+    return [
+        f"steps: {len(report.steps)}",
+        f"input_shape: {report.input_shape}",
+        f"output_shape: {report.output_shape}",
+        f"before_rms: {_compact_value(before.get('rms'))}",
+        f"after_rms: {_compact_value(after.get('rms'))}",
+        f"before_energy: {_compact_value(before.get('energy'))}",
+        f"after_energy: {_compact_value(after.get('energy'))}",
+        f"finite_count: {_compact_value(after.get('finite_count'))}",
+        "Denoise/enhancement reports are signal-review aids.",
+    ]
+
+
+def format_denoise_report_rows(service_result: Any) -> list[dict[str, Any]]:
+    rows = []
+    for index, step in enumerate(service_result.result.steps, start=1):
+        before = step.get("before", {})
+        after = step.get("after", {})
+        rows.append(
+            {
+                "step": index,
+                "method": step.get("name", ""),
+                "before_rms": before.get("rms"),
+                "after_rms": after.get("rms"),
+                "before_energy": before.get("energy"),
+                "after_energy": after.get("energy"),
+                "finite_count": after.get("finite_count"),
+            }
+        )
+    return rows
+
+
+def format_moveout_summary(service_result: Any) -> list[str]:
+    report = service_result.result
+    directional = report.directional_energy
+    summary = report.summary
+    return [
+        f"positive_k_energy: {_compact_value(directional.positive_wavenumber_energy)}",
+        f"negative_k_energy: {_compact_value(directional.negative_wavenumber_energy)}",
+        f"zero_k_energy: {_compact_value(directional.zero_wavenumber_energy)}",
+        f"directional_ratio: {_compact_value(summary.get('directional_ratio', directional.directional_ratio))}",
+        f"dominant_direction: {summary.get('dominant_direction', directional.dominant_direction)}",
+        f"mean_apparent_velocity_attribute: {_compact_value(summary.get('median_apparent_velocity_mps'))}",
+        f"mean_correlation_peak: {_compact_value(summary.get('mean_abs_correlation_peak'))}",
+        "apparent velocity is an auxiliary attribute, not a measured propagation velocity.",
+        "directional energy is not localization or inversion.",
+    ]
+
+
+def format_moveout_summary_rows(service_result: Any) -> list[dict[str, Any]]:
+    report = service_result.result
+    summary = report.summary
+    directional = report.directional_energy
+    return [
+        {
+            "positive_k_energy": directional.positive_wavenumber_energy,
+            "negative_k_energy": directional.negative_wavenumber_energy,
+            "zero_k_energy": directional.zero_wavenumber_energy,
+            "directional_ratio": summary.get("directional_ratio", directional.directional_ratio),
+            "dominant_direction": summary.get("dominant_direction", directional.dominant_direction),
+            "mean_apparent_velocity_attribute": summary.get("median_apparent_velocity_mps"),
+            "mean_correlation_peak": summary.get("mean_abs_correlation_peak"),
+            "n_windows": summary.get("n_windows"),
+            "n_channel_pairs": summary.get("n_channel_pairs"),
+        }
+    ]
+
+
+def format_directional_energy_summary(service_result: Any) -> list[str]:
+    result = service_result.result
+    return [
+        f"positive_k_energy: {_compact_value(result.positive_wavenumber_energy)}",
+        f"negative_k_energy: {_compact_value(result.negative_wavenumber_energy)}",
+        f"zero_k_energy: {_compact_value(result.zero_wavenumber_energy)}",
+        f"directional_ratio: {_compact_value(result.directional_ratio)}",
+        f"dominant_direction: {result.dominant_direction}",
+        "directional energy is an FK-domain review attribute, not localization or inversion.",
+    ]
+
+
+def format_directional_energy_rows(service_result: Any) -> list[dict[str, Any]]:
+    result = service_result.result
+    rows = [
+        {
+            "component": "positive_k",
+            "energy": result.positive_wavenumber_energy,
+            "directional_ratio": result.directional_ratio,
+            "dominant_direction": result.dominant_direction,
+        },
+        {
+            "component": "negative_k",
+            "energy": result.negative_wavenumber_energy,
+            "directional_ratio": result.directional_ratio,
+            "dominant_direction": result.dominant_direction,
+        },
+        {
+            "component": "zero_k",
+            "energy": result.zero_wavenumber_energy,
+            "directional_ratio": result.directional_ratio,
+            "dominant_direction": result.dominant_direction,
+        },
+    ]
+    for band, energy in result.velocity_band_energy.items():
+        rows.append(
+            {
+                "component": f"velocity_band:{band}",
+                "energy": energy,
+                "directional_ratio": result.directional_ratio,
+                "dominant_direction": result.dominant_direction,
+            }
+        )
+    return rows
 
 
 def event_candidates_to_rois(candidates, request: AnalysisRequest) -> tuple[TimeChannelROI, ...]:
@@ -1214,6 +1568,42 @@ def _parse_analysis_axis(value: str | None) -> int | None:
     if normalized in {"channel", "time summary", "axis 1", "1"}:
         return 1
     raise ValueError(f"unsupported statistics axis: {value!r}")
+
+
+def _parse_denoise_value(value: str) -> Any:
+    lowered = value.strip().lower()
+    if lowered in {"true", "false"}:
+        return lowered == "true"
+    if lowered in {"none", "null"}:
+        return None
+    try:
+        number = float(value)
+    except ValueError:
+        return value
+    if np.isfinite(number) and number.is_integer():
+        return int(number)
+    return number
+
+
+def _qc_flags(row: dict[str, Any]) -> list[str]:
+    flags: list[str] = []
+    if row.get("dead_channel"):
+        flags.append("dead")
+    if row.get("noisy_channel"):
+        flags.append("noisy")
+    if row.get("low_energy_channel"):
+        flags.append("low_energy")
+    if float(row.get("nan_fraction", 0.0)) > 0:
+        flags.append("nan")
+    if float(row.get("inf_fraction", 0.0)) > 0:
+        flags.append("inf")
+    if float(row.get("clipping_fraction", 0.0)) > 0:
+        flags.append("clipping")
+    if int(row.get("spike_count", 0)) > 0:
+        flags.append("spikes")
+    if row.get("bad_channel") and not flags:
+        flags.append("bad")
+    return flags
 
 
 def _bounded_slice(value: slice | None, limit: int) -> slice:

@@ -12,9 +12,15 @@ from das_view.gui.models import (
     PreviewDisplayInfo,
     candidates_to_table_rows,
     format_analysis_summary,
+    format_bad_channel_rows,
+    format_denoise_report_rows,
+    format_directional_energy_rows,
     format_error_message,
     format_fk_status,
     format_gui_file_summary,
+    format_moveout_summary_rows,
+    format_multiband_rows,
+    format_qc_rows,
     format_spectrum_status,
     format_task_status,
     gui_selection_estimate,
@@ -239,6 +245,12 @@ class MainWindow(_qt_widgets().QMainWindow):
         self.analysis_type_combo.addItem("Event candidates - STA/LTA", "events_stalta")
         self.analysis_type_combo.addItem("Event candidates - Envelope threshold", "events_envelope")
         self.analysis_type_combo.addItem("ROI statistics", "roi_statistics")
+        self.analysis_type_combo.addItem("QC report", "qc_report")
+        self.analysis_type_combo.addItem("Bad channels", "bad_channels")
+        self.analysis_type_combo.addItem("Multiband map summary", "multiband_summary")
+        self.analysis_type_combo.addItem("Denoise report", "denoise_report")
+        self.analysis_type_combo.addItem("Moveout summary", "moveout_summary")
+        self.analysis_type_combo.addItem("Directional energy", "directional_energy")
         self.analysis_type_combo.currentIndexChanged.connect(self._update_analysis_parameter_state)
         self.analysis_axis_combo = QtWidgets.QComboBox()
         self.analysis_axis_combo.addItems(["global", "time", "channel"])
@@ -278,6 +290,24 @@ class MainWindow(_qt_widgets().QMainWindow):
         self.analysis_padding_channels_input.setRange(0, 1_000_000)
         self.analysis_padding_channels_input.setValue(0)
         self.analysis_max_rois_input = QtWidgets.QLineEdit("")
+        self.analysis_window_samples_input = QtWidgets.QSpinBox()
+        self.analysis_window_samples_input.setRange(1, 10_000_000)
+        self.analysis_window_samples_input.setValue(256)
+        self.analysis_window_samples_input.setToolTip("Window length for multiband or moveout summaries")
+        self.analysis_step_samples_input = QtWidgets.QSpinBox()
+        self.analysis_step_samples_input.setRange(1, 10_000_000)
+        self.analysis_step_samples_input.setValue(128)
+        self.analysis_step_samples_input.setToolTip("Window step for multiband or moveout summaries")
+        self.analysis_channel_lag_input = QtWidgets.QSpinBox()
+        self.analysis_channel_lag_input.setRange(1, 1_000_000)
+        self.analysis_channel_lag_input.setValue(1)
+        self.analysis_channel_lag_input.setToolTip("Channel lag for moveout summary")
+        self.analysis_denoise_workflow_input = QtWidgets.QLineEdit(
+            "common_mode_removal:method=median"
+        )
+        self.analysis_denoise_workflow_input.setToolTip(
+            "Semicolon-separated denoise steps, e.g. common_mode_removal:method=median"
+        )
         self.analysis_run_button = QtWidgets.QPushButton("Run analysis")
         self.analysis_run_button.clicked.connect(self.run_analysis)
         self.analysis_export_json_button = QtWidgets.QPushButton("Export JSON")
@@ -405,6 +435,10 @@ class MainWindow(_qt_widgets().QMainWindow):
         analysis_controls.addRow("ROI pad samples", self.analysis_padding_samples_input)
         analysis_controls.addRow("ROI pad channels", self.analysis_padding_channels_input)
         analysis_controls.addRow("Max ROIs", self.analysis_max_rois_input)
+        analysis_controls.addRow("Window samples", self.analysis_window_samples_input)
+        analysis_controls.addRow("Step samples", self.analysis_step_samples_input)
+        analysis_controls.addRow("Channel lag", self.analysis_channel_lag_input)
+        analysis_controls.addRow("Denoise workflow", self.analysis_denoise_workflow_input)
         analysis_layout.addLayout(analysis_controls)
         analysis_buttons = QtWidgets.QHBoxLayout()
         analysis_buttons.addWidget(self.analysis_run_button)
@@ -560,6 +594,10 @@ class MainWindow(_qt_widgets().QMainWindow):
                 padding_samples=self.analysis_padding_samples_input.value(),
                 padding_channels=self.analysis_padding_channels_input.value(),
                 max_rois_text=self.analysis_max_rois_input.text(),
+                window_samples=self.analysis_window_samples_input.value(),
+                step_samples=self.analysis_step_samples_input.value(),
+                channel_lag=self.analysis_channel_lag_input.value(),
+                denoise_workflow=self.analysis_denoise_workflow_input.text(),
             )
         except Exception as exc:  # noqa: BLE001 - GUI boundary should catch and display all errors.
             message = format_error_message(exc)
@@ -568,12 +606,20 @@ class MainWindow(_qt_widgets().QMainWindow):
             self.statusBar().showMessage(f"Error: {message}")
             _qt_widgets().QMessageBox.critical(self, "DAS View analysis error", message)
             return
+        heavy_types = {"multiband_summary", "moveout_summary", "directional_energy"}
+        memory_limit = (
+            max(1, self._gui_max_selection_bytes // 2)
+            if request.analysis_type in heavy_types
+            else self._gui_max_selection_bytes
+        )
+        operation_name = "Advanced analysis" if request.analysis_type in heavy_types else "Analysis"
         if not self._check_selection_memory(
-            "Analysis",
+            operation_name,
             time_slice=request.bounded_time_slice(),
             channel_slice=request.bounded_channel_slice(),
             downsample=request.downsample,
             info_widget=self.analysis_info,
+            max_bytes=memory_limit,
         ):
             return
 
@@ -1277,11 +1323,14 @@ class MainWindow(_qt_widgets().QMainWindow):
         is_envelope = analysis_type == "events_envelope"
         is_events = is_stalta or is_envelope
         is_roi = analysis_type == "roi_statistics"
+        is_multiband = analysis_type == "multiband_summary"
+        is_denoise = analysis_type == "denoise_report"
+        is_moveout = analysis_type == "moveout_summary"
 
         self.analysis_axis_combo.setEnabled(is_statistics)
         self.analysis_percentiles_input.setEnabled(is_statistics or is_roi)
         self.analysis_nan_policy_combo.setEnabled(True)
-        self.analysis_bands_input.setEnabled(is_band)
+        self.analysis_bands_input.setEnabled(is_band or is_multiband)
         self.analysis_frequency_range_input.setEnabled(is_spectral)
         self.analysis_rolloff_input.setEnabled(is_spectral)
         self.analysis_average_channels_checkbox.setEnabled(is_band or is_spectral)
@@ -1299,6 +1348,10 @@ class MainWindow(_qt_widgets().QMainWindow):
         self.analysis_padding_samples_input.setEnabled(is_roi)
         self.analysis_padding_channels_input.setEnabled(is_roi)
         self.analysis_max_rois_input.setEnabled(is_roi)
+        self.analysis_window_samples_input.setEnabled(is_multiband or is_moveout)
+        self.analysis_step_samples_input.setEnabled(is_multiband or is_moveout)
+        self.analysis_channel_lag_input.setEnabled(is_moveout)
+        self.analysis_denoise_workflow_input.setEnabled(is_denoise)
 
     def _set_analysis_controls_enabled(self, enabled: bool) -> None:
         widgets = [
@@ -1342,6 +1395,10 @@ class MainWindow(_qt_widgets().QMainWindow):
                 self.analysis_padding_samples_input,
                 self.analysis_padding_channels_input,
                 self.analysis_max_rois_input,
+                self.analysis_window_samples_input,
+                self.analysis_step_samples_input,
+                self.analysis_channel_lag_input,
+                self.analysis_denoise_workflow_input,
             ]:
                 widget.setEnabled(False)
 
@@ -1361,6 +1418,7 @@ class MainWindow(_qt_widgets().QMainWindow):
         channel_slice: slice | None = None,
         downsample: int | tuple[int, int] | None = None,
         info_widget: Any | None = None,
+        max_bytes: int | None = None,
     ) -> bool:
         if self._current_metadata is None:
             return True
@@ -1374,7 +1432,7 @@ class MainWindow(_qt_widgets().QMainWindow):
                 channel_stop=None if channel_slice is None else channel_slice.stop,
                 channel_step=None if channel_slice is None else channel_slice.step,
                 downsample=downsample,
-                max_bytes=self._gui_max_selection_bytes,
+                max_bytes=self._gui_max_selection_bytes if max_bytes is None else max_bytes,
                 operation_name=operation_name,
             )
         except Exception as exc:  # noqa: BLE001 - GUI boundary should catch and display all errors.
@@ -1402,6 +1460,18 @@ class MainWindow(_qt_widgets().QMainWindow):
             return candidates_to_table_rows(result.result.candidates)
         if request.analysis_type == "roi_statistics":
             return roi_statistics_to_table_rows(result.results)
+        if request.analysis_type == "qc_report":
+            return format_qc_rows(result)
+        if request.analysis_type == "bad_channels":
+            return format_bad_channel_rows(result)
+        if request.analysis_type == "multiband_summary":
+            return format_multiband_rows(result)
+        if request.analysis_type == "denoise_report":
+            return format_denoise_report_rows(result)
+        if request.analysis_type == "moveout_summary":
+            return format_moveout_summary_rows(result)
+        if request.analysis_type == "directional_energy":
+            return format_directional_energy_rows(result)
         if request.analysis_type == "band_energy":
             band_result = result.result
             rows = []

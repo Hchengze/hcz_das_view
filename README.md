@@ -55,8 +55,10 @@ Implemented so far:
 - Large-file workflow hardening with metadata-only memory estimates, optional
   analysis size guards, GUI metadata size hints, and bounded local performance
   smoke diagnostics.
-- Minimal GUI Analysis tab for bounded statistics, band energy, spectral
-  attributes, event candidates, ROI statistics, and JSON/CSV export.
+- GUI Analysis tab for bounded statistics, band energy, spectral attributes,
+  event candidates, ROI statistics, QC reports, bad-channel tables, multiband
+  map summaries, denoise/enhancement reports, moveout summaries, directional
+  energy summaries, and JSON/CSV export.
 - Packaging metadata, installed CLI/GUI entry points, Windows PyInstaller
   packaging notes, and a release checklist.
 - Lightweight plugin / extension metadata, registry, optional entry point
@@ -305,9 +307,36 @@ Spectrum, FK, and Analysis estimate planned selection memory before running,
 and oversized selections are stopped with a user-readable message. Safe working
 presets are intentionally conservative: small preview is about 2000 samples x
 256 channels, medium/analysis selection is about 4096 samples x 512 channels,
-and FK starts from about 2048 samples x 256 channels. Export buttons stay
-disabled until a current Analysis result exists; generated JSON/CSV files are
-local user artifacts and should not be committed.
+and FK starts from about 2048 samples x 256 channels. GUI advanced analysis
+types such as multiband summary, moveout summary, and directional energy use a
+more conservative run-before memory limit because they are heavier than simple
+reductions. Export buttons stay disabled until a current Analysis result
+exists; generated JSON/CSV files are local user artifacts and should not be
+committed.
+
+## GUI advanced analysis
+
+The optional PyQt5 GUI Analysis tab now exposes selected mature service-backed
+DAS analysis reports:
+
+- `QC report` shows channel count, bad-channel count, dead/noisy/low-energy
+  counts, mean quality score, and NaN/Inf/clipping/spike summaries.
+- `Bad channels` shows a focused table of channel, reason flags, quality
+  score, RMS, STD, spike count, and clipping fraction.
+- `Multiband map summary` shows band/window dimensions and per-band global
+  mean/max/ratio rows without drawing a full heat map.
+- `Denoise report` runs traditional enhancement workflows and displays
+  before/after RMS, energy, finite count, and per-step rows.
+- `Moveout summary` and `Directional energy` display wavefield-assisted
+  attributes from existing services.
+
+These GUI actions call `das_view.analysis.service` through GUI workers. The GUI
+does not implement QC, denoise, multiband, FK, or moveout algorithms, and it
+does not inspect HDF5/DAT internal paths. Moveout/apparent velocity values are
+auxiliary wavefield attributes only. Directional energy is an FK-domain review
+attribute. Event candidates, ROI rows, denoise reports, QC flags, and moveout
+summaries are data-review aids, not location, inversion, velocity-model, or
+geologic interpretation results.
 
 For local performance diagnosis on user-owned data, run bounded smoke
 operations:
@@ -380,7 +409,7 @@ The Phase 7D analysis layer adds lightweight wavefield-assisted attributes:
 These are wavefield-assisted analysis attributes only. They are not source
 locations, velocity inversions, surface-wave imaging, MASW, F-J, dispersion
 picking, or geologic interpretation results. Apparent velocity is an attribute,
-not a measured ground-truth propagation velocity.
+not a measured propagation velocity.
 
 ## Extension architecture
 

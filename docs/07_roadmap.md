@@ -728,6 +728,31 @@ Implemented scope:
 Recommended next: Phase 9B optional GPU/OpenGL display backend exploration, or
 Phase 8D GUI analysis integration for QC / Denoise / Moveout.
 
+## Phase 8D: GUI analysis integration for QC / Denoise / Moveout
+
+Status: implemented as a GUI integration and user-experience layer.
+
+Phase 8D does not add readers, analysis algorithms, GPU display backends, deep
+learning, MASW, F-J, dispersion picking, source location, inversion, or
+interpretation workflows. It exposes mature service-backed analysis reports in
+the optional GUI Analysis tab.
+
+Implemented scope:
+
+- GUI Analysis types for QC report, bad channels, multiband map summary,
+  denoise report, moveout summary, and directional energy.
+- PyQt-free parser and formatter helpers for advanced analysis requests,
+  summaries, and table rows.
+- QtAnalysisWorker integration with existing service-layer helpers. The GUI
+  does not implement QC, denoise, multiband, FK, or moveout algorithms.
+- JSON/CSV export reuse for advanced analysis summary and current table rows.
+- Metadata-only selection memory checks for all advanced runs, with more
+  conservative limits for multiband, moveout, and directional-energy tasks.
+- GUI smoke and parser tests using synthetic bounded data only.
+
+Recommended next: Phase 9B optional GPU/OpenGL display backend exploration, or
+Phase 8E GUI manual validation and release-candidate signoff.
+
 ## Phase 9A.1: Real GPU validation and benchmark workflow
 
 Status: implemented as a no-GPU-safe validation and benchmark workflow.

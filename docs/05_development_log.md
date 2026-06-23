@@ -2844,6 +2844,80 @@ local output files are intended for commit.
 Phase 9B: Optional GPU / OpenGL display backend exploration, or Phase 8C:
 Real-world validation package and release candidate polish.
 
+## Phase 8D: GUI analysis integration for QC / Denoise / Moveout
+
+Phase 8D integrates mature service-backed DAS analysis reports into the
+optional GUI Analysis tab. It does not add readers, analysis algorithms, GPU
+display acceleration, deep learning, MASW, F-J, dispersion picking, source
+location, inversion, or interpretation workflows.
+
+### Added or modified files
+
+- das_view/gui/models.py
+- das_view/gui/workers.py
+- das_view/gui/main_window.py
+- tests/test_gui_advanced_analysis_models.py
+- tests/test_gui_advanced_analysis_smoke.py
+- README.md
+- AGENTS.md
+- docs/02_architecture.md
+- docs/05_development_log.md
+- docs/06_testing.md
+- docs/07_roadmap.md
+- docs/08_project_handoff.md
+- docs/09_tutorial_user_manual.ipynb
+
+### GUI advanced analysis integration
+
+- Added Analysis-tab request types for QC report, bad channels, multiband map
+  summary, denoise report, moveout summary, and directional energy.
+- Added PyQt-free parser and formatter helpers for advanced requests,
+  summaries, bad-channel rows, QC rows, multiband per-band rows,
+  denoise-report step rows, moveout-summary rows, and directional-energy rows.
+- Extended AnalysisWorker / QtAnalysisWorker to call existing service helpers:
+  compute_quality_report_for_file, compute_multiband_map_for_file,
+  compute_enhancement_report_for_file, compute_moveout_summary_for_file, and
+  compute_directional_energy_for_file.
+- Added GUI controls for multiband/moveout window and step samples, moveout
+  channel lag, and compact denoise workflow strings.
+- Reused existing Analysis table and shared JSON/CSV export helpers. Export
+  state remains disabled until current results exist and is cleared on cancel,
+  failure, or explicit clear.
+- Reused metadata-only selection memory estimates. Multiband, moveout, and
+  directional-energy GUI runs use a more conservative memory limit.
+
+### Terminology boundaries
+
+GUI and documentation describe QC/bad-channel flags as data-quality aids,
+denoise reports as signal-review aids, moveout/apparent velocity as auxiliary
+wavefield attributes, and directional energy as an FK-domain review attribute.
+They are not presented as location, inversion, imaging, velocity-model, or
+geologic interpretation outputs.
+
+### Tests
+
+- Focused Phase 8D tests:
+  python -B -m pytest -p no:cacheprovider --basetemp .tmp_pytest\phase8d_focused tests/test_gui_advanced_analysis_models.py tests/test_gui_advanced_analysis_smoke.py
+  Result: 14 passed.
+- Full test result:
+  python -B -m pytest -p no:cacheprovider --basetemp .tmp_pytest\phase8d_full
+  Result: 602 passed, 1 skipped. The skipped test remains the optional real
+  CuPy GPU numerical-equivalence check on CPU-only/no-CuPy environments. Test
+  count increased from 589 collected in Phase 8C to 603 collected because
+  Phase 8D added GUI advanced-analysis parser, formatter, worker, and smoke
+  tests.
+
+### Old-code migration judgment
+
+No old_code files were copied, imported, modified, or used for implementation.
+This phase connects existing service APIs to the GUI.
+
+### Data and artifact policy confirmation
+
+No real DAS data, generated images, validation outputs, benchmark outputs,
+local paths, JSON/CSV result artifacts, build/dist artifacts, wheels, archives,
+exe files, or private data paths are intended for commit.
+
 ## Phase 8C: Real-world validation package and release candidate polish
 
 Phase 8C consolidates the project into a release-candidate preparation state.
