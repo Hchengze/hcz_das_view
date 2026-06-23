@@ -20,14 +20,14 @@ phases.
 - Development model: the new das_view/ package is being rebuilt after auditing
   legacy material under old_code/.
 - New runtime code must not depend on, import, or call old_code.
-- Latest project state: current HEAD after Phase 7C traditional DAS denoising
-  and enhancement.
-- Current phase: Phase 7C, Level 4 traditional signal-enhancement helpers:
-  common-mode removal, despike, running median filtering, channel balancing,
-  local normalization, time-space median filtering, robust clipping,
-  hcz-das-denoise, and enhancement reports.
-- Current expected test result after Phase 7C: 481 passed. The count increased
-  from the Phase 7B baseline of 458 because Phase 7C added denoise processing,
+- Latest project state: current HEAD after Phase 7D wavefield moveout assisted
+  analysis.
+- Current phase: Phase 7D, Level 5 lightweight wavefield-assisted attributes:
+  FK directional energy, apparent slope, apparent velocity attribute, local
+  moveout coherence, moveout summary reports, hcz-das-moveout, and plotting
+  helpers.
+- Current expected test result after Phase 7D: 503 passed. The count increased
+  from the Phase 7C baseline of 481 because Phase 7D added moveout analysis,
   service, CLI, plotting, plugin metadata, entrypoint, public API, and tutorial
   coverage tests.
 
@@ -95,19 +95,20 @@ phases.
 - das_view/analysis/: spectrum, spectrogram, PSD/Welch, spectral attributes,
   envelope/STA-LTA event candidates, ROI/annotation helpers, DAS QC/channel
   quality, multiband feature maps, local channel coherence, FK visualization,
-  FK-domain smoke filtering, basic statistics, and file-level analysis services.
+  FK-domain smoke filtering, wavefield-assisted moveout attributes, basic
+  statistics, and file-level analysis services.
 - das_view/io/export.py: JSON/CSV export helpers for event candidates, ROIs,
   annotations, and ROI analysis summaries.
 - das_view/plotting/: Matplotlib plotting helpers independent of PyQt5,
   including QC, multiband/coherence map plots, and denoise before/after/report
-  plots.
+  plots plus moveout attribute plots.
 - das_view/plugins/: lightweight extension metadata, extension wrappers,
   registry helpers, built-in capability metadata, and optional on-demand entry
   point discovery.
 - das_view/cli/: installed command-line wrappers for validation, preview,
   statistics, spectrum/PSD/spectrogram, event-candidate workflows, extension
   inspection, QC/multiband/coherence workflows, and traditional denoise
-  workflows.
+  workflows, and moveout-assisted analysis workflows.
 - das_view/gui/: optional PyQt5 application, main window, models, and worker
   scaffolding.
 - das_view/utils/: shared utilities, including slicing helpers.
@@ -135,7 +136,8 @@ Stable public API:
 - `das_view.analysis`: documented numerical helpers and bounded file-level
   services for statistics, spectral attributes, events, ROI summaries, QC,
   multiband feature maps, local coherence, denoise/enhancement reports,
-  spectrum/PSD/spectrogram, and FK smoke workflows.
+  wavefield-assisted moveout attributes, spectrum/PSD/spectrogram, and FK
+  smoke workflows.
 - `das_view.plotting`: documented Matplotlib helpers for waterfall, waveform,
   spectrum, PSD, spectrogram, FK, ROI overlays, QC plots, multiband maps, and
   coherence maps.
@@ -143,7 +145,7 @@ Stable public API:
   built-in metadata registration, and explicit entry point discovery.
 - Installed CLI commands such as `hcz-das-validate`, `hcz-das-stats`,
   `hcz-das-events`, `hcz-das-extensions`, `hcz-das-qc`,
-  `hcz-das-denoise`, and `hcz-das-view`.
+  `hcz-das-denoise`, `hcz-das-moveout`, and `hcz-das-view`.
 
 Experimental API:
 
@@ -206,6 +208,8 @@ Key modules:
   - fk.py: FKResult and bounded FK transform.
   - fk_filter.py: FKFilterResult, simple velocity fan mask, FK-domain mask
     application, and inverse FK smoke path.
+  - moveout.py: FK directional energy, apparent slope, apparent velocity
+    attribute, local moveout coherence, and moveout summary report helpers.
 - Plotting:
   - waterfall.py: waterfall preview plotting.
   - waveform.py: waveform trace plotting.
@@ -286,6 +290,11 @@ Key modules:
   hcz-das-denoise, Matplotlib before/after and enhancement-metric plots,
   plugin metadata, tests, and tutorial updates. Level 5 wavefield/apparent
   moveout remains deferred.
+- Phase 7D: added Level 5 lightweight wavefield-assisted attributes, FK
+  directional energy, directional-energy ratio, apparent slope by
+  cross-correlation, apparent velocity attributes, local moveout coherence,
+  moveout summary reports, bounded service functions, hcz-das-moveout,
+  Matplotlib moveout plots, plugin metadata, tests, and tutorial updates.
 
 ## 7. Current supported capabilities
 
@@ -316,6 +325,7 @@ Key modules:
 - hcz-das-extensions.
 - hcz-das-qc.
 - hcz-das-denoise.
+- hcz-das-moveout.
 - hcz-das-view.
 - das-view-gui remains as a compatibility GUI script.
 
@@ -333,6 +343,9 @@ Key modules:
 - Local coherence map plots.
 - Denoise before/after waterfall plots.
 - Enhancement report metric plots.
+- Directional energy plots.
+- Apparent velocity attribute maps.
+- Moveout coherence plots.
 
 ### GUI
 
@@ -427,6 +440,15 @@ Key modules:
 - compute_coherence_for_file.
 - compute_denoised_selection_for_file.
 - compute_enhancement_report_for_file.
+- fk_directional_energy.
+- directional_energy_ratio.
+- estimate_apparent_slope_xcorr.
+- apparent_velocity_from_slope.
+- local_moveout_coherence.
+- moveout_summary_report.
+- compute_directional_energy_for_file.
+- compute_apparent_moveout_for_file.
+- compute_moveout_summary_for_file.
 
 ### Plugins and extensions
 
@@ -485,6 +507,8 @@ Key modules:
   JSON for tooling.
 - hcz-das-denoise runs bounded traditional signal-enhancement workflows and can
   export an enhancement report JSON.
+- hcz-das-moveout runs bounded wavefield-assisted moveout workflows and can
+  export directional-energy, apparent-moveout, or summary JSON.
 - packaging/README_windows_packaging.md documents Windows Conda setup, GUI
   launch, PyInstaller build, artifact policy, and exe validation.
 - packaging/build_windows.ps1 runs the local PyInstaller packaging smoke path.
@@ -543,12 +567,17 @@ Current coverage includes:
   filtering, robust clipping, workflow history/report metrics, bounded service
   reads, hcz-das-denoise JSON reports, plotting helpers, plugin metadata,
   public API imports, and entrypoint declarations.
+- Moveout tests for FK directional energy, directional-energy ratios,
+  apparent slope by cross-correlation, apparent velocity conversion, local
+  moveout coherence, moveout summary reports, bounded service reads,
+  hcz-das-moveout JSON reports, readable dx_m errors, plotting helpers, plugin
+  metadata, public API imports, and entrypoint declarations.
 
 Current full test command and expected result:
 
       python -B -m pytest -p no:cacheprovider
 
-      481 passed
+      503 passed
 
 ## 10. Old code migration status
 
@@ -627,18 +656,17 @@ Status:
 
       Not implemented. This is the recommended next release-hardening step.
 
-### Option B: Phase 7D Wavefield decomposition and apparent moveout planning
+### Option B: Phase 8A Real-data performance hardening and large-file workflow
 
 Goal:
 
-      Plan Level 5 wavefield decomposition / apparent moveout assistance
-      without adding location, inversion, MASW, F-J, or dispersion-picking
-      workflows.
+      Validate performance and memory behavior on larger real or quasi-real
+      bounded DAS workflows without committing data or generated outputs.
 
 Status:
 
-      Not implemented. This is the recommended analysis-roadmap planning option
-      after Phase 7C.
+      Not implemented. This is the recommended data/performance hardening step
+      after Phase 7D.
 
 ### Option C: Phase 2E real sample validation refresh
 
@@ -675,14 +703,16 @@ Status:
    CLI, plotting, and plugin metadata. Directional FK-domain polish remains
    future work.
 5. Level 5: Wavefield decomposition / apparent moveout assisted analysis.
-   Deferred. Candidate future helpers include apparent slope/velocity
-   attributes, directional energy ratio, directional wavefield energy helpers,
-   FK directional energy summary, and event moveout auxiliary attributes.
+   Base helpers are implemented in Phase 7D: apparent slope/velocity
+   attributes, directional energy ratio, FK directional energy summary, local
+   moveout coherence, moveout summary reports, service, CLI, plotting, and
+   plugin metadata. Apparent velocity is an auxiliary attribute, not a true
+   subsurface velocity.
 
-Levels 1-4 now have core general DAS data-quality, feature-analysis, and
-traditional enhancement support. Level 5 remains deferred after Phase 7C. None
-of the levels imply surface-wave imaging, MASW, F-J, dispersion picking, source
-location, inversion, or geologic interpretation.
+Levels 1-5 now have core general DAS data-quality, feature-analysis,
+traditional enhancement, and lightweight wavefield-assisted attribute support.
+None of the levels imply surface-wave imaging, MASW, F-J, dispersion picking,
+source location, inversion, or geologic interpretation.
 
 ### Basic statistics
 

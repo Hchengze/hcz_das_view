@@ -6,6 +6,7 @@ __all__ = [
     "denoise",
     "events",
     "extensions",
+    "moveout",
     "preview",
     "qc",
     "spectrum",

@@ -19,6 +19,16 @@ from das_view.analysis.events import (
 from das_view.analysis.fk import FKResult, fk_transform
 from das_view.analysis.fk_filter import FKFilterResult, fk_velocity_filter
 from das_view.analysis.multiband import MultibandFeatureMap, multiband_energy_map, spectral_attribute_map
+from das_view.analysis.moveout import (
+    ApparentSlopeResult,
+    DirectionalEnergyResult,
+    MoveoutCoherenceResult,
+    MoveoutSummaryReport,
+    fk_directional_energy,
+    local_moveout_coherence,
+    moveout_summary_report,
+    estimate_apparent_slope_xcorr,
+)
 from das_view.analysis.qc import DataQualityReport, LocalCoherenceResult, data_quality_report, local_channel_coherence
 from das_view.analysis.roi import ROIAnalysisResult, ROISet, TimeChannelROI
 from das_view.analysis.spectrum import (
@@ -60,6 +70,10 @@ AnalysisResult = (
     | LocalCoherenceResult
     | DenoiseResult
     | EnhancementReport
+    | DirectionalEnergyResult
+    | ApparentSlopeResult
+    | MoveoutCoherenceResult
+    | MoveoutSummaryReport
 )
 StepLike = PreprocessStep | tuple[str, Mapping[str, Any]] | str
 DenoiseStepLike = tuple[str, Mapping[str, Any]] | str
@@ -248,6 +262,45 @@ class EnhancementReportServiceResult:
     """Result from a bounded file-level enhancement report workflow."""
 
     result: EnhancementReport
+    das_data: DASData
+    reader_name: str
+    metadata: DASMetadata
+    selection: SelectionResult
+    preprocessing_history: tuple[dict[str, Any], ...]
+    denoise_history: tuple[dict[str, Any], ...]
+
+
+@dataclass(frozen=True, slots=True)
+class DirectionalEnergyServiceResult:
+    """Result from bounded FK directional-energy analysis."""
+
+    result: DirectionalEnergyResult
+    das_data: DASData
+    reader_name: str
+    metadata: DASMetadata
+    selection: SelectionResult
+    preprocessing_history: tuple[dict[str, Any], ...]
+    denoise_history: tuple[dict[str, Any], ...]
+
+
+@dataclass(frozen=True, slots=True)
+class ApparentMoveoutServiceResult:
+    """Result from bounded apparent moveout attribute analysis."""
+
+    result: ApparentSlopeResult
+    das_data: DASData
+    reader_name: str
+    metadata: DASMetadata
+    selection: SelectionResult
+    preprocessing_history: tuple[dict[str, Any], ...]
+    denoise_history: tuple[dict[str, Any], ...]
+
+
+@dataclass(frozen=True, slots=True)
+class MoveoutSummaryServiceResult:
+    """Result from bounded moveout summary analysis."""
+
+    result: MoveoutSummaryReport
     das_data: DASData
     reader_name: str
     metadata: DASMetadata
@@ -920,6 +973,144 @@ def compute_enhancement_report_for_file(
     )
 
 
+def compute_directional_energy_for_file(
+    path: str | Path,
+    *,
+    channel_slice=None,
+    time_slice=None,
+    max_samples: int = 4096,
+    max_channels: int = 512,
+    downsample: int | tuple[int, int] | None = None,
+    preprocessing_steps: Sequence[StepLike] | None = None,
+    denoise_steps: Sequence[DenoiseStepLike] | None = None,
+    velocity_bands=None,
+    nan_policy: Literal["omit", "raise"] = "raise",
+) -> DirectionalEnergyServiceResult:
+    """Read a bounded selection and compute FK directional-energy attributes."""
+
+    das_data, selection, preprocessing_history, denoise_history = _read_preprocess_denoise(
+        path,
+        channel_slice=channel_slice,
+        time_slice=time_slice,
+        max_samples=max_samples,
+        max_channels=max_channels,
+        downsample=downsample,
+        preprocessing_steps=preprocessing_steps,
+        denoise_steps=denoise_steps,
+        require_sample_rate=True,
+    )
+    result = fk_directional_energy(
+        das_data,
+        velocity_bands=velocity_bands,
+        nan_policy=nan_policy,
+    )
+    return DirectionalEnergyServiceResult(
+        result=result,
+        das_data=das_data,
+        reader_name=selection.reader_name,
+        metadata=das_data.metadata,
+        selection=selection,
+        preprocessing_history=preprocessing_history,
+        denoise_history=denoise_history,
+    )
+
+
+def compute_apparent_moveout_for_file(
+    path: str | Path,
+    *,
+    channel_slice=None,
+    time_slice=None,
+    max_samples: int = 4096,
+    max_channels: int = 512,
+    downsample: int | tuple[int, int] | None = None,
+    preprocessing_steps: Sequence[StepLike] | None = None,
+    denoise_steps: Sequence[DenoiseStepLike] | None = None,
+    channel_lag: int = 1,
+    window_samples: int | None = None,
+    step_samples: int | None = None,
+    max_lag_samples: int | None = None,
+    nan_policy: Literal["omit", "raise"] = "raise",
+) -> ApparentMoveoutServiceResult:
+    """Read a bounded selection and compute apparent moveout attributes."""
+
+    das_data, selection, preprocessing_history, denoise_history = _read_preprocess_denoise(
+        path,
+        channel_slice=channel_slice,
+        time_slice=time_slice,
+        max_samples=max_samples,
+        max_channels=max_channels,
+        downsample=downsample,
+        preprocessing_steps=preprocessing_steps,
+        denoise_steps=denoise_steps,
+        require_sample_rate=True,
+    )
+    result = estimate_apparent_slope_xcorr(
+        das_data,
+        channel_lag=channel_lag,
+        window_samples=window_samples,
+        step_samples=step_samples,
+        max_lag_samples=max_lag_samples,
+        nan_policy=nan_policy,
+    )
+    return ApparentMoveoutServiceResult(
+        result=result,
+        das_data=das_data,
+        reader_name=selection.reader_name,
+        metadata=das_data.metadata,
+        selection=selection,
+        preprocessing_history=preprocessing_history,
+        denoise_history=denoise_history,
+    )
+
+
+def compute_moveout_summary_for_file(
+    path: str | Path,
+    *,
+    channel_slice=None,
+    time_slice=None,
+    max_samples: int = 4096,
+    max_channels: int = 512,
+    downsample: int | tuple[int, int] | None = None,
+    preprocessing_steps: Sequence[StepLike] | None = None,
+    denoise_steps: Sequence[DenoiseStepLike] | None = None,
+    channel_lag: int = 1,
+    window_samples: int | None = None,
+    step_samples: int | None = None,
+    velocity_bands=None,
+    nan_policy: Literal["omit", "raise"] = "raise",
+) -> MoveoutSummaryServiceResult:
+    """Read a bounded selection and compute a moveout summary report."""
+
+    das_data, selection, preprocessing_history, denoise_history = _read_preprocess_denoise(
+        path,
+        channel_slice=channel_slice,
+        time_slice=time_slice,
+        max_samples=max_samples,
+        max_channels=max_channels,
+        downsample=downsample,
+        preprocessing_steps=preprocessing_steps,
+        denoise_steps=denoise_steps,
+        require_sample_rate=True,
+    )
+    result = moveout_summary_report(
+        das_data,
+        channel_lag=channel_lag,
+        window_samples=window_samples,
+        step_samples=step_samples,
+        velocity_bands=velocity_bands,
+        nan_policy=nan_policy,
+    )
+    return MoveoutSummaryServiceResult(
+        result=result,
+        das_data=das_data,
+        reader_name=selection.reader_name,
+        metadata=das_data.metadata,
+        selection=selection,
+        preprocessing_history=preprocessing_history,
+        denoise_history=denoise_history,
+    )
+
+
 def compute_roi_statistics_for_file(
     path: str | Path,
     rois,
@@ -1060,6 +1251,40 @@ def _read_selection_and_maybe_preprocess(
     if require_sample_rate and das_data.metadata.sample_rate_hz is None:
         raise ValueError("sample_rate_hz is required for spectral attribute analysis but was not found")
     return das_data, selection
+
+
+def _read_preprocess_denoise(
+    path: str | Path,
+    *,
+    channel_slice,
+    time_slice,
+    max_samples: int,
+    max_channels: int,
+    downsample: int | tuple[int, int] | None,
+    preprocessing_steps: Sequence[StepLike] | None,
+    denoise_steps: Sequence[DenoiseStepLike] | None,
+    require_sample_rate: bool,
+) -> tuple[DASData, SelectionResult, tuple[dict[str, Any], ...], tuple[dict[str, Any], ...]]:
+    das_data, selection = _read_selection_and_maybe_preprocess(
+        path,
+        channel_slice=channel_slice,
+        time_slice=time_slice,
+        max_samples=max_samples,
+        max_channels=max_channels,
+        downsample=downsample,
+        preprocessing_steps=preprocessing_steps,
+        require_sample_rate=require_sample_rate,
+    )
+    preprocessing_history = _preprocessing_history(das_data)
+    denoise_history: tuple[dict[str, Any], ...] = ()
+    if denoise_steps:
+        denoise_result = apply_denoise_workflow(das_data, denoise_steps, axis=0, return_report=True)
+        if not isinstance(denoise_result, DenoiseResult):
+            raise TypeError("apply_denoise_workflow returned an unexpected result")
+        denoise_service = _denoise_service_result(result=denoise_result, source_data=das_data, selection=selection)
+        das_data = denoise_service.das_data
+        denoise_history = denoise_service.denoise_history
+    return das_data, selection, preprocessing_history, denoise_history
 
 
 def _read_roi_and_maybe_preprocess(

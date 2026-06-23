@@ -220,6 +220,42 @@ def list_builtin_extensions() -> list[object]:
                     "das_view.analysis.service.compute_coherence_for_file",
                     "coherence_map",
                 ),
+                (
+                    "fk_directional_energy",
+                    "FK directional energy attribute",
+                    "das_view.analysis.service.compute_directional_energy_for_file",
+                    "directional_energy",
+                ),
+                (
+                    "directional_energy_ratio",
+                    "Positive/negative wavenumber energy ratio",
+                    "das_view.analysis.moveout.directional_energy_ratio",
+                    "directional_energy_ratio",
+                ),
+                (
+                    "apparent_slope_xcorr",
+                    "Cross-correlation apparent slope attribute",
+                    "das_view.analysis.service.compute_apparent_moveout_for_file",
+                    "apparent_slope",
+                ),
+                (
+                    "apparent_velocity_attribute",
+                    "Apparent velocity attribute from moveout slope",
+                    "das_view.analysis.moveout.apparent_velocity_from_slope",
+                    "apparent_velocity_attribute",
+                ),
+                (
+                    "local_moveout_coherence",
+                    "Local moveout coherence attribute",
+                    "das_view.analysis.moveout.local_moveout_coherence",
+                    "moveout_coherence",
+                ),
+                (
+                    "moveout_summary_report",
+                    "Combined moveout summary report",
+                    "das_view.analysis.service.compute_moveout_summary_for_file",
+                    "moveout_summary",
+                ),
             ]
         ],
         *[
@@ -318,6 +354,27 @@ def list_builtin_extensions() -> list[object]:
                     "das_view.plotting.denoise",
                     "das_view.plotting.denoise.plot_enhancement_metrics",
                     "EnhancementReport",
+                ),
+                (
+                    "directional_energy_plot",
+                    "Directional energy attribute plot",
+                    "das_view.plotting.moveout",
+                    "das_view.plotting.moveout.plot_directional_energy",
+                    "DirectionalEnergyResult",
+                ),
+                (
+                    "apparent_velocity_map",
+                    "Apparent velocity attribute map",
+                    "das_view.plotting.moveout",
+                    "das_view.plotting.moveout.plot_apparent_velocity_map",
+                    "ApparentSlopeResult",
+                ),
+                (
+                    "moveout_coherence_plot",
+                    "Moveout coherence plot",
+                    "das_view.plotting.moveout",
+                    "das_view.plotting.moveout.plot_moveout_coherence",
+                    "MoveoutCoherenceResult",
                 ),
             ]
         ],

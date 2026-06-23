@@ -400,6 +400,32 @@ Status:
 
 Recommended next: Phase 6D or Phase 7D.
 
+### Phase 7D: Wavefield decomposition and apparent moveout assisted analysis
+
+Goal:
+
+    Add Level 5 lightweight wavefield-assisted attributes for bounded DAS
+    selections without adding source location, velocity inversion, surface-wave
+    imaging, MASW, F-J, dispersion picking, or geologic interpretation.
+
+Scope:
+
+- Implement FK directional energy summaries and directional-energy ratios.
+- Implement cross-correlation apparent slope and apparent velocity attributes.
+- Implement local moveout coherence and a compact moveout summary report.
+- Add bounded service functions, hcz-das-moveout, example wrapper, Matplotlib
+  plotting helpers, plugin metadata, tests, and tutorial updates.
+- Keep apparent velocity and direction labels documented as auxiliary
+  attributes only.
+
+Status:
+
+- Completed in Phase 7D for the base Level 5 wavefield-assisted attribute
+  layer. Outputs are review aids only and are not location, inversion, imaging,
+  or geologic interpretation results.
+
+Recommended next: Phase 6D or Phase 8A.
+
 ## DAS Analysis capability roadmap
 
 ## Five-level / 五级 DAS Analysis roadmap
@@ -483,8 +509,8 @@ work.
 
 ### Level 5: Wavefield decomposition / apparent moveout assisted analysis
 
-Deferred higher-level wavefield assistance. This remains DAS analysis support,
-not a specialized imaging or inversion package.
+Base lightweight wavefield assistance is implemented as of Phase 7D. This
+remains DAS analysis support, not a specialized imaging or inversion package.
 
 - apparent slope attribute
 - apparent velocity attribute
@@ -493,6 +519,10 @@ not a specialized imaging or inversion package.
 - FK directional energy summary
 - event moveout auxiliary attributes
 
+The implemented core covers FK directional energy, directional-energy ratio,
+apparent slope by cross-correlation, apparent velocity attributes, local moveout
+coherence, moveout summary reports, service, CLI, plotting, and plugin
+metadata. Apparent velocity is an attribute, not a true subsurface velocity.
 This is not surface-wave imaging, MASW, F-J, dispersion picking, source
 location, or inversion. Any such interpretation workflow must be planned as a
 separate experimental/plugin direction.

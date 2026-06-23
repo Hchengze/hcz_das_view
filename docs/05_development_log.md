@@ -2401,3 +2401,111 @@ intended for commit.
 
 Phase 6D: Release CI planning, or Phase 7D: Wavefield decomposition and
 apparent moveout planning.
+
+## 2026-06-23: Phase 7D Wavefield decomposition and apparent moveout assisted analysis
+
+### Goal
+
+Implement Level 5 lightweight wavefield-assisted DAS attributes while keeping
+the package out of source location, velocity inversion, surface-wave imaging,
+MASW, F-J, dispersion picking, and geologic interpretation workflows.
+
+### Added or modified files
+
+- pyproject.toml
+- README.md
+- AGENTS.md
+- das_view/analysis/moveout.py
+- das_view/analysis/service.py
+- das_view/analysis/__init__.py
+- das_view/cli/moveout.py
+- das_view/cli/__init__.py
+- das_view/plotting/moveout.py
+- das_view/plotting/__init__.py
+- das_view/plugins/builtins.py
+- examples/moveout_file.py
+- tests/test_moveout_analysis.py
+- tests/test_moveout_service.py
+- tests/test_moveout_cli.py
+- tests/test_moveout_plotting.py
+- tests/test_cli_entrypoints.py
+- tests/test_packaging.py
+- tests/test_release_validation.py
+- tests/test_public_api_stability.py
+- tests/test_api_import_boundaries.py
+- tests/test_plugins_builtins.py
+- tests/test_tutorial_notebook.py
+- docs/09_tutorial_user_manual.ipynb
+- docs/02_architecture.md
+- docs/05_development_log.md
+- docs/06_testing.md
+- docs/07_roadmap.md
+- docs/08_project_handoff.md
+
+### Analysis and service work
+
+- Added DirectionalEnergyResult, ApparentSlopeResult,
+  ApparentVelocityResult, MoveoutCoherenceResult, and MoveoutSummaryReport.
+- Added fk_directional_energy and directional_energy_ratio for positive,
+  negative, and zero-wavenumber FK energy summaries.
+- Added estimate_apparent_slope_xcorr, apparent_velocity_from_slope,
+  local_moveout_coherence, and moveout_summary_report.
+- Added bounded service functions: compute_directional_energy_for_file,
+  compute_apparent_moveout_for_file, and compute_moveout_summary_for_file.
+  Services read through read_selection, optionally apply apply_preprocess and
+  apply_denoise_workflow, then call moveout helpers.
+- Added hcz-das-moveout and examples/moveout_file.py for JSON user workflows.
+- Added Matplotlib-only directional energy, apparent velocity, and moveout
+  coherence plotting helpers.
+- Updated built-in plugin metadata for Level 5 analysis and plotting
+  capabilities.
+
+### Five-level DAS Analysis roadmap
+
+- Level 5 base wavefield-assisted attributes are now implemented.
+- Apparent velocity and directional-energy outputs remain auxiliary attributes
+  only. They are not true subsurface velocity, source location, inversion,
+  imaging, or geologic interpretation results.
+- Deep-learning denoising remains deferred future experimental/plugin work.
+
+### Tests
+
+- Focused moveout tests:
+  python -B -m pytest -p no:cacheprovider --basetemp .tmp_pytest/phase7d_focused tests/test_moveout_analysis.py tests/test_moveout_service.py tests/test_moveout_cli.py tests/test_moveout_plotting.py tests/test_plugins_builtins.py tests/test_cli_entrypoints.py tests/test_packaging.py tests/test_public_api_stability.py tests/test_api_import_boundaries.py tests/test_release_validation.py -q
+  Result: 73 passed.
+- Full test result:
+  python -B -m pytest -p no:cacheprovider --basetemp .tmp_pytest/phase7d_full
+  Result: 503 passed, 1 Matplotlib open-figure warning. Test count increased
+  from 481 to 503 because Phase 7D added moveout analysis, service, CLI,
+  plotting, plugin metadata, entrypoint, API boundary, public API, release
+  validation, and tutorial coverage tests.
+
+### Old-code migration judgment
+
+No old_code files were copied, imported, modified, or used for implementation.
+This phase adds new lightweight DAS wavefield-assisted attributes under the new
+package interfaces.
+
+### Data and artifact policy confirmation
+
+No real DAS data, generated images, validation_outputs artifacts,
+local_validation_paths.txt, local absolute data paths, JSON/CSV outputs,
+build/dist artifacts, wheels, archives, exe files, or local output files are
+intended for commit.
+
+### Not completed
+
+- Larger real-data validation remains future work.
+- Automated release CI is not implemented.
+- Windows exe signing is not implemented.
+- Deep-learning denoising is deferred and should remain future experimental
+  plugin work.
+- Moveout and apparent velocity attributes need further real-data validation.
+- Plugin API still needs validation with real third-party plugin packages.
+- The tutorial notebook should continue to be maintained as stable features
+  mature.
+
+### Suggested next round
+
+Phase 6D: Release CI planning, or Phase 8A: Real-data performance hardening and
+large-file workflow.

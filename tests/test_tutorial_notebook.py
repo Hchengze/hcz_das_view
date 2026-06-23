@@ -59,6 +59,13 @@ def test_tutorial_notebook_contains_user_manual_keywords():
     assert "robust clipping" in text.lower()
     assert "Denoise workflow reports" in text
     assert "hcz-das-denoise" in text
+    assert "Level 5 wavefield assisted analysis" in text
+    assert "FK directional energy" in text
+    assert "Apparent slope attribute" in text
+    assert "Apparent velocity attribute" in text
+    assert "Local moveout coherence" in text
+    assert "Moveout summary report" in text
+    assert "hcz-das-moveout" in text
 
 
 def test_tutorial_notebook_avoids_local_paths_and_development_content():

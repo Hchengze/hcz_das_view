@@ -76,11 +76,12 @@
   amplitude spectrum, power spectrum, periodogram PSD, Welch PSD,
   single-channel spectrogram smoke-path helpers, ROI/annotation helpers,
   DAS QC/channel-quality metrics, multiband feature maps, local channel
-  coherence, file-level analysis services, FK visualization, and FK-domain
+  coherence, wavefield-assisted moveout attributes, directional FK energy
+  summaries, file-level analysis services, FK visualization, and FK-domain
   smoke filtering for DAS 2D wavefield inspection.
 - plotting: Matplotlib plotting helpers independent from GUI widgets, including
   waterfall, waveform, spectrum, spectrogram, FK views, ROI overlays, QC plots,
-  multiband maps, and coherence maps.
+  multiband maps, coherence maps, and denoise/moveout attribute plots.
 - das_view/processing/denoise.py provides traditional signal-enhancement
   helpers such as common-mode removal, despike, median filtering, channel
   balancing, local normalization, time-space median filtering, robust clipping,
@@ -267,6 +268,9 @@ Reader responsibilities:
 - plot_channel_quality, plot_bad_channels, plot_multiband_energy_map, and
   plot_coherence_map visualize DAS QC and feature-map outputs with Matplotlib.
   They do not compute QC or spectral features and do not depend on PyQt5.
+- plot_directional_energy, plot_apparent_velocity_map, and
+  plot_moveout_coherence visualize moveout attributes with Matplotlib. They do
+  not compute moveout attributes and do not depend on PyQt5.
 - Plotting helpers assume the internal data convention (n_samples, n_channels).
 
 ## Analysis services
@@ -336,6 +340,17 @@ Reader responsibilities:
   read_selection, optionally apply apply_preprocess, then call the QC,
   multiband, or local-coherence helpers. They do not inspect HDF5/DAT internal
   paths and do not depend on GUI code.
+- das_view/analysis/moveout.py provides DirectionalEnergyResult,
+  ApparentSlopeResult, ApparentVelocityResult, MoveoutCoherenceResult, and
+  MoveoutSummaryReport plus FK directional energy, apparent slope, apparent
+  velocity attribute, local moveout coherence, and summary helpers. These are
+  wavefield-assisted attributes only, not source location, velocity inversion,
+  imaging, or geologic interpretation.
+- das_view/analysis/service.py also provides compute_directional_energy_for_file,
+  compute_apparent_moveout_for_file, and compute_moveout_summary_for_file. They
+  read bounded 2-D selections through read_selection, optionally apply
+  apply_preprocess and apply_denoise_workflow, then call the moveout helpers.
+  They do not inspect HDF5/DAT internal paths and do not depend on GUI code.
 - das_view/gui/main_window.py provides a minimal Analysis tab that exposes
   bounded statistics, band energy, spectral attributes, event candidates, and
   ROI statistics. The tab builds validated requests through

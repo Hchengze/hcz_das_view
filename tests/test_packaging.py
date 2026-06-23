@@ -43,6 +43,7 @@ def test_pyproject_has_optional_dependencies_and_entrypoints():
     assert scripts["hcz-das-extensions"] == "das_view.cli.extensions:main"
     assert scripts["hcz-das-qc"] == "das_view.cli.qc:main"
     assert scripts["hcz-das-denoise"] == "das_view.cli.denoise:main"
+    assert scripts["hcz-das-moveout"] == "das_view.cli.moveout:main"
 
     assert project["entry-points"]["das_view.plugins"][
         "hcz_das_view_builtins"

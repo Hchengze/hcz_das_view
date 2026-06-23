@@ -21,10 +21,16 @@ def test_register_builtin_extensions_contains_expected_capabilities():
     assert {"quality_report", "multiband_energy_map", "local_channel_coherence"}.issubset(
         _names_by_kind(registry, "analysis")
     )
+    assert {"fk_directional_energy", "apparent_slope_xcorr", "moveout_summary_report"}.issubset(
+        _names_by_kind(registry, "analysis")
+    )
     assert {"channel_quality", "multiband_energy_map_plot", "coherence_map"}.issubset(
         _names_by_kind(registry, "plotting")
     )
     assert {"before_after_waterfall", "enhancement_metrics"}.issubset(_names_by_kind(registry, "plotting"))
+    assert {"directional_energy_plot", "apparent_velocity_map", "moveout_coherence_plot"}.issubset(
+        _names_by_kind(registry, "plotting")
+    )
     assert {"json", "csv"}.issubset(_names_by_kind(registry, "export"))
 
 

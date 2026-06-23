@@ -74,6 +74,13 @@ All internal core arrays must use:
   denoising into the core package.
 - Denoising/enhancement outputs must be described as signal enhancement or
   data-review aids, not geologic interpretation results.
+- Level 5 moveout / apparent-velocity work must remain auxiliary attribute
+  analysis only.
+- Apparent velocity is not a ground-truth propagation velocity.
+- Directional energy and FK-domain direction labels are review aids, not
+  definitive physical propagation or geologic direction statements.
+- Do not turn moveout attributes into source location, inversion, imaging, or
+  interpretation workflows.
 
 ## Testing requirements
 

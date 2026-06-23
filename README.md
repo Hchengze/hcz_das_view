@@ -152,6 +152,9 @@ Examples:
     hcz-das-qc input.h5 --coherence --channel-lag 1 --output coherence.json
     hcz-das-denoise input.h5 --common-mode median --output-report denoise_report.json
     hcz-das-denoise input.h5 --despike --z-threshold 8.0 --channel-balance rms --output-report enhancement_report.json
+    hcz-das-moveout input.h5 --directional-energy --output direction.json
+    hcz-das-moveout input.h5 --apparent-moveout --channel-lag 1 --window-samples 1024 --step-samples 512 --output moveout.json
+    hcz-das-moveout input.h5 --summary --channel-lag 1 --output moveout_summary.json
 
 Generated outputs are local user artifacts and should not be committed.
 
@@ -195,6 +198,26 @@ helpers for bounded DAS selections:
 These helpers are traditional signal-enhancement tools. They do not perform
 deep-learning denoising, source location, inversion, MASW, F-J, dispersion
 picking, surface-wave imaging, or geologic interpretation.
+
+## Level 5 wavefield / apparent moveout assistance
+
+The Phase 7D analysis layer adds lightweight wavefield-assisted attributes:
+
+- `fk_directional_energy` summarizes positive/negative/zero wavenumber FK
+  energy as a directionality aid.
+- `directional_energy_ratio` reports a balanced directional-energy attribute.
+- `estimate_apparent_slope_xcorr` estimates a local apparent slope in
+  seconds per metre from bounded channel pairs.
+- `apparent_velocity_from_slope` converts an apparent slope attribute into an
+  apparent-velocity attribute.
+- `local_moveout_coherence` summarizes local moveout correlation peaks.
+- `moveout_summary_report` combines FK directional energy and moveout
+  attributes into one report.
+
+These are wavefield-assisted analysis attributes only. They are not source
+locations, velocity inversions, surface-wave imaging, MASW, F-J, dispersion
+picking, or geologic interpretation results. Apparent velocity is an attribute,
+not a measured ground-truth propagation velocity.
 
 ## Extension architecture
 

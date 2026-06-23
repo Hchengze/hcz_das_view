@@ -186,6 +186,13 @@ Current coverage:
   bounded service reads, preprocessing and denoise history, hcz-das-denoise
   CLI report output, Matplotlib before/after and enhancement-metric plots,
   plugin metadata, public API imports, and entrypoint declarations.
+- Phase 7D moveout tests cover FK directional energy, directional-energy
+  ratios, zero-energy stability, apparent slope by cross-correlation, apparent
+  velocity conversion, local moveout coherence, windowed moveout shapes,
+  invalid channel lag and missing metadata errors, DASData input, no in-place
+  mutation, bounded service reads, preprocessing and denoise history,
+  hcz-das-moveout JSON outputs, readable dx_m errors, Matplotlib moveout plots,
+  plugin metadata, public API imports, and entrypoint declarations.
 - FK analysis tests cover synthetic plane-wave peak frequency/wavenumber
   detection, amplitude/power shapes, DASData metadata sample-rate/dx handling,
   invalid sample_rate_hz/dx/nfft/dimensionality/NaN/Inf/too-short inputs, and
