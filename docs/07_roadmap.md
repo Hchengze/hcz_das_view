@@ -426,6 +426,31 @@ Status:
 
 Recommended next: Phase 6D or Phase 8A.
 
+### Phase 8A: Real-data performance hardening and large-file workflow
+
+Goal:
+
+- Harden real-data and large-file workflows without adding new analysis
+  algorithms.
+- Add metadata-only memory estimates, optional selection-size guards,
+  user-facing CLI limits, GUI metadata size hints, and bounded performance
+  smoke diagnostics.
+- Refresh local real/quasi-real sample validation without committing data,
+  outputs, or private paths.
+
+Status:
+
+- Completed in Phase 8A for the base large-file workflow. The data service can
+  estimate selection size before reading, heavy analysis services accept an
+  optional max_estimated_bytes guard, key CLIs expose --max-estimated-mb, GUI
+  metadata includes estimated full array size, and examples/performance_smoke.py
+  provides bounded local timing diagnostics.
+- Local validation was refreshed on a bounded representative set of Puniu DAT
+  and ZD HDF5 samples. Only a desensitized summary should be documented; real
+  paths and generated outputs remain local artifacts.
+
+Recommended next: Phase 6D or Phase 8B.
+
 ## DAS Analysis capability roadmap
 
 ## Five-level / 五级 DAS Analysis roadmap

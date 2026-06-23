@@ -11,6 +11,7 @@ from das_view.analysis.service import (
     compute_multiband_map_for_file,
     compute_quality_report_for_file,
 )
+from das_view.core.exceptions import ReaderError
 from das_view.io.export import save_csv_rows, save_json, to_jsonable
 
 
@@ -25,6 +26,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--channel-step", type=int, default=1)
     parser.add_argument("--max-samples", type=int, default=4096)
     parser.add_argument("--max-channels", type=int, default=512)
+    parser.add_argument(
+        "--max-estimated-mb",
+        type=float,
+        default=None,
+        help="Reject selections estimated above this MiB limit; defaults stay bounded by max samples/channels.",
+    )
     parser.add_argument("--quality-report", action="store_true", help="Compute a QC report")
     parser.add_argument("--bad-channels", action="store_true", help="Export bad-channel table rows")
     parser.add_argument("--multiband", type=float, nargs="+", help="Band limits as fmin fmax pairs")
@@ -52,50 +59,62 @@ def _selection(args):
         "channel_slice": slice(args.channel_start, args.channel_stop, args.channel_step),
         "max_samples": args.max_samples,
         "max_channels": args.max_channels,
+        "max_estimated_bytes": _max_estimated_bytes(args.max_estimated_mb),
     }
+
+
+def _max_estimated_bytes(value: float | None) -> int | None:
+    if value is None:
+        return None
+    if value < 0:
+        raise ValueError("--max-estimated-mb must be non-negative")
+    return int(value * 1024 * 1024)
 
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     if not (args.quality_report or args.bad_channels or args.multiband or args.coherence):
         args.quality_report = True
-    common = _selection(args)
 
     payload = {}
     rows = None
-    if args.quality_report or args.bad_channels:
-        result = compute_quality_report_for_file(args.input, nan_policy=args.nan_policy, **common)
-        rows = channel_quality_rows(result.result)
-        payload["quality_report"] = result.result
-        print(f"reader_name: {result.reader_name}")
-        print(f"bad_channel_count: {len(result.result.bad_channel_indices)}")
-        print(f"mean_quality_score: {result.result.global_summary['mean_quality_score']}")
+    try:
+        common = _selection(args)
+        if args.quality_report or args.bad_channels:
+            result = compute_quality_report_for_file(args.input, nan_policy=args.nan_policy, **common)
+            rows = channel_quality_rows(result.result)
+            payload["quality_report"] = result.result
+            print(f"reader_name: {result.reader_name}")
+            print(f"bad_channel_count: {len(result.result.bad_channel_indices)}")
+            print(f"mean_quality_score: {result.result.global_summary['mean_quality_score']}")
 
-    bands = parse_band_pairs(args.multiband)
-    if bands is not None:
-        result = compute_multiband_map_for_file(
-            args.input,
-            bands=bands,
-            window_samples=args.window_samples,
-            step_samples=args.step_samples,
-            normalize=args.normalize,
-            nan_policy=args.nan_policy,
-            **common,
-        )
-        payload["multiband"] = result.result
-        print(f"multiband_shape: {result.result.values.shape}")
+        bands = parse_band_pairs(args.multiband)
+        if bands is not None:
+            result = compute_multiband_map_for_file(
+                args.input,
+                bands=bands,
+                window_samples=args.window_samples,
+                step_samples=args.step_samples,
+                normalize=args.normalize,
+                nan_policy=args.nan_policy,
+                **common,
+            )
+            payload["multiband"] = result.result
+            print(f"multiband_shape: {result.result.values.shape}")
 
-    if args.coherence:
-        result = compute_coherence_for_file(
-            args.input,
-            channel_lag=args.channel_lag,
-            window_samples=args.window_samples,
-            step_samples=args.step_samples,
-            nan_policy=args.nan_policy,
-            **common,
-        )
-        payload["coherence"] = result.result
-        print(f"coherence_shape: {result.result.coherence.shape}")
+        if args.coherence:
+            result = compute_coherence_for_file(
+                args.input,
+                channel_lag=args.channel_lag,
+                window_samples=args.window_samples,
+                step_samples=args.step_samples,
+                nan_policy=args.nan_policy,
+                **common,
+            )
+            payload["coherence"] = result.result
+            print(f"coherence_shape: {result.result.coherence.shape}")
+    except (ReaderError, ValueError) as exc:
+        raise SystemExit(f"qc error: {exc}") from exc
 
     if args.output is not None:
         if args.output.suffix.lower() == ".csv":

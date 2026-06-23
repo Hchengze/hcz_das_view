@@ -17,6 +17,7 @@ from das_view.utils.slicing import (
     normalize_slice,
     slice_length,
 )
+from das_view.utils.memory import check_selection_memory
 
 
 @dataclass(frozen=True, slots=True)
@@ -39,6 +40,8 @@ class SelectionResult:
     channel_slice: slice
     downsample: tuple[int, int]
     requested_channels: tuple[int, ...] | None = None
+    estimated_nbytes: int | None = None
+    warnings: tuple[str, ...] = ()
 
     @property
     def metadata(self) -> DASMetadata:
@@ -52,6 +55,8 @@ def read_selection(
     channel_slice: SliceLike = None,
     downsample: int | tuple[int, int] | None = None,
     reader_registry: ReaderRegistry | None = None,
+    max_estimated_bytes: int | None = None,
+    warn_large_selection: bool = True,
 ) -> SelectionResult:
     """Read a bounded DAS data selection through the registered reader."""
 
@@ -66,6 +71,17 @@ def read_selection(
         axis_name="channel",
     )
     normalized_downsample = normalize_downsample(downsample)
+    memory_estimate = check_selection_memory(
+        n_samples=metadata.n_samples,
+        n_channels=metadata.n_channels,
+        time_slice=normalized_time,
+        channel_slice=normalized_channel,
+        downsample=normalized_downsample,
+        max_bytes=max_estimated_bytes,
+    )
+    if not memory_estimate.within_limit:
+        raise ReaderError(memory_estimate.message)
+    warnings = (memory_estimate.message,) if warn_large_selection and max_estimated_bytes is not None else ()
 
     try:
         das_data = reader.read(
@@ -85,6 +101,8 @@ def read_selection(
         time_slice=normalized_time,
         channel_slice=normalized_channel,
         downsample=normalized_downsample,
+        estimated_nbytes=memory_estimate.estimated_bytes,
+        warnings=warnings,
     )
 
 
@@ -95,6 +113,8 @@ def read_trace(
     time_slice: SliceLike = None,
     downsample: int | tuple[int, int] | None = None,
     reader_registry: ReaderRegistry | None = None,
+    max_estimated_bytes: int | None = None,
+    warn_large_selection: bool = True,
 ) -> SelectionResult:
     """Read one or a few channels as a waveform-friendly selection."""
 
@@ -112,6 +132,8 @@ def read_trace(
             channel_slice=channel_slice,
             downsample=(time_step, 1),
             reader_registry=reader_registry,
+            max_estimated_bytes=max_estimated_bytes,
+            warn_large_selection=warn_large_selection,
         )
         return SelectionResult(
             das_data=_with_trace_attrs(result.das_data, channels, contiguous=True),
@@ -120,6 +142,8 @@ def read_trace(
             channel_slice=result.channel_slice,
             downsample=result.downsample,
             requested_channels=tuple(channels),
+            estimated_nbytes=result.estimated_nbytes,
+            warnings=result.warnings,
         )
 
     start = min(channels)
@@ -130,6 +154,8 @@ def read_trace(
         channel_slice=slice(start, stop),
         downsample=(time_step, 1),
         reader_registry=reader_registry,
+        max_estimated_bytes=max_estimated_bytes,
+        warn_large_selection=warn_large_selection,
     )
     relative_columns = [channel_index - start for channel_index in channels]
     selected = np.asarray(result.das_data.data)[:, relative_columns]
@@ -141,6 +167,8 @@ def read_trace(
         channel_slice=result.channel_slice,
         downsample=result.downsample,
         requested_channels=tuple(channels),
+        estimated_nbytes=result.estimated_nbytes,
+        warnings=result.warnings,
     )
 
 

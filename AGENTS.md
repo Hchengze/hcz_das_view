@@ -61,6 +61,15 @@ All internal core arrays must use:
 - GUI must not directly implement complex algorithms.
 - GUI must not depend on concrete HDF5 internal paths; it should call reader/core APIs.
 - Large files must be handled with slicing, downsampling, or lazy-access plans before full visualization.
+- Do not default to full-array reads for large files. Prefer bounded
+  selections, preview downsampling, metadata-only estimates, and explicit
+  user limits.
+- CLI and GUI workflows should expose or preserve bounded defaults such as
+  max_samples, max_channels, and optional estimated-memory guards.
+- Local performance smoke outputs, validation outputs, preview images, JSON,
+  CSV, and path-list files are user artifacts and must not be committed.
+- Real/private data paths may be used only for local validation and must not be
+  written into docs, notebooks, handoff files, examples, or tests.
 - Prefer explicit exceptions from das_view.core.exceptions.
 - When adding more advanced DAS functionality, prefer general, testable,
   low-risk data-quality and feature-analysis helpers first.

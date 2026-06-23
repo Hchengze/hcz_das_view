@@ -193,6 +193,12 @@ Current coverage:
   mutation, bounded service reads, preprocessing and denoise history,
   hcz-das-moveout JSON outputs, readable dx_m errors, Matplotlib moveout plots,
   plugin metadata, public API imports, and entrypoint declarations.
+- Phase 8A large-file workflow tests cover memory estimation helpers,
+  selection-size estimates with slices/downsampling, service guard
+  compatibility and over-limit errors, key CLI --max-estimated-mb parsing and
+  readable errors, metadata full-array size display, performance_smoke parser
+  and synthetic HDF5 smoke output, and Matplotlib figure cleanup after plotting
+  tests.
 - FK analysis tests cover synthetic plane-wave peak frequency/wavenumber
   detection, amplitude/power shapes, DASData metadata sample-rate/dx handling,
   invalid sample_rate_hz/dx/nfft/dimensionality/NaN/Inf/too-short inputs, and
@@ -286,9 +292,15 @@ For cache-free runs during agent work:
 - Batch real/quasi-real validation should use examples/validate_local_samples.py
   with local_validation_paths.txt. The path file and validation output
   directories are ignored by git.
+- Real-data performance smoke validation is local and bounded. It should use
+  examples/validate_local_samples.py and examples/performance_smoke.py with
+  user-owned paths, and must not become an automated dependency on private data.
 - Phase 2E validated five local real/quasi-real samples selected from two
   user-provided directories: three Puniu DAT samples and two ZD HDF5 samples.
   The validation covered metadata, preview, waveform, spectrum, Welch PSD,
   spectrogram, statistics, spectral attributes, FK transform, and FK-filter
   smoke paths. These local files remain outside automated tests; synthetic tests
   cover the reader/tooling compatibility fixes.
+- Phase 8A refreshed local real/quasi-real validation with three Puniu DAT
+  samples and two ZD HDF5 samples. Metadata and preview checks passed for all
+  selected samples, and the path list remained an ignored local artifact.

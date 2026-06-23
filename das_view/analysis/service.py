@@ -512,6 +512,7 @@ def compute_statistics_for_file(
     percentiles=(1, 5, 25, 50, 75, 95, 99),
     preprocessing_steps: Sequence[StepLike] | None = None,
     nan_policy: Literal["omit", "raise"] = "omit",
+    max_estimated_bytes: int | None = None,
 ) -> StatisticsServiceResult:
     """Read a bounded 2-D selection and compute basic DAS statistics."""
 
@@ -522,6 +523,7 @@ def compute_statistics_for_file(
         time_slice=bounded_time,
         channel_slice=bounded_channel,
         downsample=downsample,
+        max_estimated_bytes=max_estimated_bytes,
     )
     das_data = selection.das_data
     if preprocessing_steps:
@@ -622,6 +624,7 @@ def compute_quality_report_for_file(
     preprocessing_steps: Sequence[StepLike] | None = None,
     nan_policy: Literal["omit", "raise"] = "omit",
     clipping_threshold: float | None = None,
+    max_estimated_bytes: int | None = None,
 ) -> QualityReportServiceResult:
     """Read a bounded 2-D selection and compute DAS QC metrics."""
 
@@ -633,6 +636,7 @@ def compute_quality_report_for_file(
         max_channels=max_channels,
         downsample=downsample,
         preprocessing_steps=preprocessing_steps,
+        max_estimated_bytes=max_estimated_bytes,
     )
     result = data_quality_report(
         das_data,
@@ -657,6 +661,7 @@ def compute_multiband_map_for_file(
     preprocessing_steps: Sequence[StepLike] | None = None,
     normalize: Literal["total", "max"] | None = None,
     nan_policy: Literal["omit", "raise"] = "raise",
+    max_estimated_bytes: int | None = None,
 ) -> MultibandMapServiceResult:
     """Read a bounded 2-D selection and compute a multiband energy map."""
 
@@ -669,6 +674,7 @@ def compute_multiband_map_for_file(
         downsample=downsample,
         preprocessing_steps=preprocessing_steps,
         require_sample_rate=True,
+        max_estimated_bytes=max_estimated_bytes,
     )
     result = multiband_energy_map(
         das_data,
@@ -696,6 +702,7 @@ def compute_spectral_attribute_map_for_file(
     frequency_range=None,
     attributes=("dominant_frequency", "centroid", "bandwidth", "rolloff"),
     nan_policy: Literal["omit", "raise"] = "raise",
+    max_estimated_bytes: int | None = None,
 ) -> MultibandMapServiceResult:
     """Read a bounded 2-D selection and compute spectral attribute maps."""
 
@@ -708,6 +715,7 @@ def compute_spectral_attribute_map_for_file(
         downsample=downsample,
         preprocessing_steps=preprocessing_steps,
         require_sample_rate=True,
+        max_estimated_bytes=max_estimated_bytes,
     )
     result = spectral_attribute_map(
         das_data,
@@ -734,6 +742,7 @@ def compute_coherence_for_file(
     downsample: int | tuple[int, int] | None = None,
     preprocessing_steps: Sequence[StepLike] | None = None,
     nan_policy: Literal["omit", "raise"] = "omit",
+    max_estimated_bytes: int | None = None,
 ) -> CoherenceServiceResult:
     """Read a bounded 2-D selection and compute local channel coherence."""
 
@@ -745,6 +754,7 @@ def compute_coherence_for_file(
         max_channels=max_channels,
         downsample=downsample,
         preprocessing_steps=preprocessing_steps,
+        max_estimated_bytes=max_estimated_bytes,
     )
     result = local_channel_coherence(
         das_data,
@@ -920,6 +930,7 @@ def compute_denoised_selection_for_file(
     downsample: int | tuple[int, int] | None = None,
     denoise_steps: Sequence[DenoiseStepLike] | None = None,
     preprocessing_steps: Sequence[StepLike] | None = None,
+    max_estimated_bytes: int | None = None,
 ) -> DenoiseServiceResult:
     """Read a bounded selection and apply traditional signal enhancement."""
 
@@ -932,6 +943,7 @@ def compute_denoised_selection_for_file(
         downsample=downsample,
         preprocessing_steps=preprocessing_steps,
         require_sample_rate=False,
+        max_estimated_bytes=max_estimated_bytes,
     )
     result = apply_denoise_workflow(das_data, denoise_steps or (), axis=0, return_report=True)
     if not isinstance(result, DenoiseResult):
@@ -949,6 +961,7 @@ def compute_enhancement_report_for_file(
     downsample: int | tuple[int, int] | None = None,
     denoise_steps: Sequence[DenoiseStepLike] | None = None,
     preprocessing_steps: Sequence[StepLike] | None = None,
+    max_estimated_bytes: int | None = None,
 ) -> EnhancementReportServiceResult:
     """Read a bounded selection and return only the enhancement report."""
 
@@ -961,6 +974,7 @@ def compute_enhancement_report_for_file(
         downsample=downsample,
         denoise_steps=denoise_steps,
         preprocessing_steps=preprocessing_steps,
+        max_estimated_bytes=max_estimated_bytes,
     )
     return EnhancementReportServiceResult(
         result=service_result.result.report,
@@ -985,6 +999,7 @@ def compute_directional_energy_for_file(
     denoise_steps: Sequence[DenoiseStepLike] | None = None,
     velocity_bands=None,
     nan_policy: Literal["omit", "raise"] = "raise",
+    max_estimated_bytes: int | None = None,
 ) -> DirectionalEnergyServiceResult:
     """Read a bounded selection and compute FK directional-energy attributes."""
 
@@ -998,6 +1013,7 @@ def compute_directional_energy_for_file(
         preprocessing_steps=preprocessing_steps,
         denoise_steps=denoise_steps,
         require_sample_rate=True,
+        max_estimated_bytes=max_estimated_bytes,
     )
     result = fk_directional_energy(
         das_data,
@@ -1030,6 +1046,7 @@ def compute_apparent_moveout_for_file(
     step_samples: int | None = None,
     max_lag_samples: int | None = None,
     nan_policy: Literal["omit", "raise"] = "raise",
+    max_estimated_bytes: int | None = None,
 ) -> ApparentMoveoutServiceResult:
     """Read a bounded selection and compute apparent moveout attributes."""
 
@@ -1043,6 +1060,7 @@ def compute_apparent_moveout_for_file(
         preprocessing_steps=preprocessing_steps,
         denoise_steps=denoise_steps,
         require_sample_rate=True,
+        max_estimated_bytes=max_estimated_bytes,
     )
     result = estimate_apparent_slope_xcorr(
         das_data,
@@ -1078,6 +1096,7 @@ def compute_moveout_summary_for_file(
     step_samples: int | None = None,
     velocity_bands=None,
     nan_policy: Literal["omit", "raise"] = "raise",
+    max_estimated_bytes: int | None = None,
 ) -> MoveoutSummaryServiceResult:
     """Read a bounded selection and compute a moveout summary report."""
 
@@ -1091,6 +1110,7 @@ def compute_moveout_summary_for_file(
         preprocessing_steps=preprocessing_steps,
         denoise_steps=denoise_steps,
         require_sample_rate=True,
+        max_estimated_bytes=max_estimated_bytes,
     )
     result = moveout_summary_report(
         das_data,
@@ -1236,6 +1256,7 @@ def _read_selection_and_maybe_preprocess(
     downsample: int | tuple[int, int] | None,
     preprocessing_steps: Sequence[StepLike] | None,
     require_sample_rate: bool = True,
+    max_estimated_bytes: int | None = None,
 ) -> tuple[DASData, SelectionResult]:
     bounded_time = _bounded_slice(time_slice, max_samples=max_samples, axis_name="time")
     bounded_channel = _bounded_slice(channel_slice, max_samples=max_channels, axis_name="channel")
@@ -1244,6 +1265,7 @@ def _read_selection_and_maybe_preprocess(
         time_slice=bounded_time,
         channel_slice=bounded_channel,
         downsample=downsample,
+        max_estimated_bytes=max_estimated_bytes,
     )
     das_data = selection.das_data
     if preprocessing_steps:
@@ -1264,6 +1286,7 @@ def _read_preprocess_denoise(
     preprocessing_steps: Sequence[StepLike] | None,
     denoise_steps: Sequence[DenoiseStepLike] | None,
     require_sample_rate: bool,
+    max_estimated_bytes: int | None = None,
 ) -> tuple[DASData, SelectionResult, tuple[dict[str, Any], ...], tuple[dict[str, Any], ...]]:
     das_data, selection = _read_selection_and_maybe_preprocess(
         path,
@@ -1274,6 +1297,7 @@ def _read_preprocess_denoise(
         downsample=downsample,
         preprocessing_steps=preprocessing_steps,
         require_sample_rate=require_sample_rate,
+        max_estimated_bytes=max_estimated_bytes,
     )
     preprocessing_history = _preprocessing_history(das_data)
     denoise_history: tuple[dict[str, Any], ...] = ()

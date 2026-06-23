@@ -20,16 +20,16 @@ phases.
 - Development model: the new das_view/ package is being rebuilt after auditing
   legacy material under old_code/.
 - New runtime code must not depend on, import, or call old_code.
-- Latest project state: current HEAD after Phase 7D wavefield moveout assisted
-  analysis.
-- Current phase: Phase 7D, Level 5 lightweight wavefield-assisted attributes:
-  FK directional energy, apparent slope, apparent velocity attribute, local
-  moveout coherence, moveout summary reports, hcz-das-moveout, and plotting
-  helpers.
-- Current expected test result after Phase 7D: 503 passed. The count increased
-  from the Phase 7C baseline of 481 because Phase 7D added moveout analysis,
-  service, CLI, plotting, plugin metadata, entrypoint, public API, and tutorial
-  coverage tests.
+- Latest project state: current HEAD after Phase 8A real-data performance and
+  large-file workflow hardening.
+- Current phase: Phase 8A, large-file workflow hardening: metadata-only memory
+  estimates, optional selection-size guards, CLI --max-estimated-mb limits,
+  GUI metadata size hints, bounded performance smoke diagnostics, and refreshed
+  local real/quasi-real validation.
+- Current expected test result after Phase 8A: 519 passed with no Matplotlib
+  open-figure warning. The count increased from the Phase 7D baseline because
+  Phase 8A added memory utility, selection guard, CLI limit, performance
+  smoke, metadata display, tutorial, and figure-cleanup coverage.
 
 ## 2. Repository and environment
 
@@ -88,7 +88,7 @@ phases.
 - das_view/core/: core data structures, metadata formatting, and package
   exceptions.
 - das_view/io/: file readers, reader registry, preview generation, and data
-  selection services.
+  selection services with optional estimated-memory guards.
 - das_view/processing/: pure preprocessing functions, scipy-based filters,
   traditional denoising/enhancement helpers, and DASData-level processing
   service.
@@ -111,7 +111,8 @@ phases.
   workflows, and moveout-assisted analysis workflows.
 - das_view/gui/: optional PyQt5 application, main window, models, and worker
   scaffolding.
-- das_view/utils/: shared utilities, including slicing helpers.
+- das_view/utils/: shared utilities, including slicing and memory-estimation
+  helpers.
 - examples/: small CLI and GUI entry points for supported workflows.
 - packaging/: Windows packaging notes, a PyInstaller spec, and a PowerShell
   build helper. Generated build/dist artifacts are not committed.
@@ -295,6 +296,12 @@ Key modules:
   cross-correlation, apparent velocity attributes, local moveout coherence,
   moveout summary reports, bounded service functions, hcz-das-moveout,
   Matplotlib moveout plots, plugin metadata, tests, and tutorial updates.
+- Phase 8A: hardened real-data and large-file workflows without adding new
+  analysis algorithms. Added metadata-only selection memory estimates,
+  optional service-layer max_estimated_bytes guards, key CLI
+  --max-estimated-mb options, GUI metadata full-array size hints, a bounded
+  performance smoke utility, local real/quasi-real validation refresh, and
+  Matplotlib plotting-test figure cleanup.
 
 ## 7. Current supported capabilities
 
@@ -312,7 +319,8 @@ Key modules:
 ### Data services
 
 - Preview service via create_preview.
-- General bounded selection via read_selection.
+- General bounded selection via read_selection, with optional estimated-memory
+  guard before reader IO.
 - Trace/channel selection via read_trace.
 
 ### Installed entry points
@@ -656,17 +664,18 @@ Status:
 
       Not implemented. This is the recommended next release-hardening step.
 
-### Option B: Phase 8A Real-data performance hardening and large-file workflow
+### Option B: Phase 8B GUI usability polish and large-file UX
 
 Goal:
 
-      Validate performance and memory behavior on larger real or quasi-real
-      bounded DAS workflows without committing data or generated outputs.
+      Polish GUI-facing large-file prompts, selection-size warnings, and
+      usability around bounded preview/analysis workflows.
 
 Status:
 
-      Not implemented. This is the recommended data/performance hardening step
-      after Phase 7D.
+      Not implemented. Phase 8A added the base service/CLI/metadata guard
+      layer; Phase 8B can improve user-facing GUI ergonomics without adding
+      algorithms.
 
 ### Option C: Phase 2E real sample validation refresh
 

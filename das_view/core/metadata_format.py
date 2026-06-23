@@ -9,6 +9,7 @@ from __future__ import annotations
 from typing import Any
 
 from das_view.core.data_model import DASMetadata
+from das_view.utils.memory import estimate_array_nbytes, format_nbytes
 
 
 def metadata_to_dict(metadata: DASMetadata) -> dict[str, Any]:
@@ -27,6 +28,9 @@ def metadata_to_dict(metadata: DASMetadata) -> dict[str, Any]:
         "start_channel": metadata.start_channel,
         "start_time": metadata.start_time,
         "duration_s": duration_s,
+        "estimated_full_array_size": format_nbytes(
+            estimate_array_nbytes(metadata.n_samples, metadata.n_channels)
+        ),
     }
     if metadata.dx_m is not None:
         result["distance_range_m"] = _distance_range_m(metadata)
@@ -51,6 +55,7 @@ def metadata_summary_lines(metadata: DASMetadata) -> list[str]:
         "start_channel",
         "start_time",
         "duration_s",
+        "estimated_full_array_size",
     ]
     if "distance_range_m" in values:
         keys.append("distance_range_m")

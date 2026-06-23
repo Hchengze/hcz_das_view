@@ -52,6 +52,9 @@ Implemented so far:
 - Advanced DAS QC and feature analysis, including channel quality metrics, bad
   channel flags, noise-floor and SNR estimates, multiband energy maps,
   spectral-attribute maps, and local channel coherence.
+- Large-file workflow hardening with metadata-only memory estimates, optional
+  analysis size guards, GUI metadata size hints, and bounded local performance
+  smoke diagnostics.
 - Minimal GUI Analysis tab for bounded statistics, band energy, spectral
   attributes, event candidates, ROI statistics, and JSON/CSV export.
 - Packaging metadata, installed CLI/GUI entry points, Windows PyInstaller
@@ -129,6 +132,8 @@ After installation, the package provides these command names:
     hcz-das-events --help
     hcz-das-extensions --help
     hcz-das-qc --help
+    hcz-das-denoise --help
+    hcz-das-moveout --help
     hcz-das-view --help
 
 The command-line tools use bounded service-layer workflows and do not read
@@ -155,8 +160,34 @@ Examples:
     hcz-das-moveout input.h5 --directional-energy --output direction.json
     hcz-das-moveout input.h5 --apparent-moveout --channel-lag 1 --window-samples 1024 --step-samples 512 --output moveout.json
     hcz-das-moveout input.h5 --summary --channel-lag 1 --output moveout_summary.json
+    hcz-das-stats input.h5 --max-estimated-mb 256
+    hcz-das-qc input.h5 --quality-report --max-estimated-mb 256
+    hcz-das-denoise input.h5 --common-mode median --max-estimated-mb 256
+    hcz-das-moveout input.h5 --summary --max-estimated-mb 256
 
 Generated outputs are local user artifacts and should not be committed.
+
+## Large-file workflow
+
+Large DAS files should be opened through bounded selections rather than full
+array reads. Preview and analysis services use safe defaults such as
+`max_samples` and `max_channels`; key CLI tools also accept
+`--max-estimated-mb` to reject selections whose estimated dense array size is
+too large for the intended workflow.
+
+The GUI metadata panel displays sample count, channel count, duration, spacing,
+and estimated full array size. This estimate is derived from metadata and does
+not read the full data matrix.
+
+For local performance diagnosis on user-owned data, run bounded smoke
+operations:
+
+    python examples/performance_smoke.py input.h5 --max-samples 4096 --max-channels 512
+    python examples/performance_smoke.py input.dat --operations preview,statistics,qc --max-estimated-mb 256
+
+The smoke utility prints operation name, elapsed seconds, selection shape, and
+estimated memory. Optional JSON timing output is a local artifact and should
+not be committed.
 
 ## Advanced DAS QC and multiband features
 
@@ -285,6 +316,11 @@ Batch-validate local samples listed in an ignored local_validation_paths.txt:
 
     python examples/validate_local_samples.py
     python examples/validate_local_samples.py --save-preview-dir validation_outputs
+
+Run bounded local performance smoke checks:
+
+    python examples/performance_smoke.py input.h5 --operations preview,statistics,qc
+    python examples/performance_smoke.py input.dat --max-samples 4096 --max-channels 512 --max-estimated-mb 256
 
 Plot one or more waveform traces:
 
@@ -474,9 +510,10 @@ paths only.
 ## Data policy
 
 Do not commit real DAS data or generated preview images. Large files should be
-opened through slicing/downsampling preview workflows. The preprocessing,
-filter, spectrum, statistics, spectral-attributes, and FK examples work on
-bounded preview/trace data only; they do not export processed full-size DAS arrays. Filtering and spectrogram
+opened through slicing/downsampling preview workflows and bounded analysis
+selections. The preprocessing, filter, spectrum, statistics,
+spectral-attributes, QC, denoise, moveout, and FK examples work on bounded
+preview/trace/selection data only; they do not export processed full-size DAS arrays. Filtering and spectrogram
 analysis depend on scipy.signal. Spectrum and FK examples cover bounded
 traces/previews only and do not export full processed arrays. Specialized
 inversion or picking workflows are outside the current main roadmap and would
@@ -488,8 +525,9 @@ convention is always:
 Reader implementations convert external formats into this convention and store
 source-specific details in metadata extra_attrs.
 
-local_validation_paths.txt, validation_outputs/, outputs/, DAS data files, and
-generated images are intentionally ignored by git.
+local_validation_paths.txt, validation_outputs/, outputs/, DAS data files,
+generated images, JSON/CSV outputs, and temporary pytest/performance artifacts
+are intentionally ignored by git.
 
 ## Development principles
 

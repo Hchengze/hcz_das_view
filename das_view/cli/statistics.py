@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from das_view.analysis.service import compute_statistics_for_file
+from das_view.core.exceptions import ReaderError
 from das_view.io.export import save_csv_rows, save_json
 
 
@@ -21,6 +22,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--channel-step", type=int, default=1, help="Channel step")
     parser.add_argument("--max-samples", type=int, default=4096)
     parser.add_argument("--max-channels", type=int, default=512)
+    parser.add_argument(
+        "--max-estimated-mb",
+        type=float,
+        default=None,
+        help="Reject selections estimated above this MiB limit; defaults stay bounded by max samples/channels.",
+    )
     parser.add_argument("--axis", choices=("global", "time", "channel"), default="global")
     parser.add_argument("--percentiles", type=float, nargs="+", default=[1, 5, 25, 50, 75, 95, 99])
     parser.add_argument("--nan-policy", choices=("omit", "raise"), default="omit")
@@ -57,18 +64,30 @@ def result_summary_rows(result) -> list[dict[str, Any]]:
     ]
 
 
+def max_estimated_bytes(value: float | None) -> int | None:
+    if value is None:
+        return None
+    if value < 0:
+        raise ValueError("--max-estimated-mb must be non-negative")
+    return int(value * 1024 * 1024)
+
+
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
-    service_result = compute_statistics_for_file(
-        args.input,
-        time_slice=slice(args.time_start, args.time_stop, args.time_step),
-        channel_slice=slice(args.channel_start, args.channel_stop, args.channel_step),
-        max_samples=args.max_samples,
-        max_channels=args.max_channels,
-        axis=axis_from_label(args.axis),
-        percentiles=args.percentiles,
-        nan_policy=args.nan_policy,
-    )
+    try:
+        service_result = compute_statistics_for_file(
+            args.input,
+            time_slice=slice(args.time_start, args.time_stop, args.time_step),
+            channel_slice=slice(args.channel_start, args.channel_stop, args.channel_step),
+            max_samples=args.max_samples,
+            max_channels=args.max_channels,
+            axis=axis_from_label(args.axis),
+            percentiles=args.percentiles,
+            nan_policy=args.nan_policy,
+            max_estimated_bytes=max_estimated_bytes(args.max_estimated_mb),
+        )
+    except (ReaderError, ValueError) as exc:
+        raise SystemExit(f"statistics error: {exc}") from exc
     rows = result_summary_rows(service_result)
     print(f"reader_name: {service_result.reader_name}")
     print(f"selection_shape: {service_result.das_data.data.shape}")

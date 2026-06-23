@@ -60,6 +60,7 @@
       - workers.py
     - utils/
       - slicing.py
+      - memory.py
       - validation.py
       - logging.py
 
@@ -99,7 +100,8 @@
   and avoid depending on examples/ as package API.
 - gui: optional PyQt5 layer that calls preview, formatting, plotting,
   analysis-service, and export-helper APIs.
-- utils: validation, slicing, logging, and shared small helpers.
+- utils: validation, slicing, memory estimation, logging, and shared small
+  helpers.
 - docs/09_tutorial_user_manual.ipynb: stable user tutorial and operation
   manual. It is not a development log, test report, or commit history.
 
@@ -223,6 +225,8 @@ Reader responsibilities:
 
 - das_view/core/metadata_format.py converts DASMetadata into stable dictionaries,
   summary lines, and text blocks for CLI and GUI display.
+- Metadata formatting includes an estimated full array size derived from
+  metadata. This is a planning hint and does not read the full data matrix.
 - das_view/io/preview.py owns the lightweight preview workflow:
   path -> reader selection -> metadata read -> bounded slice/downsample read -> PreviewResult.
 - PreviewResult includes full-file metadata, preview DASData, reader name, normalized
@@ -235,11 +239,29 @@ Reader responsibilities:
 - das_view/io/data_service.py provides GUI/CLI reusable bounded data access helpers.
 - read_selection selects a reader, validates time/channel slices in internal coordinates,
   and delegates actual IO to the reader with optional downsampling.
+- read_selection estimates dense selection size before reading. Callers may
+  pass max_estimated_bytes to reject oversized selections with a
+  user-readable ReaderError. The default remains compatible and does not reject
+  existing calls.
 - read_trace reads one or a small set of channels for waveform views. Single-channel
   requests are passed to the reader as a narrow channel slice; non-contiguous multi-channel
   requests read the smallest enclosing channel window and then keep the requested columns.
-- SelectionResult records the selected reader, normalized slices, downsampling, and
-  requested channels. Callers should use this service instead of duplicating reader logic.
+- SelectionResult records the selected reader, normalized slices, downsampling,
+  requested channels, optional estimated_nbytes, and warnings. Callers should
+  use this service instead of duplicating reader logic.
+
+## Large-file workflow
+
+- Preview and analysis entry points should use bounded time/channel selections
+  by default.
+- CLI tools for heavier workflows may expose --max-estimated-mb, which maps to
+  service-layer max_estimated_bytes before any data read.
+- GUI metadata displays full-file shape and estimated full array size, while
+  preview/waveform/spectrum/FK/analysis workflows continue to call bounded
+  service APIs.
+- examples/performance_smoke.py is a local diagnostic utility for bounded
+  timing checks. It is not an automated real-data test and generated JSON
+  timing files must not be committed.
 
 ## Export helpers
 

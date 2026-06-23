@@ -10,6 +10,7 @@ from das_view.analysis.service import (
     compute_directional_energy_for_file,
     compute_moveout_summary_for_file,
 )
+from das_view.core.exceptions import ReaderError
 from das_view.io.export import save_json, to_jsonable
 
 
@@ -24,6 +25,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--channel-step", type=int, default=1)
     parser.add_argument("--max-samples", type=int, default=4096)
     parser.add_argument("--max-channels", type=int, default=512)
+    parser.add_argument(
+        "--max-estimated-mb",
+        type=float,
+        default=None,
+        help="Reject selections estimated above this MiB limit; defaults stay bounded by max samples/channels.",
+    )
     parser.add_argument("--directional-energy", action="store_true")
     parser.add_argument("--apparent-moveout", action="store_true")
     parser.add_argument("--summary", action="store_true")
@@ -42,16 +49,25 @@ def _selection(args):
         "channel_slice": slice(args.channel_start, args.channel_stop, args.channel_step),
         "max_samples": args.max_samples,
         "max_channels": args.max_channels,
+        "max_estimated_bytes": _max_estimated_bytes(args.max_estimated_mb),
     }
+
+
+def _max_estimated_bytes(value: float | None) -> int | None:
+    if value is None:
+        return None
+    if value < 0:
+        raise ValueError("--max-estimated-mb must be non-negative")
+    return int(value * 1024 * 1024)
 
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     if not (args.directional_energy or args.apparent_moveout or args.summary):
         args.summary = True
-    common = _selection(args)
     payload = {}
     try:
+        common = _selection(args)
         if args.directional_energy:
             result = compute_directional_energy_for_file(args.input, nan_policy=args.nan_policy, **common)
             payload["directional_energy"] = result.result
@@ -81,7 +97,7 @@ def main(argv: list[str] | None = None) -> int:
             payload["summary"] = result.result
             print(f"summary_direction: {result.result.summary['dominant_direction']}")
             print(f"mean_abs_correlation_peak: {result.result.summary['mean_abs_correlation_peak']}")
-    except ValueError as exc:
+    except (ReaderError, ValueError) as exc:
         raise SystemExit(f"moveout analysis error: {exc}") from exc
     if args.output is not None:
         save_json(to_jsonable(payload), args.output)

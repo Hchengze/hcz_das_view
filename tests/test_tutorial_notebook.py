@@ -66,6 +66,13 @@ def test_tutorial_notebook_contains_user_manual_keywords():
     assert "Local moveout coherence" in text
     assert "Moveout summary report" in text
     assert "hcz-das-moveout" in text
+    assert "Large-file workflow" in text
+    assert "Bounded selection" in text
+    assert "memory estimate" in text.lower()
+    assert "CLI large-file usage" in text
+    assert "GUI large-file usage" in text
+    assert "Performance smoke utility" in text
+    assert "examples/performance_smoke.py" in text
 
 
 def test_tutorial_notebook_avoids_local_paths_and_development_content():

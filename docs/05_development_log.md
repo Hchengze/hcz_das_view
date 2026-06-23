@@ -2509,3 +2509,97 @@ intended for commit.
 
 Phase 6D: Release CI planning, or Phase 8A: Real-data performance hardening and
 large-file workflow.
+
+## 2026-06-23: Phase 8A Real-data performance hardening and large-file workflow
+
+### Goal
+
+Harden real-data and large-file workflows without adding new analysis
+algorithms, readers, GUI feature panels, deep learning, location, inversion,
+surface-wave imaging, MASW, F-J, or dispersion-picking functionality.
+
+### Added or modified files
+
+- README.md
+- AGENTS.md
+- das_view/utils/memory.py
+- das_view/io/data_service.py
+- das_view/core/metadata_format.py
+- das_view/analysis/service.py
+- das_view/cli/statistics.py
+- das_view/cli/qc.py
+- das_view/cli/denoise.py
+- das_view/cli/moveout.py
+- examples/performance_smoke.py
+- tests/conftest.py
+- tests/test_memory_utils.py
+- tests/test_large_selection_guards.py
+- tests/test_performance_smoke_example.py
+- docs/09_tutorial_user_manual.ipynb
+- docs/02_architecture.md
+- docs/05_development_log.md
+- docs/06_testing.md
+- docs/07_roadmap.md
+- docs/08_project_handoff.md
+
+### Large-file and performance hardening
+
+- Added metadata-only memory-estimation helpers for dense array and selected
+  time/channel window sizes.
+- Added optional max_estimated_bytes guard to read_selection and key
+  analysis-service workflows. Defaults remain backward compatible.
+- Added estimated_nbytes and warnings fields to SelectionResult.
+- Added estimated full array size to metadata display for CLI/GUI reuse.
+- Added --max-estimated-mb to hcz-das-stats, hcz-das-qc, hcz-das-denoise, and
+  hcz-das-moveout.
+- Added examples/performance_smoke.py for bounded local timing diagnostics.
+- Added pytest-only Matplotlib figure cleanup to prevent open-figure warnings
+  without changing runtime plotting behavior.
+
+### Local real/quasi-real validation
+
+- Refreshed local validation on a representative bounded set: three Puniu DAT
+  samples and two ZD HDF5 samples.
+- Result: 5/5 samples passed metadata and preview validation.
+- The validation used local user-owned paths only. No real paths, real DAS
+  data, validation outputs, images, JSON/CSV files, or local path lists are
+  intended for commit.
+
+### Tests
+
+- Focused Phase 8A tests:
+  python -B -m pytest -p no:cacheprovider --basetemp .tmp_pytest/phase8a_focused tests/test_memory_utils.py tests/test_large_selection_guards.py tests/test_performance_smoke_example.py tests/test_qc_cli.py tests/test_denoise_cli.py tests/test_moveout_cli.py tests/test_metadata_format.py -q
+  Result: 32 passed.
+- Full test result:
+  python -B -m pytest -p no:cacheprovider --basetemp .tmp_pytest/phase8a_full
+  Result: 519 passed. Test count increased from 503 to 519 because Phase 8A
+  added memory utility, selection guard, CLI limit, performance smoke,
+  metadata display, tutorial, and Matplotlib figure-cleanup coverage tests.
+  The previous Matplotlib open-figure warning no longer appears.
+
+### Old-code migration judgment
+
+No old_code files were copied, imported, modified, or used for implementation.
+This phase adds large-file workflow hardening under the new package interfaces.
+
+### Data and artifact policy confirmation
+
+No real DAS data, generated images, validation_outputs artifacts,
+local_validation_paths.txt, local absolute data paths, JSON/CSV outputs,
+build/dist artifacts, wheels, archives, exe files, .tmp_pytest directories, or
+local output files are intended for commit.
+
+### Not completed
+
+- Larger real-data coverage remains future work.
+- Automated release CI is not implemented.
+- Windows exe signing is not implemented.
+- Moveout and apparent velocity attributes need further real-data validation.
+- Plugin API still needs validation with real third-party plugin packages.
+- The tutorial notebook should continue to be maintained as stable features
+  mature.
+
+### Suggested next round
+
+Phase 6D: Release CI planning, or Phase 8B: GUI usability polish and
+large-file UX.
