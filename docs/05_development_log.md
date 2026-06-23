@@ -2743,3 +2743,103 @@ dispersion picking, location, inversion, or geologic interpretation features.
 No old_code files were copied, imported, modified, or used for implementation.
 This phase only polishes GUI safety and workflow behavior around existing
 service-layer capabilities.
+
+## Phase 9A: Optional GPU compute acceleration backend
+
+Phase 9A introduces a conservative CPU-first optional compute backend. It does
+not add GPU display acceleration, deep learning, new readers, GUI algorithms,
+surface-wave imaging, MASW, F-J, dispersion picking, source location,
+inversion, or geologic interpretation workflows.
+
+### Added or modified files
+
+- das_view/acceleration/__init__.py
+- das_view/acceleration/backend.py
+- das_view/acceleration/numpy_backend.py
+- das_view/acceleration/cupy_backend.py
+- das_view/acceleration/device.py
+- das_view/analysis/statistics.py
+- das_view/analysis/spectral_attributes.py
+- das_view/analysis/multiband.py
+- das_view/analysis/fk.py
+- das_view/analysis/moveout.py
+- das_view/analysis/qc.py
+- das_view/analysis/service.py
+- das_view/cli/statistics.py
+- das_view/cli/qc.py
+- das_view/cli/moveout.py
+- tests/test_acceleration_backend.py
+- tests/test_gpu_optional_paths.py
+- pyproject.toml
+- README.md
+- AGENTS.md
+- docs/02_architecture.md
+- docs/05_development_log.md
+- docs/06_testing.md
+- docs/07_roadmap.md
+- docs/08_project_handoff.md
+- docs/09_tutorial_user_manual.ipynb
+
+### Acceleration backend work
+
+- Added a lazy `das_view.acceleration` package with NumPy CPU helpers, lazy
+  CuPy detection/conversion helpers, backend resolution, `to_numpy`,
+  `as_backend_array`, and serializable acceleration description.
+- Kept CPU as the default backend. `backend="auto"` resolves to CPU in Phase
+  9A so existing API, CLI, service, and GUI behavior does not change.
+- Kept CuPy out of top-level imports. `import das_view` and CPU backend use do
+  not import CuPy.
+- Left `pyproject.toml` GPU extra empty because CuPy wheel names are
+  CUDA-specific; documentation tells users to install a matching package such
+  as `cupy-cuda12x` separately.
+
+### Optional analysis paths
+
+- Added optional backend parameters to basic statistics reductions.
+- Added optional backend parameters to QC reductions for RMS, STD, abs_mean,
+  and energy while keeping existing NumPy flag/spike logic unchanged.
+- Added optional backend parameters to FFT-backed band energy, spectral
+  attributes, multiband energy maps, and spectral-attribute maps.
+- Added optional backend parameters to FK transform, FK directional energy, and
+  moveout summary directional-energy paths.
+- Added explicit `--backend cpu/gpu/auto` options to `hcz-das-stats`,
+  `hcz-das-qc`, and `hcz-das-moveout`. No GUI GPU display path was added.
+
+### Tests
+
+- Focused Phase 9A tests:
+  python -B -m pytest -p no:cacheprovider tests/test_acceleration_backend.py tests/test_gpu_optional_paths.py tests/test_statistics_analysis.py tests/test_multiband_analysis.py tests/test_fk_analysis.py tests/test_qc_analysis.py tests/test_cli_entrypoints.py
+  Result: 70 passed, 1 skipped. The skipped test is the real CuPy numerical
+  equivalence check on CPU-only/no-CuPy environments.
+- Full test result:
+  python -B -m pytest -p no:cacheprovider --basetemp .tmp_pytest\phase9a_full
+  Result: 553 passed, 1 skipped. The first full-test attempt without
+  repository-local basetemp hit the known Windows default TEMP permission issue
+  at C:\Users\houch\AppData\Local\Temp\pytest-of-houch, then passed with the
+  documented `.tmp_pytest` workaround.
+
+### Old-code migration judgment
+
+No old_code files were copied, imported, modified, or used for implementation.
+This phase implements a new optional acceleration layer and does not migrate
+historical old-code logic.
+
+### Data and artifact policy confirmation
+
+No real DAS data, generated images, validation_outputs artifacts,
+local_validation_paths.txt, local absolute data paths, JSON/CSV outputs,
+build/dist artifacts, wheels, archives, exe files, .tmp_pytest directories, or
+local output files are intended for commit.
+
+### Not completed
+
+- GPU display acceleration is not implemented; it remains a possible Phase 9B
+  topic.
+- CuPy numerical equivalence was not exercised locally unless CuPy is installed.
+- CI remains CPU/no-GPU oriented.
+- Real large-data GPU performance has not been validated.
+
+### Suggested next round
+
+Phase 9B: Optional GPU / OpenGL display backend exploration, or Phase 8C:
+Real-world validation package and release candidate polish.

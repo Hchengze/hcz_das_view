@@ -93,6 +93,17 @@ For the optional GUI:
 
     pip install -e .[gui]
 
+For optional GPU compute experiments, keep the package install CPU-first and
+install the CuPy wheel that matches the local CUDA runtime separately, for
+example:
+
+    pip install -e .[gpu]
+    pip install cupy-cuda12x
+
+The `gpu` extra is intentionally empty because CuPy publishes CUDA-specific
+wheel names. Do not install GPU dependencies into CI or CPU-only deployments
+unless that machine is meant to run GPU compute.
+
 For local packaging smoke work:
 
     pip install -e .[packaging]
@@ -173,11 +184,37 @@ Examples:
     hcz-das-moveout input.h5 --apparent-moveout --channel-lag 1 --window-samples 1024 --step-samples 512 --output moveout.json
     hcz-das-moveout input.h5 --summary --channel-lag 1 --output moveout_summary.json
     hcz-das-stats input.h5 --max-estimated-mb 256
+    hcz-das-stats input.h5 --backend gpu --max-estimated-mb 256
     hcz-das-qc input.h5 --quality-report --max-estimated-mb 256
+    hcz-das-qc input.h5 --quality-report --backend gpu --max-estimated-mb 256
     hcz-das-denoise input.h5 --common-mode median --max-estimated-mb 256
     hcz-das-moveout input.h5 --summary --max-estimated-mb 256
+    hcz-das-moveout input.h5 --directional-energy --backend gpu --max-estimated-mb 256
 
 Generated outputs are local user artifacts and should not be committed.
+
+## Optional GPU compute backend
+
+Phase 9A adds an optional compute acceleration layer under
+`das_view.acceleration`. The default backend is always CPU, and
+`backend="auto"` currently resolves to CPU as well. GPU compute is used only
+when a function or CLI receives `backend="gpu"` / `--backend gpu`.
+
+Current optional GPU paths are limited to low-risk numerical kernels:
+
+- `basic_statistics` reductions.
+- `channel_quality_metrics` / `data_quality_report` QC reductions.
+- `band_energy`, `spectral_attributes`, `multiband_energy_map`, and
+  `spectral_attribute_map` FFT-backed feature calculations.
+- `fk_transform`, `fk_directional_energy`, and moveout summary directional
+  energy.
+
+CuPy is imported lazily only when GPU is explicitly requested. Importing
+`das_view` does not import CuPy, CI does not require a GPU, and all GPU-backed
+results are copied back to NumPy arrays before they are returned. If CuPy is
+not installed, `--backend gpu` reports a user-readable error; use
+`--backend cpu` for the stable default. Phase 9A is compute-only and does not
+add PyQtGraph, VisPy, OpenGL, PyTorch, TensorFlow, or deep-learning workflows.
 
 ## Large-file workflow
 

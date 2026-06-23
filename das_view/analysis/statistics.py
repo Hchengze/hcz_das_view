@@ -13,6 +13,7 @@ import warnings
 
 import numpy as np
 
+from das_view.acceleration import as_backend_array, get_acceleration_backend, to_numpy
 from das_view.core.data_model import DASData
 
 NanPolicy = Literal["omit", "raise"]
@@ -110,6 +111,7 @@ def basic_statistics(
     axis: int | None = None,
     percentiles=(1, 5, 25, 50, 75, 95, 99),
     nan_policy: NanPolicy = "omit",
+    backend: str = "cpu",
 ) -> StatisticsResult:
     """Compute basic statistics for an array or DASData.
 
@@ -125,6 +127,19 @@ def basic_statistics(
         raise ValueError("nan_policy must be 'omit' or 'raise'")
     if nan_policy == "raise" and not np.all(np.isfinite(array)):
         raise ValueError("statistics input contains NaN or Inf values")
+
+    resolved_backend = get_acceleration_backend(backend)
+    if resolved_backend.name == "gpu":
+        stats_result = _basic_statistics_backend(
+            array,
+            metadata_summary=metadata_summary,
+            axis=normalized_axis,
+            percentiles=percentile_values,
+            nan_policy=nan_policy,
+            backend=backend,
+        )
+        if stats_result is not None:
+            return stats_result
 
     summary = finite_summary(array, axis=normalized_axis)
     clean = np.where(np.isfinite(array), array, np.nan)
@@ -156,6 +171,140 @@ def basic_statistics(
         nan_policy=nan_policy,
         source_metadata=metadata_summary,
     )
+
+
+def _basic_statistics_backend(
+    array: np.ndarray,
+    *,
+    metadata_summary: dict[str, Any] | None,
+    axis: int | None,
+    percentiles: tuple[float, ...],
+    nan_policy: NanPolicy,
+    backend: str,
+) -> StatisticsResult | None:
+    xp = get_acceleration_backend(backend).array_module
+    values = as_backend_array(array, backend=backend, dtype=float)
+    finite = xp.isfinite(values)
+    nan = xp.isnan(values)
+    posinf = xp.isposinf(values)
+    neginf = xp.isneginf(values)
+    clean = xp.where(finite, values, xp.nan)
+
+    if axis is None:
+        count: int | np.ndarray = int(values.size)
+        finite_count: int | np.ndarray = int(to_numpy(xp.count_nonzero(finite)))
+        nan_count: int | np.ndarray = int(to_numpy(xp.count_nonzero(nan)))
+        posinf_count: int | np.ndarray = int(to_numpy(xp.count_nonzero(posinf)))
+        neginf_count: int | np.ndarray = int(to_numpy(xp.count_nonzero(neginf)))
+        selected = clean[finite]
+        if int(selected.size) == 0:
+            stats = _global_statistics(np.asarray([], dtype=float), percentiles)
+        else:
+            minimum = float(to_numpy(xp.min(selected)))
+            maximum = float(to_numpy(xp.max(selected)))
+            percentile_values = to_numpy(xp.percentile(selected, percentiles))
+            stats = {
+                "mean": float(to_numpy(xp.mean(selected))),
+                "std": float(to_numpy(xp.std(selected))),
+                "min": minimum,
+                "max": maximum,
+                "median": float(to_numpy(xp.percentile(selected, 50))),
+                "percentiles": {
+                    float(percentile): float(percentile_value)
+                    for percentile, percentile_value in zip(percentiles, percentile_values, strict=True)
+                },
+                "rms": float(to_numpy(xp.sqrt(xp.mean(selected * selected)))),
+                "abs_mean": float(to_numpy(xp.mean(xp.abs(selected)))),
+                "peak_to_peak": float(maximum - minimum),
+                "energy": float(to_numpy(xp.sum(selected * selected))),
+            }
+    else:
+        count = np.full(_reduced_shape(array.shape, axis), array.shape[axis], dtype=int)
+        finite_count = to_numpy(xp.sum(finite, axis=axis)).astype(int)
+        nan_count = to_numpy(xp.sum(nan, axis=axis)).astype(int)
+        posinf_count = to_numpy(xp.sum(posinf, axis=axis)).astype(int)
+        neginf_count = to_numpy(xp.sum(neginf, axis=axis)).astype(int)
+        backend_stats = _axis_statistics_backend(clean, finite_count, axis, percentiles, xp)
+        if backend_stats is None:
+            return None
+        stats = backend_stats
+
+    return StatisticsResult(
+        axis=axis,
+        input_shape=tuple(int(value) for value in array.shape),
+        count=count,
+        finite_count=finite_count,
+        nan_count=nan_count,
+        posinf_count=posinf_count,
+        neginf_count=neginf_count,
+        mean=stats["mean"],
+        std=stats["std"],
+        min=stats["min"],
+        max=stats["max"],
+        median=stats["median"],
+        percentiles=stats["percentiles"],
+        rms=stats["rms"],
+        abs_mean=stats["abs_mean"],
+        peak_to_peak=stats["peak_to_peak"],
+        energy=stats["energy"],
+        nan_policy=nan_policy,
+        source_metadata=metadata_summary,
+    )
+
+
+def _axis_statistics_backend(
+    clean,
+    finite_count: np.ndarray,
+    axis: int,
+    percentiles: tuple[float, ...],
+    xp,
+) -> dict[str, Any] | None:
+    finite = xp.isfinite(clean)
+    values = xp.where(finite, clean, 0.0)
+    count = xp.asarray(finite_count, dtype=float)
+
+    summed = xp.sum(values, axis=axis)
+    summed_sq = xp.sum(values * values, axis=axis)
+    abs_summed = xp.sum(xp.abs(values), axis=axis)
+
+    mean = _divide_or_nan(to_numpy(summed), finite_count.astype(float))
+    mean_sq = _divide_or_nan(to_numpy(summed_sq), finite_count.astype(float))
+    variance = np.maximum(mean_sq - mean * mean, 0.0)
+    std = np.where(finite_count > 0, np.sqrt(variance), np.nan)
+    rms = np.where(finite_count > 0, np.sqrt(mean_sq), np.nan)
+    abs_mean = _divide_or_nan(to_numpy(abs_summed), finite_count.astype(float))
+    energy = to_numpy(summed_sq)
+
+    min_values = to_numpy(xp.min(xp.where(finite, clean, xp.inf), axis=axis))
+    max_values = to_numpy(xp.max(xp.where(finite, clean, -xp.inf), axis=axis))
+    min_values = np.where(finite_count > 0, min_values, np.nan)
+    max_values = np.where(finite_count > 0, max_values, np.nan)
+    peak_to_peak = np.where(finite_count > 0, max_values - min_values, np.nan)
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", category=RuntimeWarning)
+        try:
+            percentile_stack = xp.nanpercentile(clean, percentiles, axis=axis)
+            median = xp.nanpercentile(clean, 50, axis=axis)
+        except AttributeError:
+            return None
+
+    percentile_map = {
+        float(percentile): np.asarray(to_numpy(percentile_stack[index]))
+        for index, percentile in enumerate(percentiles)
+    }
+    return {
+        "mean": mean,
+        "std": std,
+        "min": min_values,
+        "max": max_values,
+        "median": np.asarray(to_numpy(median)),
+        "percentiles": percentile_map,
+        "rms": rms,
+        "abs_mean": abs_mean,
+        "peak_to_peak": peak_to_peak,
+        "energy": energy,
+    }
 
 
 def window_statistics(

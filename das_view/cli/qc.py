@@ -41,6 +41,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--coherence", action="store_true", help="Compute local channel coherence")
     parser.add_argument("--channel-lag", type=int, default=1)
     parser.add_argument("--nan-policy", choices=("omit", "raise"), default="omit")
+    parser.add_argument(
+        "--backend",
+        choices=("cpu", "gpu", "auto"),
+        default="cpu",
+        help="Optional compute backend for QC reductions and multiband FFT. The default and auto mode use CPU; gpu requires CuPy.",
+    )
     parser.add_argument("--output", type=Path, default=None, help="Optional .json or .csv output")
     return parser
 
@@ -81,7 +87,12 @@ def main(argv: list[str] | None = None) -> int:
     try:
         common = _selection(args)
         if args.quality_report or args.bad_channels:
-            result = compute_quality_report_for_file(args.input, nan_policy=args.nan_policy, **common)
+            result = compute_quality_report_for_file(
+                args.input,
+                nan_policy=args.nan_policy,
+                backend=args.backend,
+                **common,
+            )
             rows = channel_quality_rows(result.result)
             payload["quality_report"] = result.result
             print(f"reader_name: {result.reader_name}")
@@ -97,6 +108,7 @@ def main(argv: list[str] | None = None) -> int:
                 step_samples=args.step_samples,
                 normalize=args.normalize,
                 nan_policy=args.nan_policy,
+                backend=args.backend,
                 **common,
             )
             payload["multiband"] = result.result
@@ -113,7 +125,7 @@ def main(argv: list[str] | None = None) -> int:
             )
             payload["coherence"] = result.result
             print(f"coherence_shape: {result.result.coherence.shape}")
-    except (ReaderError, ValueError) as exc:
+    except (ImportError, ReaderError, ValueError) as exc:
         raise SystemExit(f"qc error: {exc}") from exc
 
     if args.output is not None:

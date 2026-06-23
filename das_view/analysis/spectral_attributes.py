@@ -12,6 +12,7 @@ from typing import Literal
 
 import numpy as np
 
+from das_view.acceleration import as_backend_array, get_acceleration_backend, to_numpy
 from das_view.core.data_model import DASData
 
 NanPolicy = Literal["omit", "raise"]
@@ -67,6 +68,7 @@ def band_energy(
     average_channels: bool = False,
     scaling: SpectrumScaling = "power",
     nan_policy: NanPolicy = "raise",
+    backend: str = "cpu",
 ) -> BandEnergyResult:
     """Compute energy and power summaries for frequency bands."""
 
@@ -78,6 +80,7 @@ def band_energy(
         average_channels=average_channels,
         scaling=scaling,
         nan_policy=nan_policy,
+        backend=backend,
     )
     normalized_bands = _normalize_bands(bands, nyquist=spectrum.sample_rate_hz / 2.0)
     band_values: list[np.ndarray | float] = []
@@ -134,6 +137,7 @@ def spectral_attributes(
     rolloff: float = 0.95,
     average_channels: bool = False,
     nan_policy: NanPolicy = "raise",
+    backend: str = "cpu",
 ) -> SpectralAttributesResult:
     """Compute dominant frequency, centroid, bandwidth, and rolloff."""
 
@@ -146,6 +150,7 @@ def spectral_attributes(
         average_channels=average_channels,
         scaling="power",
         nan_policy=nan_policy,
+        backend=backend,
     )
     frequency_range_value = _normalize_frequency_range(
         frequency_range,
@@ -236,6 +241,7 @@ def _power_spectrum_matrix(
     average_channels: bool,
     scaling: SpectrumScaling,
     nan_policy: NanPolicy,
+    backend: str = "cpu",
 ) -> _SpectrumMatrix:
     if scaling not in ("power", "density"):
         raise ValueError("scaling must be 'power' or 'density'")
@@ -245,29 +251,49 @@ def _power_spectrum_matrix(
     if nan_policy == "raise" and not np.all(np.isfinite(array)):
         raise ValueError("spectral attribute input contains NaN or Inf values")
     array = np.where(np.isfinite(array), array, 0.0)
+    resolved_backend = get_acceleration_backend(backend)
     axis = _normalize_axis(axis, array.ndim)
     n_samples = array.shape[axis]
     if n_samples < 1:
         raise ValueError("data must contain at least one sample along the analysis axis")
     nfft = _normalize_nfft(nfft, n_samples)
     working = np.moveaxis(array, axis, 0).reshape(n_samples, -1)
-    n_traces = working.shape[1]
-
-    fft_values = np.fft.rfft(working, n=nfft, axis=0)
-    amplitude = np.abs(fft_values) / float(n_samples)
-    if nfft > 1:
-        multiplier = np.ones(amplitude.shape[0], dtype=float)
-        if nfft % 2 == 0:
-            multiplier[1:-1] = 2.0
-        else:
-            multiplier[1:] = 2.0
-        amplitude = amplitude * multiplier.reshape(-1, 1)
-    values = np.square(amplitude)
-    if scaling == "density":
-        values = values / (sample_rate_hz / nfft)
-    if average_channels:
-        values = np.mean(values, axis=1, keepdims=True)
-        n_traces = 1
+    if resolved_backend.name == "gpu":
+        xp = resolved_backend.array_module
+        working_backend = as_backend_array(working, backend=backend, dtype=float)
+        fft_values = xp.fft.rfft(working_backend, n=nfft, axis=0)
+        amplitude = xp.abs(fft_values) / float(n_samples)
+        if nfft > 1:
+            multiplier = xp.ones(amplitude.shape[0], dtype=float)
+            if nfft % 2 == 0:
+                multiplier[1:-1] = 2.0
+            else:
+                multiplier[1:] = 2.0
+            amplitude = amplitude * multiplier.reshape(-1, 1)
+        values_backend = xp.square(amplitude)
+        if scaling == "density":
+            values_backend = values_backend / (sample_rate_hz / nfft)
+        if average_channels:
+            values_backend = xp.mean(values_backend, axis=1, keepdims=True)
+        values = np.asarray(to_numpy(values_backend), dtype=float)
+        n_traces = int(values.shape[1])
+    else:
+        n_traces = working.shape[1]
+        fft_values = np.fft.rfft(working, n=nfft, axis=0)
+        amplitude = np.abs(fft_values) / float(n_samples)
+        if nfft > 1:
+            multiplier = np.ones(amplitude.shape[0], dtype=float)
+            if nfft % 2 == 0:
+                multiplier[1:-1] = 2.0
+            else:
+                multiplier[1:] = 2.0
+            amplitude = amplitude * multiplier.reshape(-1, 1)
+        values = np.square(amplitude)
+        if scaling == "density":
+            values = values / (sample_rate_hz / nfft)
+        if average_channels:
+            values = np.mean(values, axis=1, keepdims=True)
+            n_traces = 1
 
     return _SpectrumMatrix(
         values=values,

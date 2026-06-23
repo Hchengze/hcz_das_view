@@ -845,3 +845,37 @@ coverage for file summaries, safe-selection hints, and export-state behavior.
 
 Remote GitHub Actions results still need confirmation on the GitHub page after
 push.
+
+## 18. Phase 9A status
+
+Phase 9A added optional GPU compute acceleration foundations without changing
+the stable CPU default. It does not add GUI GPU display acceleration,
+PyQtGraph, VisPy, OpenGL, PyTorch, TensorFlow, deep learning, source location,
+inversion, or interpretation workflows.
+
+Implemented:
+
+- `das_view.acceleration` with CPU-first backend resolution, NumPy helpers,
+  lazy CuPy detection/conversion, `to_numpy`, `as_backend_array`, and
+  acceleration availability description.
+- `backend="cpu" | "gpu" | "auto"` support for selected low-risk compute
+  paths: basic statistics, QC reductions, band/spectral FFTs, multiband maps,
+  FK transform, FK directional energy, and moveout-summary directional energy.
+- `hcz-das-stats`, `hcz-das-qc`, and `hcz-das-moveout` now expose
+  `--backend cpu/gpu/auto`. The default is CPU, and auto still resolves to CPU.
+- CuPy remains optional and is imported only when GPU is explicitly requested.
+  The `gpu` optional dependency group is intentionally empty because users must
+  install the CuPy wheel matching their CUDA runtime, such as `cupy-cuda12x`.
+- No-GPU-safe tests cover backend discovery, CPU/auto behavior, clean no-CuPy
+  errors, and skip-clean GPU equivalence checks.
+
+Testing baseline after Phase 9A: 553 passed, 1 skipped. The skipped test is
+the optional real CuPy numerical-equivalence check on CPU-only/no-CuPy
+environments. The first full-test attempt without repository-local basetemp hit
+the known Windows default TEMP permission issue, then passed with
+`.tmp_pytest\phase9a_full`.
+
+Recommended next:
+
+- Phase 9B: Optional GPU / OpenGL display backend exploration.
+- Phase 8C: Real-world validation package and release candidate polish.

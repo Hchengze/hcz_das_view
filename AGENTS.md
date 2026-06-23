@@ -90,6 +90,14 @@ All internal core arrays must use:
   definitive physical propagation or geologic direction statements.
 - Do not turn moveout attributes into source location, inversion, imaging, or
   interpretation workflows.
+- Optional GPU acceleration must remain CPU-first and lazy. Do not import CuPy
+  during `import das_view`; only import it inside explicit GPU backend helper
+  calls. `backend="auto"` must not silently enable GPU in core/service/CLI
+  workflows.
+- GPU support must not introduce PyTorch, TensorFlow, training models, or
+  deep-learning denoising into the core package. Phase 9A-style GPU work is
+  compute acceleration only; GPU/OpenGL display acceleration belongs to a
+  separate GUI/display phase.
 
 ## Testing requirements
 
@@ -97,6 +105,8 @@ All internal core arrays must use:
 - Use small synthetic data where real DAS data is unavailable.
 - GUI tests may be deferred, but GUI-independent logic must be testable without PyQt5.
 - Run python -m pytest after meaningful code changes when pytest is available.
+- GPU optional tests must pass without CuPy or GPU hardware. Tests for real
+  GPU numerical equivalence should skip cleanly when CuPy is unavailable.
 
 ## Documentation requirements
 
@@ -128,6 +138,9 @@ All internal core arrays must use:
   .tmp_release_venv/ or temporary pytest directories.
 - Do not commit PyInstaller output. packaging/ may contain documentation,
   scripts, and specs only when they avoid local absolute paths and real data.
+- Do not add CUDA-specific CuPy wheels to main dependencies. If optional GPU
+  installation is documented, tell users to install the CuPy package matching
+  their CUDA runtime, such as `cupy-cuda12x`.
 - Release rounds should check version metadata, full pytest, CLI help smoke,
   GUI help/launch smoke, example help smoke, clean venv install smoke,
   wheel/sdist build smoke, Windows packaging smoke where practical,

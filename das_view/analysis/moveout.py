@@ -96,6 +96,7 @@ def fk_directional_energy(
     velocity_bands=None,
     direction: Literal["both", "positive", "negative"] = "both",
     nan_policy: NanPolicy = "raise",
+    backend: str = "cpu",
 ) -> DirectionalEnergyResult:
     """Summarize positive/negative/zero-wavenumber FK energy."""
 
@@ -109,6 +110,7 @@ def fk_directional_energy(
         nfft_time=nfft_time,
         nfft_space=nfft_space,
         output="power",
+        backend=backend,
     )
     values = np.asarray(fk.values, dtype=float)
     wavenumbers = fk.wavenumbers_cpm
@@ -152,6 +154,7 @@ def directional_energy_ratio(
     axis_time: int = 0,
     axis_channel: int = 1,
     nan_policy: NanPolicy = "raise",
+    backend: str = "cpu",
 ) -> DirectionalEnergyResult:
     """Return a compact FK directional energy ratio attribute."""
 
@@ -167,6 +170,7 @@ def directional_energy_ratio(
         axis_channel=axis_channel,
         velocity_bands=velocity_bands,
         nan_policy=nan_policy,
+        backend=backend,
     )
 
 
@@ -289,6 +293,7 @@ def moveout_summary_report(
     step_samples: int | None = None,
     velocity_bands=None,
     nan_policy: NanPolicy = "raise",
+    backend: str = "cpu",
 ) -> MoveoutSummaryReport:
     """Combine directional energy and apparent moveout attributes."""
 
@@ -298,6 +303,7 @@ def moveout_summary_report(
         dx_m=dx_m,
         velocity_bands=velocity_bands,
         nan_policy=nan_policy,
+        backend=backend,
     )
     slope = estimate_apparent_slope_xcorr(
         data,

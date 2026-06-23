@@ -7,6 +7,7 @@ from typing import Literal
 
 import numpy as np
 
+from das_view.acceleration import as_backend_array, get_acceleration_backend, to_numpy
 from das_view.core.data_model import DASData
 
 NanPolicy = Literal["omit", "raise"]
@@ -64,6 +65,7 @@ def channel_quality_metrics(
     clipping_threshold: float | None = None,
     dead_channel_std_threshold: float = 1e-12,
     spike_z_threshold: float = 8.0,
+    backend: str = "cpu",
 ) -> ChannelQualityResult:
     """Compute per-channel QC metrics along the time/sample axis."""
 
@@ -71,11 +73,19 @@ def channel_quality_metrics(
     finite = np.isfinite(array)
     working = np.where(finite, array, np.nan)
     n_samples, n_channels = working.shape
-
-    rms = np.sqrt(_nanmean(np.square(working), axis=0))
-    std = np.nanstd(working, axis=0)
-    abs_mean = _nanmean(np.abs(working), axis=0)
-    energy = np.nansum(np.square(working), axis=0)
+    resolved_backend = get_acceleration_backend(backend)
+    if resolved_backend.name == "gpu":
+        xp = resolved_backend.array_module
+        working_backend = as_backend_array(working, backend=backend, dtype=float)
+        rms = np.asarray(to_numpy(xp.sqrt(xp.nanmean(xp.square(working_backend), axis=0))), dtype=float)
+        std = np.asarray(to_numpy(xp.nanstd(working_backend, axis=0)), dtype=float)
+        abs_mean = np.asarray(to_numpy(xp.nanmean(xp.abs(working_backend), axis=0)), dtype=float)
+        energy = np.asarray(to_numpy(xp.nansum(xp.square(working_backend), axis=0)), dtype=float)
+    else:
+        rms = np.sqrt(_nanmean(np.square(working), axis=0))
+        std = np.nanstd(working, axis=0)
+        abs_mean = _nanmean(np.abs(working), axis=0)
+        energy = np.nansum(np.square(working), axis=0)
     nan_fraction = np.mean(np.isnan(array), axis=0)
     inf_fraction = np.mean(np.isinf(array), axis=0)
     zero_fraction = np.mean(np.where(finite, array == 0.0, False), axis=0)
@@ -209,6 +219,7 @@ def data_quality_report(
     axis: int = 0,
     nan_policy: NanPolicy = "omit",
     clipping_threshold: float | None = None,
+    backend: str = "cpu",
 ) -> DataQualityReport:
     """Build a QC report from per-channel metrics."""
 
@@ -217,6 +228,7 @@ def data_quality_report(
         axis=axis,
         nan_policy=nan_policy,
         clipping_threshold=clipping_threshold,
+        backend=backend,
     )
     bad = tuple(int(i) for i in np.flatnonzero(metrics.bad_channel))
     summary = {

@@ -12,6 +12,7 @@ from typing import Literal
 
 import numpy as np
 
+from das_view.acceleration import as_backend_array, get_acceleration_backend, to_numpy
 from das_view.core.data_model import DASData
 
 FKOutput = Literal["amplitude", "power"]
@@ -56,6 +57,7 @@ def fk_transform(
     window_space: str | Sequence[float] | np.ndarray | None = None,
     shift_wavenumber: bool = True,
     output: FKOutput = "amplitude",
+    backend: str = "cpu",
 ) -> FKResult:
     """Compute a minimal FK transform for 2-D DAS data.
 
@@ -89,19 +91,33 @@ def fk_transform(
 
     time_window = _window_values(window_time, n_samples, name="window_time")
     space_window = _window_values(window_space, n_channels, name="window_space")
-    if time_window is not None:
-        working = working * time_window.reshape(-1, 1)
-    if space_window is not None:
-        working = working * space_window.reshape(1, -1)
-
-    frequency_space = np.fft.rfft(working, n=nfft_time, axis=0)
-    fk_values = np.fft.fft(frequency_space, n=nfft_space, axis=1)
+    resolved_backend = get_acceleration_backend(backend)
+    if resolved_backend.name == "gpu":
+        xp = resolved_backend.array_module
+        working_backend = as_backend_array(working, backend=backend, dtype=float)
+        if time_window is not None:
+            working_backend = working_backend * xp.asarray(time_window, dtype=float).reshape(-1, 1)
+        if space_window is not None:
+            working_backend = working_backend * xp.asarray(space_window, dtype=float).reshape(1, -1)
+        frequency_space = xp.fft.rfft(working_backend, n=nfft_time, axis=0)
+        fk_values_backend = xp.fft.fft(frequency_space, n=nfft_space, axis=1)
+        if shift_wavenumber:
+            fk_values_backend = xp.fft.fftshift(fk_values_backend, axes=1)
+        values_backend = xp.abs(fk_values_backend) / float(n_samples * n_channels)
+        values = np.asarray(to_numpy(values_backend), dtype=float)
+    else:
+        if time_window is not None:
+            working = working * time_window.reshape(-1, 1)
+        if space_window is not None:
+            working = working * space_window.reshape(1, -1)
+        frequency_space = np.fft.rfft(working, n=nfft_time, axis=0)
+        fk_values = np.fft.fft(frequency_space, n=nfft_space, axis=1)
+        if shift_wavenumber:
+            fk_values = np.fft.fftshift(fk_values, axes=1)
+        values = np.abs(fk_values) / float(n_samples * n_channels)
     wavenumbers = np.fft.fftfreq(nfft_space, d=dx_m)
     if shift_wavenumber:
-        fk_values = np.fft.fftshift(fk_values, axes=1)
         wavenumbers = np.fft.fftshift(wavenumbers)
-
-    values = np.abs(fk_values) / float(n_samples * n_channels)
     if nfft_time > 1:
         multiplier = np.ones(values.shape[0], dtype=float)
         if nfft_time % 2 == 0:

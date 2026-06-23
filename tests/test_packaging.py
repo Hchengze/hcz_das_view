@@ -30,6 +30,8 @@ def test_pyproject_has_optional_dependencies_and_entrypoints():
     assert "gui" in optional
     assert "dev" in optional
     assert "packaging" in optional
+    assert "gpu" in optional
+    assert optional["gpu"] == []
     assert "PyQt5" in optional["gui"]
     assert "build" in optional["packaging"]
     assert "pyinstaller" in {value.lower() for value in optional["packaging"]}

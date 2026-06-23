@@ -48,6 +48,7 @@ hdf5 = ["h5py"]
 plot = ["matplotlib"]
 gui = ["PyQt5", "matplotlib"]
 packaging = ["build", "pyinstaller"]
+gpu = []
 dev = ["pytest", "h5py", "matplotlib", "scipy", "build"]
 
 [project.urls]

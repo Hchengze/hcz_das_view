@@ -18,6 +18,7 @@ def _import_without_pyqt5(module_name):
 def test_core_package_imports_do_not_import_pyqt5():
     for module_name in [
         "das_view",
+        "das_view.acceleration",
         "das_view.io",
         "das_view.processing",
         "das_view.analysis",
@@ -25,6 +26,17 @@ def test_core_package_imports_do_not_import_pyqt5():
         "das_view.plugins",
     ]:
         _import_without_pyqt5(module_name)
+
+
+def test_import_das_view_and_acceleration_do_not_import_cupy():
+    sys.modules.pop("das_view", None)
+    sys.modules.pop("das_view.acceleration", None)
+    sys.modules.pop("cupy", None)
+
+    importlib.import_module("das_view")
+    importlib.import_module("das_view.acceleration")
+
+    assert "cupy" not in sys.modules
 
 
 def test_import_das_view_does_not_trigger_plugin_entry_point_discovery(monkeypatch):

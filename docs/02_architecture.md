@@ -4,6 +4,11 @@
 
     das_view/
     - __init__.py
+    - acceleration/
+      - backend.py
+      - numpy_backend.py
+      - cupy_backend.py
+      - device.py
     - core/
       - data_model.py
       - metadata_format.py
@@ -67,6 +72,8 @@
 ## Layer responsibilities
 
 - core: data model, metadata display formatting, package-wide constants, and exceptions.
+- acceleration: CPU-first optional array backend helpers for selected compute
+  kernels. CuPy is imported lazily only when GPU is explicitly requested.
 - io: data readers, metadata readers, format registry, GUI-independent preview
   workflow, bounded data selection services, and JSON/CSV export helpers.
 - processing: GUI-independent preprocessing operations such as demean, linear
@@ -142,6 +149,25 @@ Not allowed:
 - Release smoke validation can call `python -m das_view.gui.app --help` when a
   Windows gui-scripts executable does not echo help text to the active shell.
 - examples/ remain user-facing runnable examples, not installed package API.
+
+## Optional acceleration backend
+
+- `das_view/acceleration/` provides a CPU-first array backend layer with
+  `get_acceleration_backend`, `get_array_module`, `as_backend_array`,
+  `to_numpy`, `is_cupy_available`, and `describe_acceleration`.
+- NumPy is the default backend. `backend="auto"` resolves to CPU in Phase 9A so
+  existing API, service, CLI, and GUI behavior does not change.
+- CuPy is optional and imported lazily only when callers explicitly request
+  `backend="gpu"`. Importing `das_view`, core, IO, processing, plotting,
+  plugins, or GUI modules must not require CuPy.
+- GPU-backed analysis functions must return NumPy arrays or plain Python
+  values at API boundaries. Internal data shape remains
+  `(n_samples, n_channels)`.
+- Phase 9A accelerates selected compute kernels only: statistics reductions,
+  QC reductions, FFT-backed band/multiband spectral features, FK transform,
+  and FK directional-energy summaries. GPU display backends are deferred.
+- The acceleration layer is not a deep-learning backend and must not introduce
+  PyTorch, TensorFlow, model training, or interpretation workflows into core.
 
 ## Plugin architecture
 

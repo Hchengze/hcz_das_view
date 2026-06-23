@@ -39,6 +39,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--step-samples", type=int, default=None)
     parser.add_argument("--max-lag-samples", type=int, default=None)
     parser.add_argument("--nan-policy", choices=("omit", "raise"), default="raise")
+    parser.add_argument(
+        "--backend",
+        choices=("cpu", "gpu", "auto"),
+        default="cpu",
+        help="Optional compute backend for FK directional-energy paths. The default and auto mode use CPU; gpu requires CuPy.",
+    )
     parser.add_argument("--output", type=Path, default=None, help="Optional JSON output path")
     return parser
 
@@ -69,7 +75,12 @@ def main(argv: list[str] | None = None) -> int:
     try:
         common = _selection(args)
         if args.directional_energy:
-            result = compute_directional_energy_for_file(args.input, nan_policy=args.nan_policy, **common)
+            result = compute_directional_energy_for_file(
+                args.input,
+                nan_policy=args.nan_policy,
+                backend=args.backend,
+                **common,
+            )
             payload["directional_energy"] = result.result
             print(f"dominant_direction: {result.result.dominant_direction}")
             print(f"directional_ratio: {result.result.directional_ratio}")
@@ -92,12 +103,13 @@ def main(argv: list[str] | None = None) -> int:
                 window_samples=args.window_samples,
                 step_samples=args.step_samples,
                 nan_policy=args.nan_policy,
+                backend=args.backend,
                 **common,
             )
             payload["summary"] = result.result
             print(f"summary_direction: {result.result.summary['dominant_direction']}")
             print(f"mean_abs_correlation_peak: {result.result.summary['mean_abs_correlation_peak']}")
-    except (ReaderError, ValueError) as exc:
+    except (ImportError, ReaderError, ValueError) as exc:
         raise SystemExit(f"moveout analysis error: {exc}") from exc
     if args.output is not None:
         save_json(to_jsonable(payload), args.output)

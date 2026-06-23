@@ -513,6 +513,7 @@ def compute_statistics_for_file(
     preprocessing_steps: Sequence[StepLike] | None = None,
     nan_policy: Literal["omit", "raise"] = "omit",
     max_estimated_bytes: int | None = None,
+    backend: str = "cpu",
 ) -> StatisticsServiceResult:
     """Read a bounded 2-D selection and compute basic DAS statistics."""
 
@@ -533,6 +534,7 @@ def compute_statistics_for_file(
         axis=axis,
         percentiles=percentiles,
         nan_policy=nan_policy,
+        backend=backend,
     )
     return _statistics_service_result(result=result, das_data=das_data, selection=selection)
 
@@ -551,6 +553,7 @@ def compute_band_energy_for_file(
     scaling: Literal["power", "density"] = "power",
     preprocessing_steps: Sequence[StepLike] | None = None,
     nan_policy: Literal["omit", "raise"] = "raise",
+    backend: str = "cpu",
 ) -> BandEnergyServiceResult:
     """Read a bounded 2-D selection and compute frequency-band energy."""
 
@@ -571,6 +574,7 @@ def compute_band_energy_for_file(
         average_channels=average_channels,
         scaling=scaling,
         nan_policy=nan_policy,
+        backend=backend,
     )
     return _band_energy_service_result(result=result, das_data=das_data, selection=selection)
 
@@ -589,6 +593,7 @@ def compute_spectral_attributes_for_file(
     average_channels: bool = False,
     preprocessing_steps: Sequence[StepLike] | None = None,
     nan_policy: Literal["omit", "raise"] = "raise",
+    backend: str = "cpu",
 ) -> SpectralAttributesServiceResult:
     """Read a bounded 2-D selection and compute spectral attributes."""
 
@@ -609,6 +614,7 @@ def compute_spectral_attributes_for_file(
         rolloff=rolloff,
         average_channels=average_channels,
         nan_policy=nan_policy,
+        backend=backend,
     )
     return _spectral_attributes_service_result(result=result, das_data=das_data, selection=selection)
 
@@ -625,6 +631,7 @@ def compute_quality_report_for_file(
     nan_policy: Literal["omit", "raise"] = "omit",
     clipping_threshold: float | None = None,
     max_estimated_bytes: int | None = None,
+    backend: str = "cpu",
 ) -> QualityReportServiceResult:
     """Read a bounded 2-D selection and compute DAS QC metrics."""
 
@@ -643,6 +650,7 @@ def compute_quality_report_for_file(
         axis=0,
         nan_policy=nan_policy,
         clipping_threshold=clipping_threshold,
+        backend=backend,
     )
     return _quality_report_service_result(result=result, das_data=das_data, selection=selection)
 
@@ -662,6 +670,7 @@ def compute_multiband_map_for_file(
     normalize: Literal["total", "max"] | None = None,
     nan_policy: Literal["omit", "raise"] = "raise",
     max_estimated_bytes: int | None = None,
+    backend: str = "cpu",
 ) -> MultibandMapServiceResult:
     """Read a bounded 2-D selection and compute a multiband energy map."""
 
@@ -684,6 +693,7 @@ def compute_multiband_map_for_file(
         axis=0,
         normalize=normalize,
         nan_policy=nan_policy,
+        backend=backend,
     )
     return _multiband_map_service_result(result=result, das_data=das_data, selection=selection)
 
@@ -703,6 +713,7 @@ def compute_spectral_attribute_map_for_file(
     attributes=("dominant_frequency", "centroid", "bandwidth", "rolloff"),
     nan_policy: Literal["omit", "raise"] = "raise",
     max_estimated_bytes: int | None = None,
+    backend: str = "cpu",
 ) -> MultibandMapServiceResult:
     """Read a bounded 2-D selection and compute spectral attribute maps."""
 
@@ -725,6 +736,7 @@ def compute_spectral_attribute_map_for_file(
         frequency_range=frequency_range,
         attributes=attributes,
         nan_policy=nan_policy,
+        backend=backend,
     )
     return _multiband_map_service_result(result=result, das_data=das_data, selection=selection)
 
@@ -1000,6 +1012,7 @@ def compute_directional_energy_for_file(
     velocity_bands=None,
     nan_policy: Literal["omit", "raise"] = "raise",
     max_estimated_bytes: int | None = None,
+    backend: str = "cpu",
 ) -> DirectionalEnergyServiceResult:
     """Read a bounded selection and compute FK directional-energy attributes."""
 
@@ -1019,6 +1032,7 @@ def compute_directional_energy_for_file(
         das_data,
         velocity_bands=velocity_bands,
         nan_policy=nan_policy,
+        backend=backend,
     )
     return DirectionalEnergyServiceResult(
         result=result,
@@ -1097,6 +1111,7 @@ def compute_moveout_summary_for_file(
     velocity_bands=None,
     nan_policy: Literal["omit", "raise"] = "raise",
     max_estimated_bytes: int | None = None,
+    backend: str = "cpu",
 ) -> MoveoutSummaryServiceResult:
     """Read a bounded selection and compute a moveout summary report."""
 
@@ -1119,6 +1134,7 @@ def compute_moveout_summary_for_file(
         step_samples=step_samples,
         velocity_bands=velocity_bands,
         nan_policy=nan_policy,
+        backend=backend,
     )
     return MoveoutSummaryServiceResult(
         result=result,

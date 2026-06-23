@@ -31,6 +31,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--axis", choices=("global", "time", "channel"), default="global")
     parser.add_argument("--percentiles", type=float, nargs="+", default=[1, 5, 25, 50, 75, 95, 99])
     parser.add_argument("--nan-policy", choices=("omit", "raise"), default="omit")
+    parser.add_argument(
+        "--backend",
+        choices=("cpu", "gpu", "auto"),
+        default="cpu",
+        help="Optional compute backend. The default and auto mode use CPU; gpu requires CuPy.",
+    )
     parser.add_argument("--output", type=Path, default=None, help="Optional .json or .csv output")
     return parser
 
@@ -85,8 +91,9 @@ def main(argv: list[str] | None = None) -> int:
             percentiles=args.percentiles,
             nan_policy=args.nan_policy,
             max_estimated_bytes=max_estimated_bytes(args.max_estimated_mb),
+            backend=args.backend,
         )
-    except (ReaderError, ValueError) as exc:
+    except (ImportError, ReaderError, ValueError) as exc:
         raise SystemExit(f"statistics error: {exc}") from exc
     rows = result_summary_rows(service_result)
     print(f"reader_name: {service_result.reader_name}")

@@ -43,6 +43,7 @@ def multiband_energy_map(
     average_channels: bool = False,
     normalize: Literal["total", "max"] | None = None,
     nan_policy: NanPolicy = "raise",
+    backend: str = "cpu",
 ) -> MultibandFeatureMap:
     """Compute a time-window x channel x band energy map."""
 
@@ -62,6 +63,7 @@ def multiband_energy_map(
             axis=0,
             average_channels=average_channels,
             nan_policy=nan_policy,
+            backend=backend,
         )
         normalized_bands = result.bands
         band_values = np.asarray(result.band_energy, dtype=float)
@@ -103,6 +105,7 @@ def spectral_attribute_map(
     attributes=("dominant_frequency", "centroid", "bandwidth", "rolloff"),
     axis: int = 0,
     nan_policy: NanPolicy = "raise",
+    backend: str = "cpu",
 ) -> dict[str, MultibandFeatureMap]:
     """Compute windowed spectral attribute maps."""
 
@@ -131,6 +134,7 @@ def spectral_attribute_map(
             frequency_range=frequency_range,
             average_channels=False,
             nan_policy=nan_policy,
+            backend=backend,
         )
         for name in requested:
             values[name].append(np.asarray(getattr(result, key_map[name]), dtype=float).reshape(-1))

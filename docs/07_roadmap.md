@@ -669,3 +669,35 @@ Next recommended rounds:
 
 - Phase 8C: Real-world validation package and release candidate polish.
 - Phase 8D: GUI analysis integration for QC / Denoise / Moveout.
+
+## Phase 9A: Optional GPU compute acceleration backend
+
+Status: implemented for a conservative compute-only baseline.
+
+Phase 9A adds `das_view.acceleration` as a lazy, optional array backend layer.
+The stable default remains CPU. `backend="auto"` also resolves to CPU, and GPU
+compute is used only when users explicitly request `backend="gpu"` or
+`--backend gpu`.
+
+Implemented scope:
+
+- NumPy backend helpers and lazy CuPy backend detection/conversion helpers.
+- Optional backend parameters for basic statistics, QC reductions, FFT-backed
+  band/multiband spectral features, FK transform, FK directional energy, and
+  moveout-summary directional-energy paths.
+- `--backend cpu/gpu/auto` on `hcz-das-stats`, `hcz-das-qc`, and
+  `hcz-das-moveout`.
+- No-GPU-safe tests for backend discovery, CPU/auto behavior, clear no-CuPy
+  errors, and skip-clean GPU equivalence checks.
+
+Boundaries:
+
+- CuPy is not a main dependency and is not imported by `import das_view`.
+- CI does not require GPU hardware.
+- GPU results are copied back to NumPy at public API boundaries.
+- Phase 9A does not add PyQtGraph, VisPy, OpenGL, PyTorch, TensorFlow, deep
+  learning, GPU denoising, source location, inversion, or interpretation
+  workflows.
+
+Recommended next: Phase 9B optional GPU/OpenGL display backend exploration, or
+Phase 8C real-world validation package and release-candidate polish.

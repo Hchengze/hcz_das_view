@@ -263,6 +263,10 @@ CI-equivalent local checks:
 - scipy-based filter tests use pytest.importorskip("scipy"). scipy is currently
   a main project dependency because basic filters and spectrogram smoke paths
   are part of the processing/analysis layers.
+- Optional GPU tests do not require CuPy or GPU hardware. Backend-selection
+  tests verify that CPU and auto modes run without importing CuPy, that
+  `backend="gpu"` raises a clear ImportError when CuPy is unavailable, and that
+  real GPU numerical comparisons skip cleanly on CPU-only machines.
 - Waveform plotting tests also use the Agg backend and write only to pytest tmp_path.
 - GUI smoke tests use pytest.importorskip("PyQt5") and pytest.importorskip("matplotlib"). If PyQt5 is not installed, GUI creation and Qt worker tests skip cleanly while core/io/plotting and PyQt-free GUI model tests continue to run.
 - GUI waveform tests avoid real file dialogs and real DAS data; they only instantiate
