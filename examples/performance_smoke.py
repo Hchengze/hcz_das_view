@@ -9,7 +9,8 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Callable
 
-from das_view.acceleration import format_acceleration_report, is_cupy_available
+from das_view.acceleration import AccelerationRuntimeError, format_acceleration_report, is_cupy_available
+from das_view.acceleration.benchmark import GpuRuntimeError
 from das_view.analysis.service import (
     compute_multiband_map_for_file,
     compute_quality_report_for_file,
@@ -155,7 +156,7 @@ def _time_operation(operation: str, backend: str, callback: Callable[[], object]
     started = time.perf_counter()
     try:
         result = callback()
-    except (ImportError, ReaderError, ValueError) as exc:
+    except (AccelerationRuntimeError, GpuRuntimeError, ImportError, ReaderError, RuntimeError, ValueError) as exc:
         return OperationTiming(
             operation=operation,
             elapsed_seconds=time.perf_counter() - started,

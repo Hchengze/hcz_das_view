@@ -7,10 +7,12 @@ import json
 from pathlib import Path
 
 from das_view.acceleration import (
+    AccelerationRuntimeError,
     compare_cpu_gpu_benchmark,
     format_acceleration_report,
     run_array_backend_benchmark,
 )
+from das_view.acceleration.benchmark import GpuRuntimeError
 from das_view.acceleration.validation import validate_cpu_gpu_numeric_consistency
 from das_view.io.export import to_jsonable
 
@@ -87,7 +89,7 @@ def main(argv: list[str] | None = None) -> int:
             print(f"numeric_validation status={result['status']} reason={result.get('reason')}")
             for item in result["checks"]:
                 print(f"check {item['function']}: {item['status']} max_abs_diff={item['max_abs_diff']}")
-    except (ImportError, ValueError) as exc:
+    except (AccelerationRuntimeError, GpuRuntimeError, ImportError, ValueError) as exc:
         raise SystemExit(f"gpu error: {exc}") from exc
     if args.json_output is not None:
         args.json_output.write_text(json.dumps(to_jsonable(payload), indent=2), encoding="utf-8")

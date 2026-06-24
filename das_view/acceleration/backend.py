@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+from contextlib import redirect_stderr
 from dataclasses import dataclass
+from functools import lru_cache
+import io
 from typing import Literal
 
 import numpy as np
@@ -31,6 +34,10 @@ class AccelerationBackend:
     reason: str
 
 
+class AccelerationRuntimeError(RuntimeError):
+    """GPU backend is importable but cannot run a minimal kernel."""
+
+
 def get_acceleration_backend(name: BackendName = "auto") -> AccelerationBackend:
     """Resolve an acceleration backend.
 
@@ -57,6 +64,13 @@ def get_acceleration_backend(name: BackendName = "auto") -> AccelerationBackend:
             "package matching your CUDA runtime, for example 'cupy-cuda12x', "
             "or rerun with backend='cpu'."
         ) from exc
+    runtime = validate_gpu_runtime()
+    if not runtime.get("ok"):
+        raise AccelerationRuntimeError(
+            "GPU backend requested but the CuPy/CUDA runtime cannot run a "
+            f"minimal kernel: {runtime.get('message')}. Rerun with backend='cpu' "
+            "or repair the local CuPy/CUDA runtime."
+        )
     return AccelerationBackend(
         requested=normalized,
         name="gpu",
@@ -221,13 +235,30 @@ def validate_gpu_backend(*, require_device: bool = True) -> dict[str, object]:
             "build": build,
             "device": device,
         }
+    runtime = validate_gpu_runtime()
+    if not runtime.get("ok"):
+        return {
+            "ok": False,
+            "status": "runtime_error",
+            "message": str(runtime.get("message")),
+            "build": build,
+            "device": device,
+            "runtime": runtime,
+        }
     return {
         "ok": True,
         "status": "available",
         "message": "GPU backend is available.",
         "build": build,
         "device": device,
+        "runtime": runtime,
     }
+
+
+def validate_gpu_runtime() -> dict[str, object]:
+    """Run a tiny cached CuPy operation to validate kernel runtime readiness."""
+
+    return dict(_validate_gpu_runtime_cached())
 
 
 def estimate_gpu_array_memory(shape=(4096, 512), dtype="float32", *, arrays: int = 1) -> dict[str, object]:
@@ -327,6 +358,42 @@ def _format_report_text(payload: dict[str, object]) -> str:
         lines.append(f"gpu_status: {validation.get('status')}")
         lines.append(f"gpu_message: {validation.get('message')}")
     return "\n".join(lines)
+
+
+@lru_cache(maxsize=1)
+def _validate_gpu_runtime_cached() -> tuple[tuple[str, object], ...]:
+    try:
+        cp = import_cupy()
+    except ImportError:
+        return tuple(
+            {
+                "ok": False,
+                "status": "unavailable",
+                "message": "CuPy is not installed.",
+            }.items()
+        )
+    try:
+        stderr = io.StringIO()
+        with redirect_stderr(stderr):
+            data = cp.asarray([[1.0, 2.0], [3.0, 4.0]], dtype=cp.float32)
+            result = cp.std(data, axis=0)
+            cp.cuda.Stream.null.synchronize()
+            cp.asnumpy(result)
+    except Exception as exc:  # pragma: no cover - depends on CUDA runtime state.
+        return tuple(
+            {
+                "ok": False,
+                "status": "runtime_error",
+                "message": str(exc),
+            }.items()
+        )
+    return tuple(
+        {
+            "ok": True,
+            "status": "available",
+            "message": "CuPy kernel runtime is available.",
+        }.items()
+    )
 
 
 def _cupy_module_if_loaded():

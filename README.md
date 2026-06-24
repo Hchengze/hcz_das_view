@@ -304,6 +304,14 @@ and reports a readable error if it is unavailable. Synthetic benchmark timings
 are diagnostic only; they do not represent all real large-file IO, slicing, or
 plotting costs.
 
+Phase 9C adds validation against a separate local CuPy environment. That pass
+confirmed that diagnostics can detect CuPy, CUDA runtime/driver fields, one
+CUDA device, and GPU memory. It also found a local runtime problem: the CuPy
+package could enumerate the device but could not compile kernels because an
+NVRTC builtins DLL was missing. GPU benchmark, numeric validation, and bounded
+real-data smoke now report this as a user-readable GPU runtime error. CPU
+defaults, `backend="auto"` CPU behavior, and no-GPU CI behavior are unchanged.
+
 ## Large-file workflow
 
 Large DAS files should be opened through bounded selections rather than full
@@ -773,7 +781,8 @@ are intentionally ignored by git.
 - GUI manual user experience still needs more user feedback.
 - GPU compute requires a user-installed CuPy wheel matching the local CUDA
   runtime; CPU remains the default.
-- GPU benchmark results are not validated on machines without CuPy/GPU.
+- GPU benchmark results require both a detected CUDA device and a working CuPy
+  kernel runtime; a device-only environment is not sufficient.
 - Optional PyQtGraph waterfall display is experimental and needs real large-file
   GUI validation.
 - VisPy / PyOpenGL capability validation is import-only by default; no-context

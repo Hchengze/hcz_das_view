@@ -1,7 +1,11 @@
 import pytest
 
 from das_view.acceleration import is_cupy_available
-from das_view.acceleration.benchmark import compare_cpu_gpu_benchmark, run_array_backend_benchmark
+from das_view.acceleration.benchmark import (
+    GpuRuntimeError,
+    compare_cpu_gpu_benchmark,
+    run_array_backend_benchmark,
+)
 
 
 def test_cpu_benchmark_runs_small_shape():
@@ -36,6 +40,40 @@ def test_compare_cpu_gpu_benchmark_skips_without_cupy():
         assert result["status"] == "skipped"
         assert result["gpu"] == []
         assert "CuPy" in result["reason"]
+
+
+def test_compare_cpu_gpu_benchmark_reports_runtime_error(monkeypatch):
+    monkeypatch.setattr("das_view.acceleration.benchmark.is_cupy_available", lambda: True)
+
+    def fake_run(**kwargs):
+        if kwargs["backend"] == "gpu":
+            raise GpuRuntimeError("kernel compile failed")
+        return run_array_backend_benchmark(**kwargs)
+
+    monkeypatch.setattr("das_view.acceleration.benchmark.run_array_backend_benchmark", fake_run)
+
+    result = compare_cpu_gpu_benchmark(
+        shape=(16, 4),
+        operations=("mean",),
+        warmup=0,
+        repeats=1,
+    )
+
+    assert result["status"] == "gpu_runtime_error"
+    assert result["gpu"] == []
+    assert "kernel compile failed" in result["reason"]
+
+
+def test_gpu_benchmark_reports_runtime_preflight_error(monkeypatch):
+    from das_view.acceleration import AccelerationRuntimeError
+
+    monkeypatch.setattr(
+        "das_view.acceleration.benchmark.get_acceleration_backend",
+        lambda backend: (_ for _ in ()).throw(AccelerationRuntimeError("runtime missing")),
+    )
+
+    with pytest.raises(AccelerationRuntimeError, match="runtime missing"):
+        run_array_backend_benchmark(shape=(16, 4), operations=("mean",), backend="gpu", warmup=0, repeats=1)
 
 
 def test_gpu_benchmark_requires_cupy_when_requested():

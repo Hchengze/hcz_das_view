@@ -59,3 +59,18 @@ def test_gpu_cli_explicit_gpu_errors_cleanly_without_cupy():
     with pytest.raises(SystemExit) as excinfo:
         gpu.main(["--benchmark", "--backend", "gpu", "--shape", "16", "4", "--operations", "mean"])
     assert "CuPy" in str(excinfo.value)
+
+
+def test_gpu_cli_explicit_gpu_runtime_error_is_readable(monkeypatch):
+    from das_view.acceleration.benchmark import GpuRuntimeError
+
+    def fail_benchmark(**kwargs):
+        raise GpuRuntimeError("kernel compile failed")
+
+    monkeypatch.setattr(gpu, "run_array_backend_benchmark", fail_benchmark)
+
+    with pytest.raises(SystemExit) as excinfo:
+        gpu.main(["--benchmark", "--backend", "gpu", "--shape", "16", "4", "--operations", "mean"])
+
+    assert "gpu error:" in str(excinfo.value)
+    assert "kernel compile failed" in str(excinfo.value)

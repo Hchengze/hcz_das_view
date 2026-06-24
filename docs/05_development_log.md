@@ -2947,6 +2947,95 @@ Recommended next:
 Phase 9C: GPU / display benchmark and manual GUI validation, or Phase 8E: GUI
 manual validation and release-candidate signoff.
 
+## Phase 9C: Use mytomo CuPy environment for real GPU compute validation
+
+Phase 9C validates the existing optional GPU compute backend against a separate
+local CuPy environment while keeping the main development/test environment
+CPU-first. It does not add analysis algorithms, readers, GUI GPU display
+integration, PyTorch, TensorFlow, or mandatory GPU dependencies.
+
+### Environment validation
+
+- Main development/full-test environment: Python 3.11.13.
+- GPU validation environment: Python 3.10.19.
+- The GPU validation environment imported CuPy 13.6.0.
+- CuPy reported one CUDA device and CUDA runtime/driver version fields.
+- Device diagnostics reported an NVIDIA laptop GPU and GPU memory fields.
+- The project was installed into the GPU validation environment with editable
+  `--no-deps` installation.
+
+### GPU diagnostics and benchmark outcome
+
+- `python -m das_view.cli.gpu --info` completed in the GPU validation
+  environment and reported CuPy/device availability.
+- CPU synthetic benchmark completed in the GPU validation environment.
+- Explicit GPU benchmark failed before useful timing because the local
+  CuPy/CUDA runtime could not load an NVRTC builtins DLL needed for kernel
+  compilation.
+- CPU/GPU benchmark comparison now reports `gpu_runtime_error` instead of a
+  traceback when this runtime condition is encountered.
+
+### Numeric validation outcome
+
+- CPU/GPU numeric validation was attempted for statistics, band energy, and FK
+  transform through the GPU CLI.
+- Validation could not complete because the same local CuPy/CUDA runtime
+  problem prevents kernel compilation.
+- Numeric validation now returns per-function `gpu_runtime_error` checks in
+  this case.
+
+### Bounded real-data smoke outcome
+
+- Local user-owned sample directories were present and one supported HDF5
+  sample was selected through the ignored local path list.
+- Bounded CPU smoke completed for statistics, QC, and multiband on a
+  2048 sample by 256 channel selection.
+- Bounded GPU smoke for the same operations reported per-operation runtime
+  errors because the local CuPy/CUDA runtime cannot compile kernels.
+- No output files, benchmark JSON/CSV artifacts, screenshots, or real data
+  paths were added to the repository.
+
+### Code changes
+
+- Added `AccelerationRuntimeError` and `validate_gpu_runtime`.
+- Explicit GPU backend selection now runs a tiny CuPy kernel runtime preflight
+  after CuPy/device discovery.
+- `compare_cpu_gpu_benchmark` returns a structured `gpu_runtime_error` summary
+  when GPU runtime preflight fails.
+- Numeric validation returns structured `gpu_runtime_error` checks instead of
+  propagating CuPy compiler tracebacks.
+- `hcz-das-gpu` catches GPU runtime errors and prints a readable message.
+- `examples/performance_smoke.py` catches GPU runtime errors and records
+  operation-level error rows.
+
+### Tests
+
+- Focused Phase 9C tests:
+  python -B -m pytest -p no:cacheprovider --basetemp .tmp_pytest\phase9c_focused tests/test_acceleration_backend.py tests/test_acceleration_benchmark.py tests/test_acceleration_validation.py tests/test_gpu_cli.py tests/test_performance_smoke_example.py
+  Result: 27 passed.
+- GPU validation environment pytest was not run because pytest is not installed
+  there; CLI/examples validation was used instead to avoid modifying that
+  environment.
+- Full Phase 9C tests:
+  python -B -m pytest -p no:cacheprovider --basetemp .tmp_pytest\phase9c_full
+  Result: 635 passed, 1 skipped. The skipped test remains the optional real
+  CuPy numerical-equivalence check when a fully working GPU runtime is not
+  available. Test count increased from 631 collected in Phase 9B.1 to 636
+  collected because Phase 9C added GPU runtime-failure and CLI clean-error
+  coverage.
+
+### Boundaries
+
+- CuPy remains optional and is not a main dependency.
+- CI does not require CuPy, GPU hardware, or CUDA runtime DLLs.
+- CPU defaults, `backend="auto"` CPU behavior, GUI defaults, and service
+  default behavior remain unchanged.
+
+Recommended next:
+
+Phase 8E: GUI manual validation and release-candidate signoff, or Phase 9D:
+GPU display benchmark / tiled visualization planning.
+
 ## Phase 9B.1: VisPy / OpenGL capability validation
 
 Phase 9B.1 validates the optional VisPy/OpenGL capability path without making

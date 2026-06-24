@@ -14,11 +14,16 @@ from das_view.acceleration.backend import (
     get_acceleration_backend,
     is_cupy_available,
     to_numpy,
+    AccelerationRuntimeError,
 )
 from das_view.utils.memory import estimate_array_nbytes
 
 
 DEFAULT_OPERATIONS = ("mean", "std", "rms", "energy", "fft_time", "fft2", "band_power_like")
+
+
+class GpuRuntimeError(RuntimeError):
+    """GPU backend imported, but a runtime kernel operation failed."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -65,11 +70,18 @@ def run_array_backend_benchmark(
     results: list[BenchmarkResult] = []
     for operation in operation_names:
         callback = _operation_callback(operation, data, resolved.array_module)
-        for _ in range(warmup):
-            _sync(callback(), resolved.array_module, resolved.name)
-        started = time.perf_counter()
-        for _ in range(repeats):
-            _sync(callback(), resolved.array_module, resolved.name)
+        try:
+            for _ in range(warmup):
+                _sync(callback(), resolved.array_module, resolved.name)
+            started = time.perf_counter()
+            for _ in range(repeats):
+                _sync(callback(), resolved.array_module, resolved.name)
+        except Exception as exc:
+            if resolved.name == "gpu":
+                raise GpuRuntimeError(
+                    f"GPU benchmark operation {operation!r} failed at runtime: {exc}"
+                ) from exc
+            raise
         elapsed = (time.perf_counter() - started) / float(repeats)
         results.append(
             BenchmarkResult(
@@ -125,15 +137,29 @@ def compare_cpu_gpu_benchmark(
             "gpu": [],
             "speedup": {},
         }
-    gpu = run_array_backend_benchmark(
-        shape=normalized_shape,
-        dtype=str(dtype_value),
-        operations=operations,
-        backend="gpu",
-        warmup=warmup,
-        repeats=repeats,
-        seed=seed,
-    )
+    try:
+        gpu = run_array_backend_benchmark(
+            shape=normalized_shape,
+            dtype=str(dtype_value),
+            operations=operations,
+            backend="gpu",
+            warmup=warmup,
+            repeats=repeats,
+            seed=seed,
+        )
+    except (AccelerationRuntimeError, GpuRuntimeError) as exc:
+        if require_gpu:
+            raise
+        return {
+            "status": "gpu_runtime_error",
+            "reason": str(exc),
+            "shape": normalized_shape,
+            "dtype": str(dtype_value),
+            "estimated_memory": estimated,
+            "cpu": [item.to_dict() for item in cpu],
+            "gpu": [],
+            "speedup": {},
+        }
     speedup = {}
     cpu_by_op = {item.operation: item for item in cpu}
     for item in gpu:

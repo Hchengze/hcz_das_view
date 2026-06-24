@@ -6,6 +6,7 @@ CuPy; GPU support is discovered lazily only when callers explicitly request it.
 
 from das_view.acceleration.backend import (
     AccelerationBackend,
+    AccelerationRuntimeError,
     as_backend_array,
     describe_acceleration,
     estimate_gpu_array_memory,
@@ -17,6 +18,7 @@ from das_view.acceleration.backend import (
     is_cupy_available,
     to_numpy,
     validate_gpu_backend,
+    validate_gpu_runtime,
 )
 from das_view.acceleration.benchmark import (
     BenchmarkResult,
@@ -26,6 +28,7 @@ from das_view.acceleration.benchmark import (
 
 __all__ = [
     "AccelerationBackend",
+    "AccelerationRuntimeError",
     "BenchmarkResult",
     "as_backend_array",
     "compare_cpu_gpu_benchmark",
@@ -40,4 +43,5 @@ __all__ = [
     "run_array_backend_benchmark",
     "to_numpy",
     "validate_gpu_backend",
+    "validate_gpu_runtime",
 ]

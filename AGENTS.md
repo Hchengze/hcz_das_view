@@ -102,6 +102,10 @@ All internal core arrays must use:
   synthetic data or bounded user-selected real-data windows only. Benchmark
   JSON/CSV/images and local timing outputs are user artifacts and must not be
   committed.
+- Real GPU validation must distinguish CuPy import/device detection from a
+  working CuPy kernel runtime. If explicit GPU execution fails because the
+  local CUDA/CuPy runtime is incomplete, report a user-readable runtime error
+  and keep CPU defaults unchanged.
 - Optional GUI display backends must remain optional and lazy. Matplotlib is
   the default display backend. PyQtGraph, VisPy, and PyOpenGL must not be main
   dependencies, must not be imported by `import das_view`, and must not affect

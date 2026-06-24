@@ -736,6 +736,36 @@ Boundaries:
 Recommended next: Phase 9C GPU/display benchmark and manual GUI validation, or
 Phase 8E GUI manual validation and release-candidate signoff.
 
+## Phase 9C: Use mytomo CuPy environment for real GPU compute validation
+
+Status: implemented as real-environment GPU diagnostics plus runtime-failure
+hardening.
+
+Phase 9C uses a separate local CuPy environment for real GPU compute
+validation while keeping the main test environment CPU/no-GPU safe.
+
+Implemented scope:
+
+- Verified that the GPU validation environment imports CuPy and reports one
+  CUDA device.
+- Ran `hcz-das-gpu --info`, synthetic benchmark, CPU/GPU compare, numeric
+  validation, and bounded real-data smoke paths.
+- Found that device diagnostics passed but CuPy kernel execution failed because
+  the local runtime could not load an NVRTC builtins DLL.
+- Added GPU runtime preflight and readable runtime-error handling for explicit
+  GPU benchmark, numeric validation, and bounded smoke workflows.
+
+Boundaries:
+
+- CuPy is still not a main dependency.
+- CI still does not require GPU or CuPy.
+- `backend="auto"` and GUI defaults still resolve to CPU.
+- Real GPU performance and numeric validation remain pending until the local
+  CuPy/CUDA runtime can compile kernels.
+
+Recommended next: Phase 8E GUI manual validation and release-candidate
+signoff, or Phase 9D GPU display benchmark / tiled visualization planning.
+
 ## Phase 9B.1: VisPy / OpenGL capability validation
 
 Status: implemented as a capability validation layer; deep GUI integration

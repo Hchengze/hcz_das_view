@@ -7,7 +7,7 @@ from typing import Sequence
 
 import numpy as np
 
-from das_view.acceleration.backend import is_cupy_available
+from das_view.acceleration.backend import is_cupy_available, validate_gpu_runtime
 from das_view.analysis.fk import fk_transform
 from das_view.analysis.multiband import multiband_energy_map
 from das_view.analysis.spectral_attributes import band_energy
@@ -72,6 +72,26 @@ def validate_cpu_gpu_numeric_consistency(
                 for name in function_names
             ],
         }
+    runtime = validate_gpu_runtime()
+    if not runtime.get("ok"):
+        return {
+            "status": "failed",
+            "reason": str(runtime.get("message")),
+            "shape": normalized_shape,
+            "dtype": str(dtype_value),
+            "checks": [
+                NumericCheckResult(
+                    function=name,
+                    status="gpu_runtime_error",
+                    shape=normalized_shape,
+                    max_abs_diff=None,
+                    rtol=rtol,
+                    atol=atol,
+                    message=str(runtime.get("message")),
+                ).to_dict()
+                for name in function_names
+            ],
+        }
     checks = [
         _validate_function(name, data, rtol=rtol, atol=atol)
         for name in function_names
@@ -87,7 +107,18 @@ def validate_cpu_gpu_numeric_consistency(
 
 
 def _validate_function(name: str, data: np.ndarray, *, rtol: float, atol: float) -> NumericCheckResult:
-    cpu, gpu = _function_outputs(name, data)
+    try:
+        cpu, gpu = _function_outputs(name, data)
+    except Exception as exc:
+        return NumericCheckResult(
+            function=name,
+            status="gpu_runtime_error",
+            shape=tuple(int(value) for value in data.shape),
+            max_abs_diff=None,
+            rtol=rtol,
+            atol=atol,
+            message=f"GPU numeric validation failed at runtime: {exc}",
+        )
     cpu_array = np.asarray(cpu, dtype=float)
     gpu_array = np.asarray(gpu, dtype=float)
     if cpu_array.shape != gpu_array.shape:

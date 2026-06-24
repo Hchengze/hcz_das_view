@@ -187,6 +187,11 @@ Not allowed:
   synthetic data and returns skipped summaries when CuPy is unavailable.
 - `das_view/cli/gpu.py` exposes diagnostics, synthetic benchmark, compare, and
   numeric-validation workflows without requiring real data.
+- Phase 9C separates GPU import/device diagnostics from runtime readiness.
+  `validate_gpu_runtime` runs a tiny CuPy kernel preflight when GPU is
+  explicitly requested. If CuPy can see a device but cannot run kernels, GPU
+  benchmark, numeric validation, and bounded smoke workflows report a readable
+  runtime error instead of leaking CuPy arrays or changing CPU defaults.
 
 ## Optional GUI display backends
 

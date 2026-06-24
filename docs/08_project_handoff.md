@@ -1117,3 +1117,44 @@ Remaining risks:
 - Real OpenGL context behavior still needs GUI/manual validation on target
   Windows machines.
 - Deep VisPy/OpenGL display integration remains deferred.
+
+## 24. Phase 9C status
+
+Phase 9C used a separate local CuPy environment for real GPU compute backend
+validation. The main development and full-test environment remains the CPU-first
+environment.
+
+Validation summary:
+
+- The GPU validation environment imported CuPy 13.6.0.
+- CUDA runtime and driver fields were reported.
+- One CUDA device was detected, and GPU memory fields were available.
+- `hcz-das-gpu --info` completed and reported GPU diagnostics.
+- CPU synthetic benchmark completed on the GPU validation environment.
+- Explicit GPU benchmark, CPU/GPU compare, numeric consistency validation, and
+  bounded real-data GPU smoke all reached a GPU runtime failure before useful
+  GPU timings or numeric equivalence could be produced.
+- The failure was due to the local CuPy/CUDA runtime being unable to load an
+  NVRTC builtins DLL required for kernel compilation.
+
+Code hardening:
+
+- Added a tiny CuPy kernel runtime preflight for explicit GPU backend requests.
+- Explicit GPU benchmark now reports a readable runtime error when CuPy can see
+  a device but cannot run kernels.
+- CPU/GPU compare returns `gpu_runtime_error` with CPU results preserved.
+- Numeric validation returns `gpu_runtime_error` checks instead of a traceback.
+- Bounded performance smoke reports per-operation GPU runtime errors and keeps
+  CPU compare results usable.
+
+Testing baseline after Phase 9C: 635 passed, 1 skipped. The skipped test
+remains the optional real CuPy numerical-equivalence check when a fully working
+GPU runtime is not available. Test count increased because Phase 9C added GPU
+runtime-failure and CLI clean-error coverage.
+
+Remaining risks:
+
+- Real GPU benchmark and numeric consistency validation still need a repaired
+  CuPy/CUDA runtime that can compile kernels.
+- Larger bounded real-data GPU performance validation remains pending.
+- GitHub Actions remote status should be confirmed after push.

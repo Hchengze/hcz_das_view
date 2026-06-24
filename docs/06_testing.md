@@ -272,6 +272,11 @@ CI-equivalent local checks:
   must run normally; CPU/GPU compare and numeric validation return skipped
   summaries when CuPy is unavailable. CI may run `python -m das_view.cli.gpu
   --info`, but it must not require a CUDA device.
+- Phase 9C adds tests for a separate GPU runtime-failure path. A CuPy install
+  may import and enumerate devices while failing to compile kernels. In that
+  case explicit GPU benchmark, numeric validation, and bounded performance
+  smoke should report readable runtime errors while CPU and auto defaults keep
+  working.
 - Optional display backend tests do not require PyQtGraph, VisPy, PyOpenGL, a
   GPU, or an OpenGL context. Matplotlib availability is treated as the stable
   default. PyQtGraph and VisPy checks must import optional packages lazily and
