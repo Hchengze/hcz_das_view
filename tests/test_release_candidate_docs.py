@@ -16,10 +16,13 @@ def test_readme_contains_release_candidate_checklist_and_validation_package():
     text = README.read_text(encoding="utf-8")
 
     assert "Release candidate readiness checklist" in text
+    assert "Release-candidate signoff" in text
     assert "git status clean" in text
     assert "full pytest" in text
     assert "real-world validation package" in text
     assert "python examples/real_world_validation_package.py" in text
+    assert "GUI manual validation checklist" in text
+    assert "no tag, PyPI release, or GitHub Release" in text
 
 
 def test_handoff_contains_release_notes_and_known_limitations():
@@ -30,6 +33,8 @@ def test_handoff_contains_release_notes_and_known_limitations():
     assert "Core file readers" in text
     assert "GPU optional compute backend" in text
     assert "Windows exe unsigned" in text
+    assert "GPU acceleration remains experimental and environment-dependent" in text
+    assert "GUI manual validation and release-candidate signoff" in text
 
 
 def test_tutorial_contains_cli_inventory_limitations_and_acceptance_workflow():
@@ -41,6 +46,8 @@ def test_tutorial_contains_cli_inventory_limitations_and_acceptance_workflow():
     assert "real-world validation package" in text
     assert "Known limitations" in text
     assert "User acceptance workflow" in text
+    assert "GUI manual validation checklist" in text
+    assert "release-candidate signoff" in text.lower()
 
 
 def test_docs_avoid_private_paths_and_forbidden_interpretation_claims():

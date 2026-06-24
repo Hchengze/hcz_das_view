@@ -1182,6 +1182,8 @@ Code and docs:
 - Documentation now says Windows/Conda GPU validation should be run after
   `conda activate mytomo`, and that direct environment-python calls can miss
   Conda DLL search-path setup.
+- GPU acceleration remains experimental and environment-dependent rather than
+  fully validated.
 
 Testing baseline after Phase 9C.2:
 
@@ -1195,3 +1197,26 @@ Remaining risks:
 - Real GPU benchmark and numeric consistency validation still need a repaired
   local CuPy/CUDA runtime.
 - Larger bounded real-data GPU validation remains pending.
+
+## 26. Phase 8E status
+
+Phase 8E prepares GUI manual validation and release-candidate signoff. It does
+not add readers, algorithms, GPU display backends, or new GUI analysis
+features.
+
+Prepared artifacts:
+
+- `examples/gui_manual_validation_checklist.py` for a user-driven GUI smoke
+  checklist without launching the GUI automatically.
+- Release-candidate signoff checklist language that keeps publishing manual,
+  keeps tag creation manual, and keeps PyPI / GitHub Releases out of the round.
+- Notebook guidance for GUI manual validation, GUI export, large-file safety,
+  and the optional display-backend workflow.
+- Updated GPU wording that keeps the backend experimental and environment-
+  dependent rather than fully validated.
+
+Remaining work:
+
+- Run the manual GUI checklist on a supported local file.
+- Confirm GitHub Actions remote status on the project page after push.
+- Review Windows packaging smoke and any remaining release-candidate notes.

@@ -183,6 +183,10 @@ All internal core arrays must use:
   validation workflows, but must not create tags, publish GitHub Releases,
   upload to PyPI, or stage release-validation outputs unless explicitly
   requested.
+- Phase 8E manual signoff rounds should focus on GUI workflow checklists,
+  bounded manual verification, and release-candidate signoff preparation only.
+  They must not create tags, publish PyPI packages, or publish GitHub
+  Releases.
 - Real-world validation package summaries, timing outputs, JSON/CSV files, and
   private path lists are local artifacts. They must not be committed, and real
   paths must not be written into docs, notebooks, handoff files, or examples.

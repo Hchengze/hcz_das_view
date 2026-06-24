@@ -188,6 +188,20 @@ Release candidate readiness checklist:
 16. Version metadata is checked and the release notes draft is reviewed.
 17. Candidate tag naming is planned but no tag is created automatically.
 
+Release-candidate signoff checklist:
+
+1. `git status clean` is confirmed.
+2. Full pytest passes.
+3. CLI help smoke, notebook safety, and artifact safety pass.
+4. Real-world validation package, performance smoke, and GPU info smoke are
+   reviewed.
+5. GUI manual validation checklist is completed on a supported local file.
+6. Windows packaging smoke is reviewed if an exe candidate is planned.
+7. GitHub Actions status is checked on the GitHub Actions page.
+8. Known limitations, version metadata, and release notes draft are reviewed.
+9. Tag planning is manual only; no tag, PyPI release, or GitHub Release is
+   created during signoff preparation.
+
 ## Examples
 
 ## Installed entry points
@@ -310,12 +324,12 @@ CUDA device, and GPU memory. Phase 9C.2 reran validation after activating the
 Conda GPU environment first. Activation made the NVRTC builtins DLL visible
 and a simple CuPy arithmetic kernel succeeded, but the reduction kernels used
 by the project still timed out. GPU diagnostics now distinguish import/device
-visibility from working reduction-kernel runtime readiness. GPU benchmark,
-numeric validation, and bounded real-data smoke report this as a user-readable
-GPU runtime error. CPU defaults, `backend="auto"` CPU behavior, and no-GPU CI
-behavior are unchanged. On Windows with Conda, activate the GPU environment
-before validation; direct environment-python calls can miss Conda DLL search
-path setup.
+visibility from working reduction-kernel runtime readiness. GPU acceleration
+remains experimental and environment-dependent; the default backend is still
+CPU. GPU benchmark, numeric validation, and bounded real-data smoke report this
+as a user-readable GPU runtime error. On Windows with Conda, activate the GPU
+environment before validation; direct environment-python calls can miss Conda
+DLL search path setup.
 
 ## Large-file workflow
 
@@ -786,8 +800,9 @@ are intentionally ignored by git.
 - GUI manual user experience still needs more user feedback.
 - GPU compute requires a user-installed CuPy wheel matching the local CUDA
   runtime; CPU remains the default.
+- GPU acceleration remains experimental and environment-dependent.
 - GPU benchmark results require both a detected CUDA device and a working CuPy
-  kernel runtime; a device-only environment is not sufficient.
+  reduction runtime; a device-only environment is not sufficient.
 - Optional PyQtGraph waterfall display is experimental and needs real large-file
   GUI validation.
 - VisPy / PyOpenGL capability validation is import-only by default; no-context
