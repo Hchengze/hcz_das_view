@@ -1073,3 +1073,47 @@ Remaining risks:
 - VisPy/OpenGL tiled or streaming display integration remains deferred.
 - Remote GitHub Actions status should be confirmed on the GitHub Actions page
   after push.
+
+## 23. Phase 9B.1 status
+
+Phase 9B.1 validates the optional VisPy/OpenGL capability path without
+integrating it into the main GUI display workflow. Matplotlib remains the
+default display backend, and PyQtGraph remains the experimental waterfall/image
+preview backend.
+
+Implemented:
+
+- `get_vispy_info`, `validate_vispy_backend`, and `format_vispy_report` in
+  `das_view/gui/display_backends.py`.
+- Lazy VisPy import and lazy PyOpenGL import; importing `das_view` still does
+  not import either package.
+- Import-only validation by default, plus an optional minimal context probe.
+  Missing packages report `unavailable`; missing OpenGL context reports
+  `context_unavailable` instead of failing.
+- Tests for VisPy/PyOpenGL availability checks, structured validation
+  dictionaries, reports, import boundaries, Matplotlib default behavior, and
+  PyQtGraph independence.
+
+Local optional package status for this phase:
+
+- VisPy and PyOpenGL installation was attempted in the local Anaconda
+  environment.
+- Installation did not complete because the package mirror download failed
+  with an SSL EOF error while fetching the VisPy wheel.
+- Because installation failed, local import smoke for VisPy and PyOpenGL could
+  not report package versions in this environment. The code path remains
+  no-package-safe and will report versions when the packages are installed.
+
+Testing baseline after Phase 9B.1: 630 passed, 1 skipped. The skipped test
+remains the optional real CuPy GPU numerical-equivalence check on CPU-only or
+no-CuPy environments. Test count increased because Phase 9B.1 added
+VisPy/PyOpenGL capability validation tests and extended display backend
+coverage.
+
+Remaining risks:
+
+- VisPy/OpenGL capability still needs a machine where VisPy and PyOpenGL can be
+  installed successfully.
+- Real OpenGL context behavior still needs GUI/manual validation on target
+  Windows machines.
+- Deep VisPy/OpenGL display integration remains deferred.

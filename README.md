@@ -361,8 +361,8 @@ adds an optional display-backend layer for future large-array display work:
 - `matplotlib` is always selected by default and remains the stable path.
 - `pyqtgraph` is an experimental waterfall/image preview path. It is imported
   lazily only when the GUI checks or uses that backend.
-- `vispy` is detected lazily for installation/capability reporting only; deep
-  OpenGL display integration is deferred.
+- `vispy` and `PyOpenGL` are checked lazily for installation and capability
+  reporting only; deep OpenGL display integration is deferred.
 
 Install optional display packages only on machines intended to test the GUI
 display backend:
@@ -377,6 +377,13 @@ GUI falls back to Matplotlib or reports the optional backend as unavailable.
 Large selections are still downsampled for display through shared
 GUI-independent helpers, and screenshots or display benchmark outputs are local
 artifacts that should not be committed.
+
+Phase 9B.1 adds explicit VisPy / PyOpenGL capability validation helpers. They
+report VisPy import status, PyOpenGL import status, versions when available,
+and whether a minimal OpenGL context probe was requested. OpenGL context probes
+are optional and return `context_unavailable` instead of failing in headless
+environments. On machines where VisPy or PyOpenGL cannot be installed, the
+report remains readable and the GUI continues to use Matplotlib by default.
 
 For local performance diagnosis on user-owned data, run bounded smoke
 operations:
@@ -769,6 +776,8 @@ are intentionally ignored by git.
 - GPU benchmark results are not validated on machines without CuPy/GPU.
 - Optional PyQtGraph waterfall display is experimental and needs real large-file
   GUI validation.
+- VisPy / PyOpenGL capability validation is import-only by default; no-context
+  environments cleanly report unavailable or deferred status.
 - VisPy/OpenGL deep display acceleration is deferred.
 - Windows exe artifacts are currently unsigned.
 - Plugin APIs still need validation with real third-party packages.

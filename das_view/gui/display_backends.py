@@ -44,6 +44,113 @@ def is_vispy_available() -> bool:
     return True
 
 
+def is_pyopengl_available() -> bool:
+    """Return whether PyOpenGL imports cleanly."""
+
+    try:
+        import_module("OpenGL")
+    except Exception:
+        return False
+    return True
+
+
+def get_vispy_info() -> dict[str, object]:
+    """Return lazy VisPy/PyOpenGL import information without opening a context."""
+
+    info: dict[str, object] = {
+        "backend": "vispy",
+        "available": False,
+        "vispy_available": False,
+        "pyopengl_available": False,
+        "vispy_version": None,
+        "pyopengl_version": None,
+        "status": "unavailable",
+        "message": "",
+        "context_tested": False,
+        "context_available": None,
+        "installation_hint": 'Install with: pip install -e ".[opengl]"',
+    }
+
+    try:
+        vispy = import_module("vispy")
+    except Exception as exc:
+        info["message"] = f"VisPy import failed: {exc.__class__.__name__}: {exc}"
+        return info
+
+    info["vispy_available"] = True
+    info["vispy_version"] = _module_version(vispy)
+
+    try:
+        opengl = import_module("OpenGL")
+    except Exception as exc:
+        info["status"] = "pyopengl_unavailable"
+        info["message"] = f"PyOpenGL import failed: {exc.__class__.__name__}: {exc}"
+        return info
+
+    info["pyopengl_available"] = True
+    info["pyopengl_version"] = _module_version(opengl)
+    info["available"] = True
+    info["status"] = "importable"
+    info["message"] = "VisPy and PyOpenGL are importable; OpenGL context not tested."
+    return info
+
+
+def validate_vispy_backend(*, test_context: bool = False) -> dict[str, object]:
+    """Validate optional VisPy capability without requiring a headless context.
+
+    The default validation is import-only. Set ``test_context=True`` for a
+    minimal canvas context probe; failures are returned as status dictionaries
+    rather than raised so CI/headless runs can skip cleanly.
+    """
+
+    info = get_vispy_info()
+    if not info["available"]:
+        return info
+
+    if not test_context:
+        return info
+
+    info = dict(info)
+    info["context_tested"] = True
+    try:
+        scene = import_module("vispy.scene")
+        canvas = scene.SceneCanvas(show=False, size=(16, 16))
+        canvas.close()
+    except Exception as exc:
+        info["context_available"] = False
+        info["status"] = "context_unavailable"
+        info["message"] = (
+            f"VisPy imports, but a minimal OpenGL context is unavailable: "
+            f"{exc.__class__.__name__}: {exc}"
+        )
+        return info
+
+    info["context_available"] = True
+    info["status"] = "context_available"
+    info["message"] = "VisPy imports and a minimal SceneCanvas context was created."
+    return info
+
+
+def format_vispy_report(*, test_context: bool = False) -> str:
+    """Return a user-readable VisPy/OpenGL capability report."""
+
+    info = validate_vispy_backend(test_context=test_context)
+    lines = [
+        "VisPy / OpenGL capability:",
+        f"- status: {info['status']}",
+        f"- vispy available: {info['vispy_available']}",
+        f"- vispy version: {info['vispy_version'] or 'unknown'}",
+        f"- PyOpenGL available: {info['pyopengl_available']}",
+        f"- PyOpenGL version: {info['pyopengl_version'] or 'unknown'}",
+        f"- OpenGL context tested: {info['context_tested']}",
+        f"- OpenGL context available: {info['context_available']}",
+        f"- message: {info['message']}",
+        "- default display backend: matplotlib",
+        "- deep VisPy/OpenGL GUI integration: deferred",
+    ]
+    return "\n".join(lines)
+
+
 def get_available_display_backends() -> tuple[DisplayBackendInfo, ...]:
     """Return availability info for Matplotlib and optional display backends."""
 
@@ -94,6 +201,11 @@ def format_display_backend_report() -> str:
     return "\n".join(lines)
 
 
+def _module_version(module: object) -> str | None:
+    version = getattr(module, "__version__", None)
+    return None if version is None else str(version)
+
+
 def _optional_backend_info(
     name: DisplayBackendName,
     *,
@@ -109,11 +221,10 @@ def _optional_backend_info(
             message=f"{exc.__class__.__name__}: {exc}. {install_hint}",
             experimental=experimental,
         )
-    version = getattr(module, "__version__", None)
     return DisplayBackendInfo(
         name=name,
         available=True,
-        version=None if version is None else str(version),
+        version=_module_version(module),
         message="Optional backend is importable.",
         experimental=experimental,
     )

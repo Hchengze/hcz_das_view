@@ -276,6 +276,10 @@ CI-equivalent local checks:
   GPU, or an OpenGL context. Matplotlib availability is treated as the stable
   default. PyQtGraph and VisPy checks must import optional packages lazily and
   report unavailable backends without failing CPU-only CI.
+- Phase 9B.1 VisPy capability tests cover VisPy import status, PyOpenGL import
+  status, structured validation dictionaries, user-readable reports, and an
+  optional minimal context probe. A missing OpenGL context is reported as
+  `context_unavailable` and does not fail headless CI.
 - Display downsampling tests are PyQt-free and verify that display arrays are
   capped by sample/channel limits without modifying the input. These tests
   support both the Matplotlib waterfall path and the experimental PyQtGraph

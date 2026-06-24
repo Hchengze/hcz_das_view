@@ -2947,6 +2947,65 @@ Recommended next:
 Phase 9C: GPU / display benchmark and manual GUI validation, or Phase 8E: GUI
 manual validation and release-candidate signoff.
 
+## Phase 9B.1: VisPy / OpenGL capability validation
+
+Phase 9B.1 validates the optional VisPy/OpenGL capability path without making
+VisPy the default display backend and without deeply integrating OpenGL into
+the GUI. Matplotlib remains the default display backend, PyQtGraph remains the
+experimental waterfall/image preview backend, and CLI/service/analysis behavior
+is unchanged.
+
+### Installation attempt
+
+- Before installation, `pip show vispy` and `pip show PyOpenGL` reported that
+  both packages were not installed.
+- A single install attempt was made with:
+  `python -m pip install vispy PyOpenGL`
+- Installation failed while downloading the VisPy wheel from the configured
+  package mirror due to an SSL EOF error.
+- Because installation did not complete, local import smoke for `vispy` and
+  `OpenGL` could not report package versions in this environment.
+- The code remains safe for no-VisPy/no-PyOpenGL environments and reports
+  unavailable status instead of failing.
+
+### Code changes
+
+- Added `is_pyopengl_available`.
+- Added `get_vispy_info` for lazy VisPy/PyOpenGL import status, versions when
+  available, and installation hints.
+- Added `validate_vispy_backend` with import-only validation by default and an
+  optional minimal context probe. Missing OpenGL contexts are reported as
+  `context_unavailable` rather than raised.
+- Added `format_vispy_report` for user-readable capability reports.
+
+### Tests
+
+- Added `tests/test_vispy_display_capability.py`.
+- Extended `tests/test_display_backends.py` to cover PyOpenGL availability,
+  VisPy reports, optional context probing, and import boundaries.
+- Focused Phase 9B.1 tests:
+  python -B -m pytest -p no:cacheprovider --basetemp .tmp_pytest\phase9b1_focused tests/test_display_backends.py tests/test_vispy_display_capability.py tests/test_pyqtgraph_display_smoke.py tests/test_packaging.py
+  Result: 24 passed.
+- Full Phase 9B.1 tests:
+  python -B -m pytest -p no:cacheprovider --basetemp .tmp_pytest\phase9b1_full
+  Result: 630 passed, 1 skipped. The skipped test remains the optional real
+  CuPy GPU numerical-equivalence check on CPU-only/no-CuPy environments. Test
+  count increased from 621 collected in Phase 9B to 631 collected because
+  Phase 9B.1 added VisPy/PyOpenGL capability validation tests and extended
+  display backend coverage.
+
+### Boundaries
+
+- No VisPy/OpenGL main GUI integration was added.
+- No screenshot, display benchmark output, JSON/CSV artifact, real DAS data, or
+  build artifact was added.
+- CI does not require VisPy, PyOpenGL, GPU hardware, or an OpenGL context.
+
+Recommended next:
+
+Phase 9C: GPU / display benchmark and manual GUI validation, or Phase 8E: GUI
+manual validation and release-candidate signoff.
+
 ## Phase 8D: GUI analysis integration for QC / Denoise / Moveout
 
 Phase 8D integrates mature service-backed DAS analysis reports into the

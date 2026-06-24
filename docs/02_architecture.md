@@ -202,6 +202,11 @@ Not allowed:
 - `vispy` and `PyOpenGL` are optional extras for capability detection in this
   phase. The package does not create an OpenGL context during tests or normal
   import, and deep tiled/streaming OpenGL display is deferred.
+- Phase 9B.1 extends the display backend module with `get_vispy_info`,
+  `validate_vispy_backend`, and `format_vispy_report`. These helpers import
+  VisPy and PyOpenGL lazily, return structured status dictionaries, and treat a
+  missing OpenGL context as `context_unavailable` instead of an application
+  failure.
 - `das_view/plotting/downsample.py` provides `downsample_for_display` and
   `estimate_display_pixels`. These helpers are PyQt-free and PyQtGraph-free,
   preserve the `(n_samples, n_channels)` convention for 2-D arrays, do not

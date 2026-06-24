@@ -112,6 +112,9 @@ All internal core arrays must use:
 - Display exploration must not submit screenshots, display benchmarks, preview
   images, or local timing artifacts. Deep VisPy/OpenGL tiled or streaming
   display work belongs to a separate GUI/display phase.
+- VisPy/OpenGL capability checks must be import-safe and headless-safe. A
+  missing package or missing OpenGL context must return an unavailable or
+  deferred status instead of failing tests or changing the default backend.
 
 ## Testing requirements
 

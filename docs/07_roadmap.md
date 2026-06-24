@@ -736,6 +736,33 @@ Boundaries:
 Recommended next: Phase 9C GPU/display benchmark and manual GUI validation, or
 Phase 8E GUI manual validation and release-candidate signoff.
 
+## Phase 9B.1: VisPy / OpenGL capability validation
+
+Status: implemented as a capability validation layer; deep GUI integration
+remains deferred.
+
+Phase 9B.1 validates the optional VisPy/OpenGL path without making VisPy the
+default backend and without changing the PyQtGraph waterfall exploration.
+
+Implemented scope:
+
+- Lazy VisPy and PyOpenGL import checks.
+- Structured `get_vispy_info` and `validate_vispy_backend` reports.
+- User-readable `format_vispy_report` output.
+- Optional minimal context probe that returns `context_unavailable` rather
+  than failing in headless environments.
+- Tests for no-VisPy/no-context-safe behavior and import boundaries.
+
+Boundaries:
+
+- Matplotlib remains the default display backend.
+- PyQtGraph remains the experimental waterfall/image preview backend.
+- VisPy/OpenGL tiled, streaming, or integrated GUI display remains deferred.
+- CI does not require VisPy, PyOpenGL, GPU hardware, or an OpenGL context.
+
+Recommended next: Phase 9C GPU/display benchmark and manual GUI validation, or
+Phase 8E GUI manual validation and release-candidate signoff.
+
 ## Phase 8C: Real-world validation package and release-candidate polish
 
 Status: implemented as a release-candidate readiness layer.
