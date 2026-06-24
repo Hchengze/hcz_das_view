@@ -146,6 +146,10 @@ Stable public API:
 - Installed CLI commands such as `hcz-das-validate`, `hcz-das-stats`,
   `hcz-das-events`, `hcz-das-extensions`, `hcz-das-qc`,
   `hcz-das-denoise`, `hcz-das-moveout`, and `hcz-das-view`.
+- Root-level manual GUI smoke entry point: `python das_view_main.py`. This is
+  a thin local-testing wrapper around `das_view.gui.app:main`; the standard
+  module entry remains `python -m das_view.gui.app`, and the installed script
+  entry remains `hcz-das-view`.
 
 Experimental API:
 
@@ -227,6 +231,9 @@ Key modules:
   - app.py: GUI application entry point.
   - models.py: GUI-independent parsing and small models.
   - workers.py: no-Qt callable service wrappers plus QThread QObject workers.
+- Root:
+  - das_view_main.py: repository-root manual GUI entry point for local smoke
+    testing; it delegates directly to `das_view.gui.app:main`.
 
 ## 6. Completed phase history
 

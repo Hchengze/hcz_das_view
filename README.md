@@ -227,6 +227,15 @@ The older `das-view-gui` GUI script is retained for compatibility.
 On Windows, a `gui-scripts` executable may not echo help text in every shell;
 `python -m das_view.gui.app --help` is the visible GUI-help smoke path.
 
+For local manual GUI testing from the repository root, use:
+
+    python das_view_main.py
+
+The three GUI launch forms are intentionally thin wrappers around the same GUI
+application entry point: `das_view_main.py` is the root-level manual testing
+entry point, `python -m das_view.gui.app` is the standard module entry point,
+and `hcz-das-view` is the installed GUI script entry point.
+
 Examples:
 
     hcz-das-validate input.h5
@@ -682,9 +691,13 @@ candidates can be converted to ROIs for review, export, and summary analysis.
 ROIs and annotations are data review aids; they are not source locations,
 earthquake locations, inversion outputs, or geologic interpretation results.
 
-Run the minimal GUI:
+Run the minimal GUI from the repository root:
 
-    python examples/run_gui.py
+    python das_view_main.py
+
+The standard module entry point remains:
+
+    python -m das_view.gui.app
 
 In the GUI, open a supported file first, then use the Waveform tab to enter a
 zero-based channel index such as 10 or comma-separated indices such as
@@ -710,6 +723,10 @@ If installed with the console script, the GUI can also be started with:
 
     hcz-das-view
     das-view-gui
+
+`das_view_main.py` is only a root-level manual testing convenience. The package
+entry point remains `das_view.gui.app:main`, and installed environments should
+prefer `hcz-das-view`.
 
 ## Windows packaging
 

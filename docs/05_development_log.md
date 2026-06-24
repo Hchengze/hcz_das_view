@@ -1,5 +1,30 @@
 ﻿# Development Log
 
+## Phase 8E.1: Add root-level manual test entrypoint
+
+Phase 8E.1 adds a repository-root GUI launch convenience for local manual
+testing. It does not add algorithms, readers, services, GPU behavior, display
+backends, or GUI architecture changes.
+
+### Added and changed
+
+- Added `das_view_main.py` as a thin wrapper around `das_view.gui.app:main`.
+- Added root-entrypoint smoke tests for file presence, path safety, import
+  behavior without Qt event-loop startup, root `--help`, and module `--help`.
+- Updated README, handoff notes, and the tutorial notebook to document the
+  three GUI launch forms: `python das_view_main.py`,
+  `python -m das_view.gui.app`, and `hcz-das-view`.
+
+### Old-code migration judgment
+
+No old_code files were copied, imported, modified, or used for implementation.
+
+### Data and artifact policy confirmation
+
+No real DAS data paths, screenshots, generated validation outputs, JSON/CSV
+files, build artifacts, wheels, archives, or exe files are intended for
+commit.
+
 ## 2026-06-20: Development baseline
 
 ### Added directories
