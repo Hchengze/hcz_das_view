@@ -277,6 +277,15 @@ CI-equivalent local checks:
   case explicit GPU benchmark, numeric validation, and bounded performance
   smoke should report readable runtime errors while CPU and auto defaults keep
   working.
+- Phase 9C.2 validates the Windows/Conda GPU workflow through an activated GPU
+  environment. The checks distinguish four states: CuPy import, CUDA device
+  discovery, simple arithmetic kernel execution, and reduction-kernel runtime
+  readiness. Reduction-kernel timeouts must be reported as GPU runtime errors
+  rather than hanging CLI validation commands.
+- When a local Conda GPU environment is used on Windows, activate it first
+  (`conda activate mytomo`) before running GPU validation commands. Directly
+  invoking the environment's `python.exe` can miss the DLL search-path setup
+  that Conda activation provides.
 - Optional display backend tests do not require PyQtGraph, VisPy, PyOpenGL, a
   GPU, or an OpenGL context. Matplotlib availability is treated as the stable
   default. PyQtGraph and VisPy checks must import optional packages lazily and

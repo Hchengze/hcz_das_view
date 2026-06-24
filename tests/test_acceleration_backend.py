@@ -1,4 +1,5 @@
 import sys
+import subprocess
 
 import numpy as np
 import pytest
@@ -11,6 +12,7 @@ from das_view.acceleration import (
     is_cupy_available,
     to_numpy,
 )
+from das_view.acceleration import backend as backend_module
 
 
 def test_cpu_and_auto_resolve_to_numpy_without_importing_cupy():
@@ -59,3 +61,21 @@ def test_gpu_backend_requires_cupy_when_unavailable():
 
     with pytest.raises(ImportError, match="CuPy"):
         get_acceleration_backend("gpu")
+
+
+def test_gpu_runtime_probe_reports_reduction_timeout(monkeypatch):
+    monkeypatch.setattr(backend_module, "import_cupy", lambda: object())
+    backend_module._validate_gpu_runtime_cached.cache_clear()
+
+    def timeout_run(*args, **kwargs):
+        raise subprocess.TimeoutExpired(cmd=kwargs.get("args", "python"), timeout=20)
+
+    monkeypatch.setattr(backend_module.subprocess, "run", timeout_run)
+
+    result = backend_module.validate_gpu_runtime()
+
+    assert result["ok"] is False
+    assert result["status"] == "runtime_error"
+    assert "reduction kernel" in result["message"]
+
+    backend_module._validate_gpu_runtime_cached.cache_clear()

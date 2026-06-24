@@ -14,6 +14,12 @@ def test_gpu_cli_help(capsys):
     assert "usage:" in capsys.readouterr().out
 
 
+def test_gpu_cli_numeric_defaults_include_multiband():
+    args = gpu.build_parser().parse_args(["--validate-numeric"])
+
+    assert "multiband_energy_map" in args.functions
+
+
 def test_gpu_cli_info_no_output_file_by_default(capsys, tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
 

@@ -1158,3 +1158,40 @@ Remaining risks:
   CuPy/CUDA runtime that can compile kernels.
 - Larger bounded real-data GPU performance validation remains pending.
 - GitHub Actions remote status should be confirmed after push.
+
+## 25. Phase 9C.2 status
+
+Phase 9C.2 reran the GPU validation flow after activating the Windows Conda GPU
+environment first.
+
+Validation summary:
+
+- The activated GPU environment still imports CuPy and reports one CUDA
+  device.
+- A simple CuPy arithmetic kernel succeeds after environment activation, which
+  confirms the Conda DLL search path is active.
+- The project reduction-kernel probe still times out in the local GPU
+  validation environment, so explicit GPU benchmark, CPU/GPU compare, numeric
+  validation, and bounded real-data GPU smoke still report readable runtime
+  errors.
+
+Code and docs:
+
+- GPU runtime preflight now uses a bounded subprocess probe for reduction
+  kernels.
+- Documentation now says Windows/Conda GPU validation should be run after
+  `conda activate mytomo`, and that direct environment-python calls can miss
+  Conda DLL search-path setup.
+
+Testing baseline after Phase 9C.2:
+
+- Full mywork pytest now stands at 637 passed, 1 skipped after the Phase 9C.2
+  test additions.
+- GPU validation commands now fail fast with readable runtime errors instead
+  of hanging in the local environment.
+
+Remaining risks:
+
+- Real GPU benchmark and numeric consistency validation still need a repaired
+  local CuPy/CUDA runtime.
+- Larger bounded real-data GPU validation remains pending.

@@ -2844,6 +2844,52 @@ local output files are intended for commit.
 Phase 9B: Optional GPU / OpenGL display backend exploration, or Phase 8C:
 Real-world validation package and release candidate polish.
 
+## Phase 9C.2: Rerun GPU validation with activated mytomo Conda environment
+
+Phase 9C.2 reran the real GPU validation flow after activating the Windows
+Conda GPU environment first. It does not add new algorithms, readers, GUI
+display backends, or GPU compute paths.
+
+### Validation outcome
+
+- Activation-first validation confirmed that a simple CuPy arithmetic kernel
+  succeeds in the GPU environment, which means the Conda DLL search path is
+  active.
+- The project's reduction-kernel probe still times out in that environment, so
+  the optional GPU backend remains runtime-limited for the kernels used by
+  statistics, benchmark, and numeric-validation workflows.
+- GPU diagnostics now report this as a readable runtime error instead of
+  hanging.
+
+### Code changes
+
+- The GPU runtime preflight now uses a bounded subprocess probe for reduction
+  kernels.
+- The GPU CLI default numeric-validation set now includes multiband energy-map
+  coverage.
+- GPU/runtime tests now cover the timeout path and default-function inventory.
+
+### Documentation updates
+
+- README, architecture notes, testing notes, roadmap, and handoff text now say
+  Windows/Conda GPU validation should be run after `conda activate mytomo`.
+- The docs distinguish simple CuPy import/device visibility from working
+  reduction-kernel readiness.
+
+### Testing
+
+- Full mywork pytest now stands at 637 passed, 1 skipped after the Phase 9C.2
+  test additions.
+- The GPU validation flow was rerun through the activated Conda environment,
+  but benchmark and numeric validation still returned runtime-error summaries
+  because the local CuPy runtime could not complete reduction kernels.
+
+### Remaining risks
+
+- Real GPU benchmark and numeric validation still need a repaired local
+  CuPy/CUDA runtime.
+- Larger bounded real-data GPU validation remains pending.
+
 ## Phase 9B: Optional GPU / OpenGL display backend exploration
 
 Phase 9B establishes an optional GUI display backend layer for large-array

@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from contextlib import redirect_stderr
 from dataclasses import dataclass
 from functools import lru_cache
-import io
+import subprocess
+import sys
 from typing import Literal
 
 import numpy as np
@@ -363,7 +363,7 @@ def _format_report_text(payload: dict[str, object]) -> str:
 @lru_cache(maxsize=1)
 def _validate_gpu_runtime_cached() -> tuple[tuple[str, object], ...]:
     try:
-        cp = import_cupy()
+        import_cupy()
     except ImportError:
         return tuple(
             {
@@ -373,12 +373,40 @@ def _validate_gpu_runtime_cached() -> tuple[tuple[str, object], ...]:
             }.items()
         )
     try:
-        stderr = io.StringIO()
-        with redirect_stderr(stderr):
-            data = cp.asarray([[1.0, 2.0], [3.0, 4.0]], dtype=cp.float32)
-            result = cp.std(data, axis=0)
-            cp.cuda.Stream.null.synchronize()
-            cp.asnumpy(result)
+        completed = subprocess.run(
+            [
+                sys.executable,
+                "-c",
+                (
+                    "import cupy as cp; "
+                    "x=cp.arange(128,dtype=cp.float32).reshape(32,4); "
+                    "y=cp.std(x,axis=0); "
+                    "cp.cuda.Stream.null.synchronize(); "
+                    "print(cp.asnumpy(y).shape)"
+                ),
+            ],
+            capture_output=True,
+            text=True,
+            timeout=20,
+            check=False,
+        )
+        if completed.returncode != 0:
+            message = (completed.stderr or completed.stdout or "CuPy runtime probe failed.").strip()
+            return tuple(
+                {
+                    "ok": False,
+                    "status": "runtime_error",
+                    "message": message,
+                }.items()
+            )
+    except subprocess.TimeoutExpired:
+        return tuple(
+            {
+                "ok": False,
+                "status": "runtime_error",
+                "message": "CuPy runtime probe timed out while running a reduction kernel.",
+            }.items()
+        )
     except Exception as exc:  # pragma: no cover - depends on CUDA runtime state.
         return tuple(
             {

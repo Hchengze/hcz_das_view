@@ -27,7 +27,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--shape", type=int, nargs=2, default=(4096, 512), metavar=("SAMPLES", "CHANNELS"))
     parser.add_argument("--dtype", default="float32")
     parser.add_argument("--operations", nargs="+", default=("mean", "std", "rms", "energy", "fft_time"))
-    parser.add_argument("--functions", nargs="+", default=("statistics", "band_energy", "fk_transform"))
+    parser.add_argument("--functions", nargs="+", default=("statistics", "band_energy", "multiband_energy_map", "fk_transform"))
     parser.add_argument("--warmup", type=int, default=1)
     parser.add_argument("--repeats", type=int, default=3)
     parser.add_argument("--seed", type=int, default=0)

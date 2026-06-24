@@ -739,21 +739,27 @@ Phase 8E GUI manual validation and release-candidate signoff.
 ## Phase 9C: Use mytomo CuPy environment for real GPU compute validation
 
 Status: implemented as real-environment GPU diagnostics plus runtime-failure
-hardening.
+hardening. Phase 9C.2 reran the workflow through an activated Windows Conda
+GPU environment.
 
 Phase 9C uses a separate local CuPy environment for real GPU compute
 validation while keeping the main test environment CPU/no-GPU safe.
 
 Implemented scope:
 
-- Verified that the GPU validation environment imports CuPy and reports one
-  CUDA device.
+- Verified that the activated GPU validation environment imports CuPy and
+  reports one CUDA device.
+- Verified that a simple CuPy arithmetic kernel succeeds after Conda
+  activation, which confirms the DLL search path is more complete than a direct
+  environment-python invocation.
 - Ran `hcz-das-gpu --info`, synthetic benchmark, CPU/GPU compare, numeric
   validation, and bounded real-data smoke paths.
-- Found that device diagnostics passed but CuPy kernel execution failed because
-  the local runtime could not load an NVRTC builtins DLL.
-- Added GPU runtime preflight and readable runtime-error handling for explicit
-  GPU benchmark, numeric validation, and bounded smoke workflows.
+- Found that device diagnostics and simple arithmetic are not sufficient for
+  project GPU readiness: CuPy reduction kernels used by statistics/benchmark
+  paths still timed out in the local validation environment.
+- Added GPU runtime preflight with bounded reduction-kernel probing and
+  readable runtime-error handling for explicit GPU benchmark, numeric
+  validation, and bounded smoke workflows.
 
 Boundaries:
 
@@ -761,7 +767,9 @@ Boundaries:
 - CI still does not require GPU or CuPy.
 - `backend="auto"` and GUI defaults still resolve to CPU.
 - Real GPU performance and numeric validation remain pending until the local
-  CuPy/CUDA runtime can compile kernels.
+  CuPy/CUDA runtime can run the required reduction and FFT kernels reliably.
+- On Windows/Conda systems, GPU validation should be run after environment
+  activation rather than by directly invoking the environment Python binary.
 
 Recommended next: Phase 8E GUI manual validation and release-candidate
 signoff, or Phase 9D GPU display benchmark / tiled visualization planning.

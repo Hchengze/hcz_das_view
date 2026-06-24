@@ -306,11 +306,16 @@ plotting costs.
 
 Phase 9C adds validation against a separate local CuPy environment. That pass
 confirmed that diagnostics can detect CuPy, CUDA runtime/driver fields, one
-CUDA device, and GPU memory. It also found a local runtime problem: the CuPy
-package could enumerate the device but could not compile kernels because an
-NVRTC builtins DLL was missing. GPU benchmark, numeric validation, and bounded
-real-data smoke now report this as a user-readable GPU runtime error. CPU
-defaults, `backend="auto"` CPU behavior, and no-GPU CI behavior are unchanged.
+CUDA device, and GPU memory. Phase 9C.2 reran validation after activating the
+Conda GPU environment first. Activation made the NVRTC builtins DLL visible
+and a simple CuPy arithmetic kernel succeeded, but the reduction kernels used
+by the project still timed out. GPU diagnostics now distinguish import/device
+visibility from working reduction-kernel runtime readiness. GPU benchmark,
+numeric validation, and bounded real-data smoke report this as a user-readable
+GPU runtime error. CPU defaults, `backend="auto"` CPU behavior, and no-GPU CI
+behavior are unchanged. On Windows with Conda, activate the GPU environment
+before validation; direct environment-python calls can miss Conda DLL search
+path setup.
 
 ## Large-file workflow
 

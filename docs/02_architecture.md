@@ -188,10 +188,14 @@ Not allowed:
 - `das_view/cli/gpu.py` exposes diagnostics, synthetic benchmark, compare, and
   numeric-validation workflows without requiring real data.
 - Phase 9C separates GPU import/device diagnostics from runtime readiness.
-  `validate_gpu_runtime` runs a tiny CuPy kernel preflight when GPU is
-  explicitly requested. If CuPy can see a device but cannot run kernels, GPU
-  benchmark, numeric validation, and bounded smoke workflows report a readable
-  runtime error instead of leaking CuPy arrays or changing CPU defaults.
+  `validate_gpu_runtime` runs a short CuPy reduction-kernel probe in a bounded
+  subprocess when GPU is explicitly requested. If CuPy can see a device but
+  cannot run the reduction kernels used by project statistics and benchmarks,
+  GPU benchmark, numeric validation, and bounded smoke workflows report a
+  readable runtime error instead of hanging, leaking CuPy arrays, or changing
+  CPU defaults.
+- On Windows/Conda machines, the runtime probe should be executed after
+  environment activation so Conda-provided DLL search paths are in effect.
 
 ## Optional GUI display backends
 
