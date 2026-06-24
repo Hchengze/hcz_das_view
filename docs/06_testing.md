@@ -302,6 +302,12 @@ CI-equivalent local checks:
   unavailable. When available, they create a small offscreen-friendly widget
   and set a synthetic image without requiring real DAS data, screenshots, or an
   OpenGL display context.
+- Phase 8E.2 GUI usability tests cover dictionary-based localization with
+  Chinese default and English switching, waterfall channel/distance axis-mode
+  helpers, Matplotlib axis labels, PyQtGraph image preparation/transpose/extent
+  logic, and non-empty tooltips on key controls. Qt/Matplotlib smoke tests may
+  emit CJK font warnings in headless Agg environments; these warnings do not
+  change the GUI text or test result.
 - Waveform plotting tests also use the Agg backend and write only to pytest tmp_path.
 - GUI smoke tests use pytest.importorskip("PyQt5") and pytest.importorskip("matplotlib"). If PyQt5 is not installed, GUI creation and Qt worker tests skip cleanly while core/io/plotting and PyQt-free GUI model tests continue to run.
 - GUI waveform tests avoid real file dialogs and real DAS data; they only instantiate

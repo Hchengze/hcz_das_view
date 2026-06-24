@@ -1222,6 +1222,38 @@ Prepared artifacts:
 - Updated GPU wording that keeps the backend experimental and environment-
   dependent rather than fully validated.
 
+## 27. Phase 8E.2 status
+
+Phase 8E.2 polishes GUI localization and waterfall usability based on manual
+testing feedback. It does not add algorithms, readers, GPU features, OpenGL
+integration, or packaging outputs.
+
+Implemented:
+
+- GUI defaults to Chinese with an English language selector.
+- Main tabs, display controls, analysis type labels, run/cancel/clear buttons,
+  and export controls refresh when the language changes.
+- Waterfall preview now has a channel/distance x-axis selector. Channel is the
+  default. Distance uses `dx_m` metadata and falls back to channel mode when
+  spacing metadata is missing.
+- Experimental PyQtGraph waterfall preparation now keeps the DAS internal
+  `(n_samples, n_channels)` convention, transposes only for PyQtGraph display,
+  sets explicit display extents, and uses free visual aspect to avoid a
+  thin-strip preview.
+- Key GUI controls now have tooltips, including display backend, axis mode,
+  safe selection inputs, Spectrum/FK/Analysis controls, cancel/clear, and
+  JSON/CSV export. Moveout and directional-energy wording stays bounded as
+  auxiliary review attributes, not true velocity, localization, or inversion.
+
+Remaining risks:
+
+- PyQtGraph remains experimental and still needs real large-file GUI manual
+  validation.
+- GUI usability still benefits from more user feedback on target Windows
+  machines.
+- Remote GitHub Actions status should be confirmed on the GitHub Actions page
+  after push.
+
 Remaining work:
 
 - Run the manual GUI checklist on a supported local file.

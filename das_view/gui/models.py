@@ -46,6 +46,20 @@ AnalysisType = Literal[
     "moveout_summary",
     "directional_energy",
 ]
+WaterfallAxisMode = Literal["channel", "distance"]
+
+
+@dataclass(frozen=True, slots=True)
+class WaterfallAxisInfo:
+    """Display-ready x-axis decision for GUI waterfall views."""
+
+    requested_mode: WaterfallAxisMode
+    mode: WaterfallAxisMode
+    x_min: float
+    x_max: float
+    label_en: str
+    label_zh: str
+    warning: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -478,6 +492,61 @@ def parse_preview_limits(max_samples: Any, max_channels: Any) -> PreviewLimits:
     if parsed_channels <= 0:
         raise ValueError("max_channels must be positive")
     return PreviewLimits(max_samples=parsed_samples, max_channels=parsed_channels)
+
+
+def normalize_waterfall_axis_mode(value: str | None) -> WaterfallAxisMode:
+    """Normalize GUI waterfall x-axis mode labels or stable keys."""
+
+    normalized = "channel" if value is None else str(value).strip().lower()
+    normalized = normalized.replace("-", " ").replace("_", " ")
+    normalized = " ".join(normalized.split())
+    if normalized in {"channel", "channels", "channel index", "通道", "通道号"}:
+        return "channel"
+    if normalized in {"distance", "distance m", "distance (m)", "距离", "距离 (m)"}:
+        return "distance"
+    raise ValueError(f"unsupported waterfall axis mode: {value!r}")
+
+
+def waterfall_axis_info(metadata: Any, mode: str | None) -> WaterfallAxisInfo:
+    """Return x-axis extent and labels for a waterfall display.
+
+    Channel mode is always available and is the GUI default. Distance mode
+    requires metadata.dx_m; if it is missing, the result falls back to channel
+    mode with a user-readable warning.
+    """
+
+    requested = normalize_waterfall_axis_mode(mode)
+    n_channels = _metadata_dimension(metadata, "n_channels")
+    start_channel = getattr(metadata, "start_channel", None)
+    channel_start = 0 if start_channel is None else int(start_channel)
+    if requested == "distance":
+        dx_m = getattr(metadata, "dx_m", None)
+        if dx_m is not None:
+            return WaterfallAxisInfo(
+                requested_mode=requested,
+                mode="distance",
+                x_min=0.0,
+                x_max=float(dx_m) * max(n_channels - 1, 0),
+                label_en="Distance (m)",
+                label_zh="距离 (m)",
+            )
+        return WaterfallAxisInfo(
+            requested_mode=requested,
+            mode="channel",
+            x_min=float(channel_start),
+            x_max=float(channel_start + max(n_channels - 1, 0)),
+            label_en="Channel",
+            label_zh="通道",
+            warning="Distance axis requires dx_m metadata; falling back to channel axis.",
+        )
+    return WaterfallAxisInfo(
+        requested_mode=requested,
+        mode="channel",
+        x_min=float(channel_start),
+        x_max=float(channel_start + max(n_channels - 1, 0)),
+        label_en="Channel",
+        label_zh="通道",
+    )
 
 
 def parse_channel_indices(text: str) -> tuple[int, ...]:

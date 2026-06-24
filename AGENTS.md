@@ -208,6 +208,15 @@ All internal core arrays must use:
 - GUI display backend controls must default to Matplotlib. Experimental
   PyQtGraph views may be offered for bounded waterfall/image previews only,
   with user-readable fallback when the optional package is unavailable.
+- GUI text should default to Chinese when localization is available, with an
+  English switch kept available. Stable combo-box data keys should remain
+  language-neutral so parsers and tests do not depend on visible labels.
+- Waterfall GUI views should support channel and distance x-axis modes. Channel
+  mode is the safe default; distance mode must require spacing metadata and
+  fall back to channel mode with a user-readable hint when spacing is missing.
+- Main GUI controls should have concise tooltips that explain purpose, bounded
+  selection risk, optional/experimental display behavior, and interpretation
+  boundaries for moveout or directional-energy attributes.
 - GUI display helpers may downsample already selected arrays for display, but
   they must not implement reader internals, analysis algorithms, or GPU compute
   policy.

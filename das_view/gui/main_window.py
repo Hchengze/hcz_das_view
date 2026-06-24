@@ -7,6 +7,13 @@ from typing import Any
 
 from das_view.core.metadata_format import format_metadata
 from das_view.gui.display_backends import is_pyqtgraph_available
+from das_view.gui.i18n import (
+    get_default_language,
+    get_supported_languages,
+    set_language,
+    tooltip,
+    translate,
+)
 from das_view.gui.models import (
     AnalysisRequest,
     GUI_DEFAULT_MAX_SELECTION_BYTES,
@@ -34,6 +41,7 @@ from das_view.gui.models import (
     roi_statistics_to_table_rows,
     should_apply_task_result,
     task_control_state,
+    waterfall_axis_info,
 )
 from das_view.gui.pyqtgraph_canvas import create_pyqtgraph_waterfall_widget
 from das_view.gui.workers import (
@@ -90,6 +98,10 @@ def _channels_to_slice(channels: tuple[int, ...]) -> slice:
     return slice(min(channels), max(channels) + 1)
 
 
+def _form_label(text: str):
+    return _qt_widgets().QLabel(text)
+
+
 class MainWindow(_qt_widgets().QMainWindow):
     """Small GUI that opens a file and displays metadata plus waterfall preview."""
 
@@ -108,7 +120,9 @@ class MainWindow(_qt_widgets().QMainWindow):
         self._current_metadata: Any | None = None
         self._current_reader_name: str | None = None
         self._gui_max_selection_bytes = GUI_DEFAULT_MAX_SELECTION_BYTES
+        self._language = set_language(get_default_language())
         self._display_backend = "matplotlib"
+        self._waterfall_axis_mode = "channel"
         self._pyqtgraph_available = is_pyqtgraph_available()
         self._pyqtgraph_waterfall_view: Any | None = None
         self._latest_preview_data: Any | None = None
@@ -116,18 +130,24 @@ class MainWindow(_qt_widgets().QMainWindow):
         self._latest_analysis_request: AnalysisRequest | None = None
         self._latest_analysis_rows: list[dict[str, Any]] = []
         self._latest_event_candidates: tuple[Any, ...] = ()
-        self.setWindowTitle("DAS View")
+        self.setWindowTitle(translate("app.title", self._language))
         self.resize(1100, 750)
+
+        self.language_combo = QtWidgets.QComboBox()
+        for language_code in get_supported_languages():
+            self.language_combo.addItem(translate(f"language.{language_code}", self._language), language_code)
+        self.language_combo.setCurrentIndex(self.language_combo.findData(self._language))
+        self.language_combo.currentIndexChanged.connect(self._handle_language_changed)
 
         self.file_info = QtWidgets.QPlainTextEdit()
         self.file_info.setReadOnly(True)
         self.file_info.setMaximumHeight(150)
         presets = gui_safe_selection_presets()
         self.file_info.setPlainText(
-            "No file loaded.\n"
-            f"Safe preview: {presets['small_preview'][0]} samples x "
+            f"{self._tr('no_file_loaded')}\n"
+            f"{self._tr('safe_preview')}: {presets['small_preview'][0]} samples x "
             f"{presets['small_preview'][1]} channels.\n"
-            f"Analysis safe default: {presets['analysis'][0]} samples x "
+            f"{self._tr('analysis_safe_default')}: {presets['analysis'][0]} samples x "
             f"{presets['analysis'][1]} channels."
         )
 
@@ -143,7 +163,7 @@ class MainWindow(_qt_widgets().QMainWindow):
 
         self.metadata_text = QtWidgets.QPlainTextEdit()
         self.metadata_text.setReadOnly(True)
-        self.metadata_text.setPlainText("Open a supported DAS file to view metadata.")
+        self.metadata_text.setPlainText(self._tr("metadata_prompt"))
 
         self.figure, self.canvas, self.toolbar = _create_matplotlib_widgets(self)
         self.waveform_figure, self.waveform_canvas, self.waveform_toolbar = (
@@ -165,6 +185,13 @@ class MainWindow(_qt_widgets().QMainWindow):
         self.display_backend_combo.setCurrentIndex(0)
         self.display_backend_combo.setToolTip("Waterfall display backend; Matplotlib remains the default")
         self.display_backend_combo.currentIndexChanged.connect(self._handle_display_backend_changed)
+        self.waterfall_axis_mode_combo = QtWidgets.QComboBox()
+        self.waterfall_axis_mode_combo.addItem("Channel", "channel")
+        self.waterfall_axis_mode_combo.addItem("Distance", "distance")
+        self.waterfall_axis_mode_combo.setCurrentIndex(0)
+        self.waterfall_axis_mode_combo.currentIndexChanged.connect(
+            self._handle_waterfall_axis_mode_changed
+        )
         self.waterfall_stack = QtWidgets.QStackedWidget()
         self.waterfall_matplotlib_panel = QtWidgets.QWidget()
         waterfall_mpl_layout = QtWidgets.QVBoxLayout(self.waterfall_matplotlib_panel)
@@ -364,31 +391,42 @@ class MainWindow(_qt_widgets().QMainWindow):
         splitter = QtWidgets.QSplitter()
         left_panel = QtWidgets.QWidget()
         left_layout = QtWidgets.QVBoxLayout(left_panel)
-        left_layout.addWidget(QtWidgets.QLabel("File information"))
+        self.file_info_label = QtWidgets.QLabel()
+        self.metadata_label = QtWidgets.QLabel()
+        left_layout.addWidget(self.file_info_label)
         left_layout.addWidget(self.file_info)
         limits_layout = QtWidgets.QFormLayout()
-        limits_layout.addRow("Max samples", self.max_samples_input)
-        limits_layout.addRow("Max channels", self.max_channels_input)
+        self.language_label = QtWidgets.QLabel()
+        self.max_samples_label = QtWidgets.QLabel()
+        self.max_channels_label = QtWidgets.QLabel()
+        limits_layout.addRow(self.language_label, self.language_combo)
+        limits_layout.addRow(self.max_samples_label, self.max_samples_input)
+        limits_layout.addRow(self.max_channels_label, self.max_channels_input)
         left_layout.addLayout(limits_layout)
         task_layout = QtWidgets.QHBoxLayout()
         task_layout.addWidget(self.progress_bar)
         task_layout.addWidget(self.cancel_button)
         left_layout.addLayout(task_layout)
-        left_layout.addWidget(QtWidgets.QLabel("Metadata"))
+        left_layout.addWidget(self.metadata_label)
         left_layout.addWidget(self.metadata_text)
 
         waterfall_panel = QtWidgets.QWidget()
         waterfall_layout = QtWidgets.QVBoxLayout(waterfall_panel)
         waterfall_controls = QtWidgets.QFormLayout()
-        waterfall_controls.addRow("Display backend", self.display_backend_combo)
+        self.display_backend_label = QtWidgets.QLabel()
+        self.waterfall_axis_mode_label = QtWidgets.QLabel()
+        waterfall_controls.addRow(self.display_backend_label, self.display_backend_combo)
+        waterfall_controls.addRow(self.waterfall_axis_mode_label, self.waterfall_axis_mode_combo)
         waterfall_layout.addLayout(waterfall_controls)
         waterfall_layout.addWidget(self.waterfall_stack)
 
         waveform_panel = QtWidgets.QWidget()
         waveform_layout = QtWidgets.QVBoxLayout(waveform_panel)
         waveform_controls = QtWidgets.QFormLayout()
-        waveform_controls.addRow("Channel index", self.waveform_channel_input)
-        waveform_controls.addRow("Time step", self.waveform_time_step_input)
+        self.waveform_channel_label = _form_label("Channel index")
+        self.waveform_time_step_label = _form_label("Time step")
+        waveform_controls.addRow(self.waveform_channel_label, self.waveform_channel_input)
+        waveform_controls.addRow(self.waveform_time_step_label, self.waveform_time_step_input)
         waveform_layout.addLayout(waveform_controls)
         waveform_layout.addWidget(self.waveform_button)
         waveform_layout.addWidget(self.waveform_info)
@@ -398,11 +436,16 @@ class MainWindow(_qt_widgets().QMainWindow):
         spectrum_panel = QtWidgets.QWidget()
         spectrum_layout = QtWidgets.QVBoxLayout(spectrum_panel)
         spectrum_controls = QtWidgets.QFormLayout()
-        spectrum_controls.addRow("Channel index", self.spectrum_channel_input)
-        spectrum_controls.addRow("Analysis type", self.spectrum_type_combo)
-        spectrum_controls.addRow("nfft", self.spectrum_nfft_input)
-        spectrum_controls.addRow("nperseg", self.spectrum_nperseg_input)
-        spectrum_controls.addRow("noverlap", self.spectrum_noverlap_input)
+        self.spectrum_channel_label = _form_label("Channel index")
+        self.spectrum_method_label = _form_label("Analysis type")
+        self.spectrum_nfft_label = _form_label("nfft")
+        self.spectrum_nperseg_label = _form_label("nperseg")
+        self.spectrum_noverlap_label = _form_label("noverlap")
+        spectrum_controls.addRow(self.spectrum_channel_label, self.spectrum_channel_input)
+        spectrum_controls.addRow(self.spectrum_method_label, self.spectrum_type_combo)
+        spectrum_controls.addRow(self.spectrum_nfft_label, self.spectrum_nfft_input)
+        spectrum_controls.addRow(self.spectrum_nperseg_label, self.spectrum_nperseg_input)
+        spectrum_controls.addRow(self.spectrum_noverlap_label, self.spectrum_noverlap_input)
         spectrum_controls.addRow("", self.spectrum_db_checkbox)
         spectrum_layout.addLayout(spectrum_controls)
         spectrum_layout.addWidget(self.spectrum_button)
@@ -413,17 +456,27 @@ class MainWindow(_qt_widgets().QMainWindow):
         fk_panel = QtWidgets.QWidget()
         fk_layout = QtWidgets.QVBoxLayout(fk_panel)
         fk_controls = QtWidgets.QFormLayout()
-        fk_controls.addRow("Time start", self.fk_time_start_input)
-        fk_controls.addRow("Time stop", self.fk_time_stop_input)
-        fk_controls.addRow("Time step", self.fk_time_step_input)
-        fk_controls.addRow("Channel start", self.fk_channel_start_input)
-        fk_controls.addRow("Channel stop", self.fk_channel_stop_input)
-        fk_controls.addRow("Channel step", self.fk_channel_step_input)
-        fk_controls.addRow("FK mode", self.fk_mode_combo)
-        fk_controls.addRow("Output mode", self.fk_output_combo)
+        self.fk_time_start_label = _form_label("Time start")
+        self.fk_time_stop_label = _form_label("Time stop")
+        self.fk_time_step_label = _form_label("Time step")
+        self.fk_channel_start_label = _form_label("Channel start")
+        self.fk_channel_stop_label = _form_label("Channel stop")
+        self.fk_channel_step_label = _form_label("Channel step")
+        self.fk_mode_label = _form_label("FK mode")
+        self.fk_output_label = _form_label("Output mode")
+        fk_controls.addRow(self.fk_time_start_label, self.fk_time_start_input)
+        fk_controls.addRow(self.fk_time_stop_label, self.fk_time_stop_input)
+        fk_controls.addRow(self.fk_time_step_label, self.fk_time_step_input)
+        fk_controls.addRow(self.fk_channel_start_label, self.fk_channel_start_input)
+        fk_controls.addRow(self.fk_channel_stop_label, self.fk_channel_stop_input)
+        fk_controls.addRow(self.fk_channel_step_label, self.fk_channel_step_input)
+        fk_controls.addRow(self.fk_mode_label, self.fk_mode_combo)
+        fk_controls.addRow(self.fk_output_label, self.fk_output_combo)
         fk_controls.addRow("", self.fk_db_checkbox)
-        fk_controls.addRow("vmin m/s", self.fk_vmin_input)
-        fk_controls.addRow("vmax m/s", self.fk_vmax_input)
+        self.fk_vmin_label = _form_label("vmin m/s")
+        self.fk_vmax_label = _form_label("vmax m/s")
+        fk_controls.addRow(self.fk_vmin_label, self.fk_vmin_input)
+        fk_controls.addRow(self.fk_vmax_label, self.fk_vmax_input)
         fk_controls.addRow("", self.fk_pass_inside_checkbox)
         fk_layout.addLayout(fk_controls)
         fk_layout.addWidget(self.fk_button)
@@ -434,38 +487,68 @@ class MainWindow(_qt_widgets().QMainWindow):
         analysis_panel = QtWidgets.QWidget()
         analysis_layout = QtWidgets.QVBoxLayout(analysis_panel)
         analysis_controls = QtWidgets.QFormLayout()
-        analysis_controls.addRow("Time start", self.analysis_time_start_input)
-        analysis_controls.addRow("Time stop", self.analysis_time_stop_input)
-        analysis_controls.addRow("Time step", self.analysis_time_step_input)
-        analysis_controls.addRow("Channel start", self.analysis_channel_start_input)
-        analysis_controls.addRow("Channel stop", self.analysis_channel_stop_input)
-        analysis_controls.addRow("Channel step", self.analysis_channel_step_input)
-        analysis_controls.addRow("Analysis type", self.analysis_type_combo)
-        analysis_controls.addRow("Statistics axis", self.analysis_axis_combo)
-        analysis_controls.addRow("Percentiles", self.analysis_percentiles_input)
-        analysis_controls.addRow("NaN policy", self.analysis_nan_policy_combo)
-        analysis_controls.addRow("Bands Hz", self.analysis_bands_input)
-        analysis_controls.addRow("Frequency range Hz", self.analysis_frequency_range_input)
-        analysis_controls.addRow("Rolloff", self.analysis_rolloff_input)
+        self.analysis_time_start_label = _form_label("Time start")
+        self.analysis_time_stop_label = _form_label("Time stop")
+        self.analysis_time_step_label = _form_label("Time step")
+        self.analysis_channel_start_label = _form_label("Channel start")
+        self.analysis_channel_stop_label = _form_label("Channel stop")
+        self.analysis_channel_step_label = _form_label("Channel step")
+        self.analysis_type_label = _form_label("Analysis type")
+        self.analysis_axis_label = _form_label("Statistics axis")
+        self.analysis_percentiles_label = _form_label("Percentiles")
+        self.analysis_nan_policy_label = _form_label("NaN policy")
+        self.analysis_bands_label = _form_label("Bands Hz")
+        self.analysis_frequency_range_label = _form_label("Frequency range Hz")
+        self.analysis_rolloff_label = _form_label("Rolloff")
+        analysis_controls.addRow(self.analysis_time_start_label, self.analysis_time_start_input)
+        analysis_controls.addRow(self.analysis_time_stop_label, self.analysis_time_stop_input)
+        analysis_controls.addRow(self.analysis_time_step_label, self.analysis_time_step_input)
+        analysis_controls.addRow(self.analysis_channel_start_label, self.analysis_channel_start_input)
+        analysis_controls.addRow(self.analysis_channel_stop_label, self.analysis_channel_stop_input)
+        analysis_controls.addRow(self.analysis_channel_step_label, self.analysis_channel_step_input)
+        analysis_controls.addRow(self.analysis_type_label, self.analysis_type_combo)
+        analysis_controls.addRow(self.analysis_axis_label, self.analysis_axis_combo)
+        analysis_controls.addRow(self.analysis_percentiles_label, self.analysis_percentiles_input)
+        analysis_controls.addRow(self.analysis_nan_policy_label, self.analysis_nan_policy_combo)
+        analysis_controls.addRow(self.analysis_bands_label, self.analysis_bands_input)
+        analysis_controls.addRow(self.analysis_frequency_range_label, self.analysis_frequency_range_input)
+        analysis_controls.addRow(self.analysis_rolloff_label, self.analysis_rolloff_input)
         analysis_controls.addRow("", self.analysis_average_channels_checkbox)
-        analysis_controls.addRow("STA samples", self.analysis_sta_input)
-        analysis_controls.addRow("LTA samples", self.analysis_lta_input)
-        analysis_controls.addRow("Trigger on", self.analysis_trigger_on_input)
-        analysis_controls.addRow("Trigger off", self.analysis_trigger_off_input)
-        analysis_controls.addRow("Envelope threshold", self.analysis_threshold_input)
-        analysis_controls.addRow("Smooth samples", self.analysis_smooth_samples_input)
-        analysis_controls.addRow("Min duration", self.analysis_min_duration_input)
-        analysis_controls.addRow("Merge gap", self.analysis_merge_gap_input)
-        analysis_controls.addRow("Max events", self.analysis_max_events_input)
-        analysis_controls.addRow("Manual ROI", self.analysis_roi_text)
+        self.analysis_sta_label = _form_label("STA samples")
+        self.analysis_lta_label = _form_label("LTA samples")
+        self.analysis_trigger_on_label = _form_label("Trigger on")
+        self.analysis_trigger_off_label = _form_label("Trigger off")
+        self.analysis_threshold_label = _form_label("Envelope threshold")
+        self.analysis_smooth_label = _form_label("Smooth samples")
+        self.analysis_min_duration_label = _form_label("Min duration")
+        self.analysis_merge_gap_label = _form_label("Merge gap")
+        self.analysis_max_events_label = _form_label("Max events")
+        self.analysis_roi_label = _form_label("Manual ROI")
+        analysis_controls.addRow(self.analysis_sta_label, self.analysis_sta_input)
+        analysis_controls.addRow(self.analysis_lta_label, self.analysis_lta_input)
+        analysis_controls.addRow(self.analysis_trigger_on_label, self.analysis_trigger_on_input)
+        analysis_controls.addRow(self.analysis_trigger_off_label, self.analysis_trigger_off_input)
+        analysis_controls.addRow(self.analysis_threshold_label, self.analysis_threshold_input)
+        analysis_controls.addRow(self.analysis_smooth_label, self.analysis_smooth_samples_input)
+        analysis_controls.addRow(self.analysis_min_duration_label, self.analysis_min_duration_input)
+        analysis_controls.addRow(self.analysis_merge_gap_label, self.analysis_merge_gap_input)
+        analysis_controls.addRow(self.analysis_max_events_label, self.analysis_max_events_input)
+        analysis_controls.addRow(self.analysis_roi_label, self.analysis_roi_text)
         analysis_controls.addRow("", self.analysis_use_event_rois_checkbox)
-        analysis_controls.addRow("ROI pad samples", self.analysis_padding_samples_input)
-        analysis_controls.addRow("ROI pad channels", self.analysis_padding_channels_input)
-        analysis_controls.addRow("Max ROIs", self.analysis_max_rois_input)
-        analysis_controls.addRow("Window samples", self.analysis_window_samples_input)
-        analysis_controls.addRow("Step samples", self.analysis_step_samples_input)
-        analysis_controls.addRow("Channel lag", self.analysis_channel_lag_input)
-        analysis_controls.addRow("Denoise workflow", self.analysis_denoise_workflow_input)
+        self.analysis_padding_samples_label = _form_label("ROI pad samples")
+        self.analysis_padding_channels_label = _form_label("ROI pad channels")
+        self.analysis_max_rois_label = _form_label("Max ROIs")
+        self.analysis_window_samples_label = _form_label("Window samples")
+        self.analysis_step_samples_label = _form_label("Step samples")
+        self.analysis_channel_lag_label = _form_label("Channel lag")
+        self.analysis_denoise_workflow_label = _form_label("Denoise workflow")
+        analysis_controls.addRow(self.analysis_padding_samples_label, self.analysis_padding_samples_input)
+        analysis_controls.addRow(self.analysis_padding_channels_label, self.analysis_padding_channels_input)
+        analysis_controls.addRow(self.analysis_max_rois_label, self.analysis_max_rois_input)
+        analysis_controls.addRow(self.analysis_window_samples_label, self.analysis_window_samples_input)
+        analysis_controls.addRow(self.analysis_step_samples_label, self.analysis_step_samples_input)
+        analysis_controls.addRow(self.analysis_channel_lag_label, self.analysis_channel_lag_input)
+        analysis_controls.addRow(self.analysis_denoise_workflow_label, self.analysis_denoise_workflow_input)
         analysis_layout.addLayout(analysis_controls)
         analysis_buttons = QtWidgets.QHBoxLayout()
         analysis_buttons.addWidget(self.analysis_run_button)
@@ -490,6 +573,7 @@ class MainWindow(_qt_widgets().QMainWindow):
         self.setCentralWidget(splitter)
 
         self._build_menu()
+        self._apply_language()
         self._clear_waterfall_figure()
         self._clear_waveform_figure()
         self._clear_spectrum_figure()
@@ -497,7 +581,7 @@ class MainWindow(_qt_widgets().QMainWindow):
         self._update_analysis_parameter_state()
         self._apply_task_control_state(is_running=False)
         self._update_analysis_export_state()
-        self.statusBar().showMessage("Ready")
+        self.statusBar().showMessage(self._tr("ready"))
 
     def open_file_dialog(self) -> None:
         QtWidgets = _qt_widgets()
@@ -896,11 +980,217 @@ class MainWindow(_qt_widgets().QMainWindow):
         self._update_analysis_export_state()
 
     def _build_menu(self) -> None:
-        file_menu = self.menuBar().addMenu("&File")
-        self.open_action = file_menu.addAction("&Open File")
+        self.file_menu = self.menuBar().addMenu("&File")
+        self.open_action = self.file_menu.addAction("&Open File")
         self.open_action.triggered.connect(self.open_file_dialog)
-        exit_action = file_menu.addAction("E&xit")
-        exit_action.triggered.connect(self.close)
+        self.exit_action = self.file_menu.addAction("E&xit")
+        self.exit_action.triggered.connect(self.close)
+
+    def _tr(self, key: str) -> str:
+        return translate(key, self._language)
+
+    def _tip(self, key: str) -> str:
+        return tooltip(key, self._language)
+
+    def _handle_language_changed(self) -> None:
+        language = self.language_combo.currentData() or get_default_language()
+        self._language = set_language(str(language))
+        self._apply_language()
+        if self._latest_preview_data is not None:
+            self._draw_preview(self._latest_preview_data)
+
+    def _apply_language(self) -> None:
+        self.setWindowTitle(self._tr("app.title"))
+        self.file_info_label.setText(self._tr("file_information"))
+        self.metadata_label.setText(self._tr("metadata"))
+        self.language_label.setText(self._tr("language"))
+        self.max_samples_label.setText(self._tr("max_samples"))
+        self.max_channels_label.setText(self._tr("max_channels"))
+        self.display_backend_label.setText(self._tr("display_backend"))
+        self.waterfall_axis_mode_label.setText(self._tr("axis_mode"))
+        self.waveform_channel_label.setText(self._tr("channel_index"))
+        self.waveform_time_step_label.setText(self._tr("time_step"))
+        self.spectrum_channel_label.setText(self._tr("channel_index"))
+        self.spectrum_method_label.setText(self._tr("spectrum_method"))
+        self.spectrum_nfft_label.setText(self._tr("nfft"))
+        self.spectrum_nperseg_label.setText(self._tr("nperseg"))
+        self.spectrum_noverlap_label.setText(self._tr("noverlap"))
+        self.fk_time_start_label.setText(self._tr("time_start"))
+        self.fk_time_stop_label.setText(self._tr("time_stop"))
+        self.fk_time_step_label.setText(self._tr("time_step"))
+        self.fk_channel_start_label.setText(self._tr("channel_start"))
+        self.fk_channel_stop_label.setText(self._tr("channel_stop"))
+        self.fk_channel_step_label.setText(self._tr("channel_step"))
+        self.fk_mode_label.setText(self._tr("fk_mode"))
+        self.fk_output_label.setText(self._tr("output_mode"))
+        self.fk_vmin_label.setText(self._tr("velocity_min"))
+        self.fk_vmax_label.setText(self._tr("velocity_max"))
+        self.analysis_time_start_label.setText(self._tr("time_start"))
+        self.analysis_time_stop_label.setText(self._tr("time_stop"))
+        self.analysis_time_step_label.setText(self._tr("time_step"))
+        self.analysis_channel_start_label.setText(self._tr("channel_start"))
+        self.analysis_channel_stop_label.setText(self._tr("channel_stop"))
+        self.analysis_channel_step_label.setText(self._tr("channel_step"))
+        self.analysis_type_label.setText(self._tr("analysis_type"))
+        self.analysis_axis_label.setText(self._tr("statistics_axis"))
+        self.analysis_percentiles_label.setText(self._tr("percentiles"))
+        self.analysis_nan_policy_label.setText(self._tr("nan_policy"))
+        self.analysis_bands_label.setText(self._tr("bands_hz"))
+        self.analysis_frequency_range_label.setText(self._tr("frequency_range_hz"))
+        self.analysis_rolloff_label.setText(self._tr("rolloff"))
+        self.analysis_sta_label.setText(self._tr("sta_samples"))
+        self.analysis_lta_label.setText(self._tr("lta_samples"))
+        self.analysis_trigger_on_label.setText(self._tr("trigger_on"))
+        self.analysis_trigger_off_label.setText(self._tr("trigger_off"))
+        self.analysis_threshold_label.setText(self._tr("envelope_threshold"))
+        self.analysis_smooth_label.setText(self._tr("smooth_samples"))
+        self.analysis_min_duration_label.setText(self._tr("min_duration"))
+        self.analysis_merge_gap_label.setText(self._tr("merge_gap"))
+        self.analysis_max_events_label.setText(self._tr("max_events"))
+        self.analysis_roi_label.setText(self._tr("manual_roi"))
+        self.analysis_padding_samples_label.setText(self._tr("roi_pad_samples"))
+        self.analysis_padding_channels_label.setText(self._tr("roi_pad_channels"))
+        self.analysis_max_rois_label.setText(self._tr("max_rois"))
+        self.analysis_window_samples_label.setText(self._tr("window_samples"))
+        self.analysis_step_samples_label.setText(self._tr("step_samples"))
+        self.analysis_channel_lag_label.setText(self._tr("channel_lag"))
+        self.analysis_denoise_workflow_label.setText(self._tr("denoise_workflow"))
+        self.cancel_button.setText(self._tr("cancel"))
+        self.waveform_button.setText(self._tr("plot_waveform"))
+        self.spectrum_button.setText(self._tr("run_spectrum"))
+        self.fk_button.setText(self._tr("run_fk"))
+        self.analysis_run_button.setText(self._tr("run_analysis"))
+        self.analysis_export_json_button.setText(self._tr("export_json"))
+        self.analysis_export_csv_button.setText(self._tr("export_csv"))
+        self.analysis_clear_button.setText(self._tr("clear_results"))
+        self._set_combo_texts(
+            self.language_combo,
+            {
+                "zh_CN": self._tr("language.zh_CN"),
+                "en_US": self._tr("language.en_US"),
+            },
+        )
+        self._set_combo_texts(
+            self.display_backend_combo,
+            {
+                "matplotlib": self._tr("matplotlib"),
+                "pyqtgraph": (
+                    self._tr("pyqtgraph_experimental")
+                    if self._pyqtgraph_available
+                    else self._tr("pyqtgraph_unavailable")
+                ),
+            },
+        )
+        self._set_combo_texts(
+            self.waterfall_axis_mode_combo,
+            {
+                "channel": self._tr("axis_channel"),
+                "distance": self._tr("axis_distance"),
+            },
+        )
+        self._set_combo_texts(
+            self.analysis_type_combo,
+            {
+                "statistics": self._tr("statistics"),
+                "band_energy": self._tr("band_energy"),
+                "spectral_attributes": self._tr("spectral_attributes"),
+                "events_stalta": self._tr("events_stalta"),
+                "events_envelope": self._tr("events_envelope"),
+                "roi_statistics": self._tr("roi_statistics"),
+                "qc_report": self._tr("qc_report"),
+                "bad_channels": self._tr("bad_channels"),
+                "multiband_summary": self._tr("multiband_summary"),
+                "denoise_report": self._tr("denoise_report"),
+                "moveout_summary": self._tr("moveout_summary"),
+                "directional_energy": self._tr("directional_energy"),
+            },
+        )
+        self.plot_tabs.setTabText(0, self._tr("waterfall"))
+        self.plot_tabs.setTabText(1, self._tr("waveform"))
+        self.plot_tabs.setTabText(2, self._tr("spectrum"))
+        self.plot_tabs.setTabText(3, self._tr("fk"))
+        self.plot_tabs.setTabText(4, self._tr("analysis"))
+        if hasattr(self, "file_menu"):
+            self.file_menu.setTitle(self._tr("file_menu"))
+        if hasattr(self, "open_action"):
+            self.open_action.setText(self._tr("open_file"))
+            self.open_action.setToolTip(self._tip("open_file"))
+        if hasattr(self, "exit_action"):
+            self.exit_action.setText(self._tr("exit"))
+        self._apply_tooltips()
+
+    def _set_combo_texts(self, combo: Any, labels: dict[str, str]) -> None:
+        current = combo.currentData()
+        combo.blockSignals(True)
+        for index in range(combo.count()):
+            key = str(combo.itemData(index))
+            if key in labels:
+                combo.setItemText(index, labels[key])
+        if current is not None:
+            found = combo.findData(current)
+            if found >= 0:
+                combo.setCurrentIndex(found)
+        combo.blockSignals(False)
+
+    def _apply_tooltips(self) -> None:
+        self.language_combo.setToolTip(self._tip("language"))
+        self.max_samples_input.setToolTip(self._tip("max_samples"))
+        self.max_channels_input.setToolTip(self._tip("max_channels"))
+        self.display_backend_combo.setToolTip(self._tip("display_backend"))
+        self.waterfall_axis_mode_combo.setToolTip(self._tip("axis_mode"))
+        self.waveform_channel_input.setToolTip(self._tip("waveform_channel"))
+        self.waveform_time_step_input.setToolTip(self._tip("waveform_time_step"))
+        self.waveform_button.setToolTip(self._tip("run_waveform"))
+        self.spectrum_channel_input.setToolTip(self._tip("spectrum_channel"))
+        self.spectrum_type_combo.setToolTip(self._tip("spectrum_method"))
+        self.spectrum_button.setToolTip(self._tip("run_spectrum"))
+        self.fk_button.setToolTip(self._tip("fk_run"))
+        self.analysis_type_combo.setToolTip(self._tip("analysis_type"))
+        self.analysis_run_button.setToolTip(self._tip("run_analysis"))
+        self.analysis_export_json_button.setToolTip(self._tip("export_json"))
+        self.analysis_export_csv_button.setToolTip(self._tip("export_csv"))
+        self.analysis_clear_button.setToolTip(self._tip("clear_results"))
+        self.cancel_button.setToolTip(self._tip("cancel"))
+        for widget in [
+            self.fk_time_start_input,
+            self.fk_time_stop_input,
+            self.analysis_time_start_input,
+            self.analysis_time_stop_input,
+        ]:
+            widget.setToolTip(self._tip("time_range"))
+        for widget in [
+            self.fk_channel_start_input,
+            self.fk_channel_stop_input,
+            self.analysis_channel_start_input,
+            self.analysis_channel_stop_input,
+        ]:
+            widget.setToolTip(self._tip("channel_range"))
+        for widget in [
+            self.fk_time_step_input,
+            self.fk_channel_step_input,
+            self.analysis_time_step_input,
+            self.analysis_channel_step_input,
+        ]:
+            widget.setToolTip(self._tip("selection_step"))
+        for widget in [
+            self.file_info,
+            self.analysis_window_samples_input,
+            self.analysis_step_samples_input,
+            self.analysis_channel_lag_input,
+        ]:
+            widget.setToolTip(self._tip("memory_guard"))
+        self.analysis_denoise_workflow_input.setToolTip(
+            "去噪/增强步骤配置；这是信号复核辅助，不是解释结论。"
+            if self._language == "zh_CN"
+            else "Denoise/enhancement workflow configuration; this is a signal-review aid."
+        )
+        moveout_tip = self._tip("moveout_boundary")
+        index = self.analysis_type_combo.findData("moveout_summary")
+        if index >= 0:
+            self.analysis_type_combo.setItemData(index, moveout_tip, _qt_core().Qt.ToolTipRole)
+        index = self.analysis_type_combo.findData("directional_energy")
+        if index >= 0:
+            self.analysis_type_combo.setItemData(index, moveout_tip, _qt_core().Qt.ToolTipRole)
 
     def cancel_active_task(self) -> None:
         """Request soft cancellation for the active background task."""
@@ -1038,11 +1328,11 @@ class MainWindow(_qt_widgets().QMainWindow):
             )
         )
         self.metadata_text.setPlainText("\n".join(metadata_lines))
-        self._draw_preview(result.preview)
-        self._latest_preview_data = result.preview
         self.current_path = path
         self._current_metadata = result.metadata
         self._current_reader_name = result.reader_name
+        self._latest_preview_data = result.preview
+        self._draw_preview(result.preview)
         self.statusBar().showMessage(display.loaded_status())
 
     def _handle_waveform_finished(self, result: Any, *, task_id: int) -> None:
@@ -1213,6 +1503,7 @@ class MainWindow(_qt_widgets().QMainWindow):
         self.max_samples_input.setEnabled(state.preview_controls_enabled)
         self.max_channels_input.setEnabled(state.preview_controls_enabled)
         self.display_backend_combo.setEnabled(state.preview_controls_enabled)
+        self.waterfall_axis_mode_combo.setEnabled(state.preview_controls_enabled)
         self.waveform_channel_input.setEnabled(state.waveform_controls_enabled)
         self.waveform_time_step_input.setEnabled(state.waveform_controls_enabled)
         self.waveform_button.setEnabled(state.waveform_controls_enabled)
@@ -1248,7 +1539,7 @@ class MainWindow(_qt_widgets().QMainWindow):
             self._pyqtgraph_waterfall_view.clear()
         self.figure.clear()
         ax = self.figure.add_subplot(111)
-        ax.set_title("No preview loaded")
+        ax.set_title(self._tr("no_preview_loaded"))
         ax.set_xticks([])
         ax.set_yticks([])
         self.canvas.draw_idle()
@@ -1256,7 +1547,7 @@ class MainWindow(_qt_widgets().QMainWindow):
     def _clear_waveform_figure(self) -> None:
         self.waveform_figure.clear()
         ax = self.waveform_figure.add_subplot(111)
-        ax.set_title("No waveform loaded")
+        ax.set_title(self._tr("no_waveform_loaded"))
         ax.set_xticks([])
         ax.set_yticks([])
         self.waveform_canvas.draw_idle()
@@ -1264,7 +1555,7 @@ class MainWindow(_qt_widgets().QMainWindow):
     def _clear_spectrum_figure(self) -> None:
         self.spectrum_figure.clear()
         ax = self.spectrum_figure.add_subplot(111)
-        ax.set_title("No spectrum loaded")
+        ax.set_title(self._tr("no_spectrum_loaded"))
         ax.set_xticks([])
         ax.set_yticks([])
         self.spectrum_canvas.draw_idle()
@@ -1272,7 +1563,7 @@ class MainWindow(_qt_widgets().QMainWindow):
     def _clear_fk_figure(self) -> None:
         self.fk_figure.clear()
         ax = self.fk_figure.add_subplot(111)
-        ax.set_title("No FK result loaded")
+        ax.set_title(self._tr("no_fk_loaded"))
         ax.set_xticks([])
         ax.set_yticks([])
         self.fk_canvas.draw_idle()
@@ -1283,10 +1574,18 @@ class MainWindow(_qt_widgets().QMainWindow):
         self.analysis_table.setColumnCount(0)
 
     def _draw_preview(self, preview_data) -> None:
+        axis_mode = self.waterfall_axis_mode_combo.currentData() or self._waterfall_axis_mode
+        axis = waterfall_axis_info(preview_data.metadata, axis_mode)
+        if axis.warning:
+            self.statusBar().showMessage(axis.warning)
         if self._display_backend == "pyqtgraph":
             try:
                 view = self._ensure_pyqtgraph_waterfall_view()
-                displayed = view.set_waterfall_image(preview_data)
+                prepared = view.set_waterfall_image(
+                    preview_data,
+                    axis_mode=axis_mode,
+                    language=self._language,
+                )
             except Exception as exc:  # noqa: BLE001 - GUI boundary reports optional backend errors.
                 message = format_error_message(exc)
                 self.statusBar().showMessage(f"PyQtGraph unavailable, using Matplotlib: {message}")
@@ -1294,12 +1593,14 @@ class MainWindow(_qt_widgets().QMainWindow):
             else:
                 self.waterfall_stack.setCurrentWidget(view.widget)
                 self.statusBar().showMessage(
-                    f"PyQtGraph waterfall display: shown shape={displayed.shape}"
+                    f"PyQtGraph waterfall display: shown shape={prepared.data.shape}, axis={prepared.axis_mode}"
                 )
                 return
         self.figure.clear()
         ax = self.figure.add_subplot(111)
-        plot_waterfall(preview_data, ax=ax)
+        plot_waterfall(preview_data, ax=ax, axis_mode=axis.mode)
+        if self._language == "zh_CN":
+            ax.set_xlabel(axis.label_zh)
         self.figure.tight_layout()
         self.canvas.draw_idle()
         self.waterfall_stack.setCurrentWidget(self.waterfall_matplotlib_panel)
@@ -1315,6 +1616,13 @@ class MainWindow(_qt_widgets().QMainWindow):
             self._set_display_backend("matplotlib")
             return
         self._set_display_backend(str(backend))
+        if self._latest_preview_data is not None:
+            self._draw_preview(self._latest_preview_data)
+
+    def _handle_waterfall_axis_mode_changed(self) -> None:
+        self._waterfall_axis_mode = str(
+            self.waterfall_axis_mode_combo.currentData() or "channel"
+        )
         if self._latest_preview_data is not None:
             self._draw_preview(self._latest_preview_data)
 

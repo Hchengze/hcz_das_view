@@ -71,6 +71,9 @@ Implemented so far:
 - Optional GUI display backend exploration with Matplotlib default,
   experimental PyQtGraph waterfall/image preview, lazy VisPy detection, and
   shared display downsampling helpers.
+- GUI localization and usability polish with Chinese default text, English
+  switching, waterfall channel/distance x-axis mode, and tooltips on the main
+  controls.
 - Synthetic tests for core readers and preview workflows.
 
 Still intentionally deferred:
@@ -414,6 +417,23 @@ Large selections are still downsampled for display through shared
 GUI-independent helpers, and screenshots or display benchmark outputs are local
 artifacts that should not be committed.
 
+The GUI also exposes a Waterfall axis mode selector. `Channel` is the default
+because it is always available and maps directly to DAS channel indices.
+`Distance` uses `dx_m` metadata when present; if spacing metadata is missing,
+the GUI falls back to `Channel` and shows a readable hint. The experimental
+PyQtGraph path prepares images with explicit display extents and free visual
+aspect so previews do not collapse into a thin strip.
+
+## GUI localization and tooltips
+
+The optional GUI defaults to Chinese and includes a language selector for
+switching to English. The main tabs, file controls, display backend selector,
+Waterfall axis mode selector, Spectrum/FK/Analysis controls, run/cancel/clear
+buttons, and JSON/CSV export buttons have tooltips. PyQtGraph remains marked as
+experimental, and moveout/directional-energy tooltips keep the terminology
+boundary clear: they are auxiliary wavefield review attributes, not true
+subsurface velocity, localization, or inversion results.
+
 Phase 9B.1 adds explicit VisPy / PyOpenGL capability validation helpers. They
 report VisPy import status, PyOpenGL import status, versions when available,
 and whether a minimal OpenGL context probe was requested. OpenGL context probes
@@ -703,6 +723,11 @@ In the GUI, open a supported file first, then use the Waveform tab to enter a
 zero-based channel index such as 10 or comma-separated indices such as
 10,20,30. The GUI calls the shared data service; it does not read format
 internals directly.
+
+The GUI opens in Chinese by default. Use the language selector in the left
+panel to switch to English. On the Waterfall tab, use Axis mode to choose
+`Channel` or `Distance`; channel mode is the default, while distance mode uses
+`dx_m` metadata when available.
 
 For large files, review the file-summary panel before running tab operations.
 It shows reader name, sample/channel counts, sample spacing when available,

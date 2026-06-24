@@ -668,22 +668,24 @@ def test_main_window_can_be_created_when_pyqt5_is_available():
     app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
     window = MainWindow()
 
-    assert window.windowTitle() == "DAS View"
-    assert window.statusBar().currentMessage() == "Ready"
+    assert window.windowTitle() == "HCZ DAS View"
+    assert window.statusBar().currentMessage() == "就绪"
+    assert window.language_combo.currentData() == "zh_CN"
     assert window.max_samples_input.value() == 2000
     assert window.max_channels_input.value() == 500
     assert window.plot_tabs.count() == 5
-    assert window.plot_tabs.tabText(2) == "Spectrum"
+    assert window.plot_tabs.tabText(0) == "瀑布图"
+    assert window.plot_tabs.tabText(2) == "频谱"
     assert window.plot_tabs.tabText(3) == "FK"
-    assert window.plot_tabs.tabText(4) == "Analysis"
+    assert window.plot_tabs.tabText(4) == "分析"
     assert window.waveform_channel_input.text() == "0"
     assert window.waveform_time_step_input.value() == 1
     assert window.spectrum_channel_input.text() == "0"
-    assert window.spectrum_type_combo.currentText() == "Amplitude spectrum"
+    assert window.spectrum_type_combo.currentData() == "amplitude"
     assert window.spectrum_nfft_input.text() == ""
     assert window.spectrum_nperseg_input.text() == "256"
     assert window.spectrum_noverlap_input.text() == ""
-    assert window.spectrum_button.text() == "Run spectrum"
+    assert window.spectrum_button.text() == "运行频谱"
     assert window.fk_time_start_input.text() == ""
     assert window.fk_time_stop_input.text() == ""
     assert window.fk_time_step_input.value() == 1
@@ -695,15 +697,16 @@ def test_main_window_can_be_created_when_pyqt5_is_available():
     assert window.fk_vmin_input.text() == ""
     assert window.fk_vmax_input.text() == ""
     assert window.fk_pass_inside_checkbox.isChecked()
-    assert window.fk_button.text() == "Run FK"
+    assert window.fk_button.text() == "运行 FK"
     assert window.display_backend_combo.currentData() == "matplotlib"
-    assert window.analysis_type_combo.currentText() == "Statistics"
-    assert window.analysis_run_button.text() == "Run analysis"
-    assert window.analysis_export_json_button.text() == "Export JSON"
-    assert window.analysis_export_csv_button.text() == "Export CSV"
+    assert window.waterfall_axis_mode_combo.currentData() == "channel"
+    assert window.analysis_type_combo.currentData() == "statistics"
+    assert window.analysis_run_button.text() == "运行分析"
+    assert window.analysis_export_json_button.text() == "导出 JSON"
+    assert window.analysis_export_csv_button.text() == "导出 CSV"
     assert not window.analysis_export_json_button.isEnabled()
     assert not window.analysis_export_csv_button.isEnabled()
-    assert window.analysis_clear_button.text() == "Clear results"
+    assert window.analysis_clear_button.text() == "清空结果"
     assert window.analysis_time_step_input.value() == 1
     assert window.analysis_channel_step_input.value() == 1
     assert window.progress_bar is not None

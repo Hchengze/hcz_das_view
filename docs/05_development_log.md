@@ -1,5 +1,46 @@
 ﻿# Development Log
 
+## Phase 8E.2: GUI localization and usability polish
+
+Phase 8E.2 addresses manual GUI usability feedback. It does not add analysis
+algorithms, readers, GPU features, OpenGL integration, packaging outputs, or
+new data workflows.
+
+### Added and changed
+
+- Added lightweight GUI localization helpers with Chinese as the default
+  language and English as a selectable language.
+- Added a GUI language selector and refreshed main tab labels, display
+  controls, analysis labels, run/cancel/clear buttons, and export controls.
+- Added Waterfall channel/distance x-axis mode helpers. Channel is the GUI
+  default; distance mode uses `dx_m` metadata and falls back to channel mode
+  when spacing metadata is unavailable.
+- Updated Matplotlib waterfall plotting to accept explicit axis modes while
+  keeping the existing auto behavior for callers that do not pass a mode.
+- Updated the experimental PyQtGraph waterfall helper to prepare display data
+  with explicit extents, display-boundary transpose, free visual aspect, and
+  shared display downsampling.
+- Added tooltips for key GUI controls, including file/open controls, display
+  backend, axis mode, selection limits, Waveform, Spectrum, FK, Analysis,
+  cancel/clear, JSON/CSV export, and moveout terminology boundaries.
+
+### Tests
+
+- Added focused i18n, waterfall axis-mode, PyQtGraph preparation, and tooltip
+  tests.
+- Updated GUI smoke tests for Chinese default text while preserving stable
+  language-neutral combo-box data keys.
+
+### Old-code migration judgment
+
+No old_code files were copied, imported, modified, or used for implementation.
+
+### Data and artifact policy confirmation
+
+No real DAS data paths, screenshots, generated validation outputs, JSON/CSV
+files, build artifacts, wheels, archives, or exe files are intended for
+commit.
+
 ## Phase 8E.1: Add root-level manual test entrypoint
 
 Phase 8E.1 adds a repository-root GUI launch convenience for local manual

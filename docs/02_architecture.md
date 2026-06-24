@@ -114,6 +114,9 @@
 - das_view/gui/display_backends.py contains lazy optional display backend
   detection and selection metadata. Matplotlib remains the default backend;
   PyQtGraph and VisPy are optional and are not imported by `import das_view`.
+- das_view/gui/i18n.py contains lightweight dictionary-based GUI localization.
+  Chinese is the default GUI language, English remains selectable, and stable
+  combo-box data keys stay language-neutral for parsers and tests.
 - das_view/gui/pyqtgraph_canvas.py contains the experimental PyQtGraph
   waterfall/image preview helper. It is used only by the GUI path and accepts
   already selected arrays; it does not read DAS files or implement analysis
@@ -208,6 +211,11 @@ Not allowed:
 - `pyqtgraph` is an experimental backend for waterfall/image preview only. It
   uses `ImageItem` through a GUI-only helper and receives NumPy arrays already
   returned by preview/data-service code.
+- Waterfall display keeps the internal `(n_samples, n_channels)` convention.
+  Channel-axis mode is the GUI default. Distance-axis mode uses `dx_m` metadata
+  when available and falls back to channel mode when spacing is unavailable.
+  The PyQtGraph helper prepares an explicit image extent and transposes only at
+  the display boundary because PyQtGraph image coordinates use `(x, y)` order.
 - `vispy` and `PyOpenGL` are optional extras for capability detection in this
   phase. The package does not create an OpenGL context during tests or normal
   import, and deep tiled/streaming OpenGL display is deferred.

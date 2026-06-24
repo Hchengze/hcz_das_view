@@ -801,6 +801,32 @@ Boundaries:
 Recommended next: Phase 9C GPU/display benchmark and manual GUI validation, or
 Phase 8E GUI manual validation and release-candidate signoff.
 
+## Phase 8E.2: GUI localization and usability polish
+
+Status: implemented as GUI usability polish without adding algorithms, readers,
+GPU features, OpenGL integration, or packaging outputs.
+
+Implemented scope:
+
+- GUI defaults to Chinese and provides an English language switch.
+- Waterfall preview supports channel and distance x-axis modes. Channel is the
+  default; distance mode uses spacing metadata and falls back to channel mode
+  when spacing is unavailable.
+- Experimental PyQtGraph waterfall display prepares transposed image data with
+  explicit extents and free visual aspect to avoid thin-strip previews.
+- Main controls, selectors, run/cancel/clear buttons, analysis type selector,
+  and JSON/CSV export controls have concise tooltips.
+
+Boundaries:
+
+- Matplotlib remains the default and stable display backend.
+- PyQtGraph remains experimental and optional.
+- GUI wording continues to treat moveout and directional energy as auxiliary
+  review attributes, not true velocity, localization, or inversion output.
+
+Recommended next: Phase 8F Windows packaging smoke and installer handoff, or
+Phase 8E.3 GUI visual layout polish after manual testing.
+
 ## Phase 8C: Real-world validation package and release-candidate polish
 
 Status: implemented as a release-candidate readiness layer.

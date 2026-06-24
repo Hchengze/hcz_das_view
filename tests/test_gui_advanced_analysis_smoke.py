@@ -98,21 +98,26 @@ def test_main_window_contains_advanced_analysis_types_when_pyqt5_is_available():
     app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
     window = MainWindow()
 
-    labels = [
-        window.analysis_type_combo.itemText(index)
-        for index in range(window.analysis_type_combo.count())
-    ]
     values = [
         window.analysis_type_combo.itemData(index)
         for index in range(window.analysis_type_combo.count())
     ]
 
-    assert "QC report" in labels
-    assert "Denoise report" in labels
-    assert "Moveout summary" in labels
+    assert "质量控制报告" in [
+        window.analysis_type_combo.itemText(index)
+        for index in range(window.analysis_type_combo.count())
+    ]
     assert "qc_report" in values
     assert "multiband_summary" in values
     assert "directional_energy" in values
+    window.language_combo.setCurrentIndex(window.language_combo.findData("en_US"))
+    labels = [
+        window.analysis_type_combo.itemText(index)
+        for index in range(window.analysis_type_combo.count())
+    ]
+    assert "QC report" in labels
+    assert "Denoise report" in labels
+    assert "Moveout summary" in labels
     assert not window.analysis_export_json_button.isEnabled()
     assert not window.analysis_export_csv_button.isEnabled()
     window.close()
